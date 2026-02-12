@@ -8,7 +8,7 @@ FLUTTER_SDK_DIR="$HOME/flutter"
 PATH="$PATH:$FLUTTER_SDK_DIR/bin"
 
 # 1. Install/Verify Flutter
-./scripts/install_flutter.sh
+bash scripts/install_flutter.sh
 
 # 2. Install Melos
 echo "Installing Melos..."
