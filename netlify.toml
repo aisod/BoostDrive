@@ -1,0 +1,11 @@
+[build]
+  command = "bash scripts/build_netlify.sh"
+  publish = "apps/Web/build/web"
+
+[build.environment]
+  FLUTTER_VERSION = "stable"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
