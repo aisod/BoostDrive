@@ -433,6 +433,76 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return Row(
+        children: [
+          // Left Side: Image
+          Expanded(
+            flex: 1,
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage("https://lh3.googleusercontent.com/aida-public/AB6AXuCuAfnKgvQTFU8mdXJOK2OJrSdpcF6QMKvI6MtCv2T_PuowUTuBUYTxnovRCWOeMgWX20Fdpa6ngazsCa0_-jipGQq37sUi9ZbskUd73-uZkY2403hVqKMhDUMbsBkd0ziAG9ADrjcCgutXcPUyzcwP7yp9jbq_dO_Jma3E8CGlLryK-nu_xr2gv3rVZxLZj3aEas8jNt4q2C2SP0dCSVuSaqeNQnM_AVkU5VYP5KnqN10-3azckFoWgiw7Jkar42nxdR9aCLkX6Ps"),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.1),
+                      Colors.black.withOpacity(0.5),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Right Side: Login Widget
+          Expanded(
+            flex: 1,
+            child: Container(
+              color: BoostDriveTheme.backgroundDark,
+              child: Stack(
+                children: [
+                  BoostLoginWidget(
+                    onLogin: _login,
+                    onSignUp: _signUp,
+                    onVerifyOtp: _verifyOtp,
+                    onResendOtp: _resendCode,
+                    onCancelOtp: () {
+                      setState(() {
+                        _verificationId = null;
+                        _errorText = null;
+                        _isLoading = false;
+                      });
+                    },
+                    onForgotPassword: _showForgotPasswordDialog,
+                    onGoogleSignIn: _signInWithGoogle,
+                    onAppleSignIn: _signInWithApple,
+                    isLoading: _isLoading,
+                    isOtpSent: _verificationId != null,
+                    errorText: _errorText,
+                  ),
+                  const Positioned(
+                    top: 10,
+                    right: 10,
+                    child: SizedBox(
+                      height: 48,
+                      width: 48,
+                      child: HtmlElementView(viewType: 'recaptcha-container'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent, 
       body: Stack(
@@ -456,16 +526,6 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
             isOtpSent: _verificationId != null,
             errorText: _errorText,
           ),
-          if (kIsWeb)
-            const Positioned(
-              top: 10,
-              right: 10,
-              child: SizedBox(
-                height: 48,
-                width: 48,
-                child: HtmlElementView(viewType: 'recaptcha-container'),
-              ),
-            ),
         ],
       ),
     );

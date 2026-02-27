@@ -8,8 +8,10 @@ class PremiumPageLayout extends StatelessWidget {
   final Widget? appBar;
   final Widget? footer;
   final Widget? drawer;
+  final Widget? endDrawer;
   final Widget? bottomNavigationBar;
   final bool showBackground;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
   
   // Simplified AppBar properties for Sliver support
   final String? title;
@@ -24,8 +26,10 @@ class PremiumPageLayout extends StatelessWidget {
     this.appBar,
     this.footer,
     this.drawer,
+    this.endDrawer,
     this.bottomNavigationBar,
     this.showBackground = true,
+    this.scaffoldKey,
     this.title,
     this.actions,
     this.leading,
@@ -140,8 +144,10 @@ class PremiumPageLayout extends StatelessWidget {
     }
 
     return Scaffold(
+      key: scaffoldKey,
       backgroundColor: BoostDriveTheme.backgroundDark,
       drawer: drawer,
+      endDrawer: endDrawer,
       bottomNavigationBar: bottomNavigationBar,
       // Standard AppBar only if not using slivers/nested
       appBar: (!useSlivers && !useNested && appBar != null) ? (appBar as PreferredSizeWidget) : null,

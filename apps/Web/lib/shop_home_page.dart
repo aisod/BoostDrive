@@ -32,6 +32,7 @@ class ShopHomePage extends ConsumerStatefulWidget {
 class _ShopHomePageState extends ConsumerState<ShopHomePage> {
   final ProductService _productService = ProductService();
   late Future<List<Product>> _featuredProductsFuture;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -40,17 +41,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
   }
 
   void _showLoginDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: const BoostLoginPage(),
-        ),
-      ),
-    );
+    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   @override
@@ -100,6 +91,16 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
     final isMobile = MediaQuery.of(context).size.width < 900;
 
     return PremiumPageLayout(
+      scaffoldKey: _scaffoldKey,
+      endDrawer: Drawer(
+        width: isMobile ? MediaQuery.of(context).size.width : MediaQuery.of(context).size.width * 0.5,
+        backgroundColor: Colors.white,
+        child: BoostLoginPage(
+          onLoginSuccess: () {
+            _scaffoldKey.currentState?.closeEndDrawer();
+          },
+        ),
+      ),
       drawer: isMobile ? Drawer(
         backgroundColor: BoostDriveTheme.backgroundDark,
         child: ListView(
