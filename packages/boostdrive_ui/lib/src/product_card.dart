@@ -38,7 +38,7 @@ class BoostProductCard extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             hoverColor: Colors.white.withOpacity(0.05),
-            splashColor: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+            splashColor: BoostDriveTheme.primaryColor.withOpacity(0.1),
             highlightColor: Colors.transparent,
             borderRadius: BorderRadius.circular(20),
             child: Column(
@@ -69,7 +69,7 @@ class BoostProductCard extends StatelessWidget {
                                           loadingProgress.expectedTotalBytes!
                                       : null,
                                   strokeWidth: 2,
-                                  color: BoostDriveTheme.primaryBlue.withOpacity(0.3),
+                                  color: BoostDriveTheme.primaryColor.withOpacity(0.3),
                                 ),
                               );
                             },
@@ -100,25 +100,27 @@ class BoostProductCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (product.isFeatured)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: BoostDriveTheme.primaryBlue.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'Featured',
-                                style: TextStyle(
-                                  color: BoostDriveTheme.primaryBlue,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: BoostDriveTheme.primaryColor.withOpacity(0.2),
                               ),
                             ),
+                            child: Text(
+                              _getCategoryLabel(product.category),
+                              style: const TextStyle(
+                                color: BoostDriveTheme.primaryColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -154,7 +156,7 @@ class BoostProductCard extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w900,
-                                    color: BoostDriveTheme.primaryBlue,
+                                    color: BoostDriveTheme.primaryColor,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -166,13 +168,13 @@ class BoostProductCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: BoostDriveTheme.accentBlue.withOpacity(0.1),
+                              color: BoostDriveTheme.accentColor.withOpacity(0.1),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
                               Icons.arrow_forward_ios,
                               size: 16,
-                              color: BoostDriveTheme.accentBlue,
+                              color: BoostDriveTheme.accentColor,
                             ),
                           ),
                         ],
@@ -198,5 +200,18 @@ class BoostProductCard extends StatelessWidget {
         size: 40,
       ),
     );
+  }
+
+  String _getCategoryLabel(String category) {
+    switch (category) {
+      case 'car':
+        return 'Vehicle for Sale';
+      case 'part':
+        return 'Spare Part';
+      case 'rental':
+        return 'For Rent';
+      default:
+        return 'Automotive';
+    }
   }
 }

@@ -15,7 +15,6 @@ class RentalMarketplacePage extends ConsumerStatefulWidget {
 }
 
 class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
-  final ProductService _productService = ProductService();
   final TextEditingController _searchController = TextEditingController();
   
   String? _selectedMake;
@@ -40,7 +39,7 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
   }
 
   Future<List<Product>> _getRentalData([String? query]) {
-    return _productService.searchProducts(
+    return ref.read(productServiceProvider).searchProducts(
       category: 'rental',
       query: query ?? _searchController.text,
       make: _selectedMake,
@@ -64,31 +63,6 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
     });
   }
 
-  void _showListingDialog() {
-    final user = ref.read(currentUserProvider);
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to list your vehicle.')),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        title: const Text('List Your Vehicle', style: TextStyle(color: Colors.white)),
-        content: const Text('P2P Rental Listing form will be implemented here.', style: TextStyle(color: BoostDriveTheme.textDim)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context), 
-            child: const Text('Close', style: TextStyle(color: BoostDriveTheme.primaryBlue))
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return PremiumPageLayout(
@@ -103,23 +77,7 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
           }
         },
       ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: Center(
-            child: ElevatedButton.icon(
-              onPressed: _showListingDialog,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('List My Car'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: BoostDriveTheme.primaryBlue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-            ),
-          ),
-        ),
-      ],
+      actions: const [],
       footer: const AppFooter(),
       headerSlivers: [
         SliverToBoxAdapter(child: _buildHero()),
@@ -132,9 +90,9 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return SliverToBoxAdapter(
                 child: Container(
-                  height: 300,
+                  height: 200,
                   alignment: Alignment.center,
-                  child: const CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+                  child: const CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
                 ),
               );
             }
@@ -142,7 +100,7 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
             if (snapshot.hasError) {
               return SliverToBoxAdapter(
                 child: Container(
-                  height: 300,
+                  height: 200,
                   alignment: Alignment.center,
                   child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)),
                 ),
@@ -235,7 +193,7 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
               decoration: InputDecoration(
                 hintText: 'Search by vehicle name (e.g. Toyota Hilux)...',
                 hintStyle: const TextStyle(color: Colors.white24),
-                prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryBlue),
+                prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.05),
                 border: OutlineInputBorder(
@@ -244,7 +202,7 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: BoostDriveTheme.primaryBlue),
+                  borderSide: const BorderSide(color: BoostDriveTheme.primaryColor),
                 ),
               ),
             ),
@@ -280,7 +238,7 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
                   });
                   _loadRentals();
                 },
-                icon: const Icon(Icons.filter_list_off, size: 20, color: BoostDriveTheme.primaryBlue),
+                icon: const Icon(Icons.filter_list_off, size: 20, color: BoostDriveTheme.primaryColor),
                 label: const Text('Clear Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

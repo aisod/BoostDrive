@@ -8,92 +8,160 @@ class AppFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
     return Container(
       width: double.infinity,
-      color: Colors.transparent,
-      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 64),
+      decoration: BoxDecoration(
+        color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+      ),
+      padding: EdgeInsets.symmetric(
+        vertical: isMobile ? 40 : 80, 
+        horizontal: isMobile ? 24 : 64,
+      ),
       child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Logo & About
-              Expanded(
-                flex: 2,
-                child: Column(
+          if (isMobile)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAboutSection(),
+                const SizedBox(height: 48),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'BoostDrive',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    Expanded(
+                      child: _FooterColumn(
+                        title: 'Marketplace',
+                        links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
+                        onTap: (link) => onLinkTap?.call('Marketplace', link),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'The leading automotive platform in Namibia. Buy parts, rent vehicles, and sell cars with confidence.',
-                      style: TextStyle(color: BoostDriveTheme.textDim, height: 1.6),
-                    ),
-                    const SizedBox(height: 32),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        _SocialButton(icon: Icons.facebook),
-                        _SocialButton(icon: Icons.camera_alt),
-                        _SocialButton(icon: Icons.alternate_email),
-                      ],
+                    Expanded(
+                      child: _FooterColumn(
+                        title: 'Company',
+                        links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
+                        onTap: (link) => onLinkTap?.call('Company', link),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const Spacer(),
-              // Links Section
-              _FooterColumn(
-                title: 'Marketplace',
-                links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
-                onTap: (link) => onLinkTap?.call('Marketplace', link),
-              ),
-              const SizedBox(width: 48),
-              _FooterColumn(
-                title: 'Company',
-                links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
-                onTap: (link) => onLinkTap?.call('Company', link),
-              ),
-              const SizedBox(width: 48),
-              _FooterColumn(
-                title: 'Support',
-                links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
-                onTap: (link) => onLinkTap?.call('Support', link),
-              ),
-            ],
-          ),
+                const SizedBox(height: 32),
+                _FooterColumn(
+                  title: 'Support',
+                  links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
+                  onTap: (link) => onLinkTap?.call('Support', link),
+                ),
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Logo & About
+                Expanded(
+                  flex: 2,
+                  child: _buildAboutSection(),
+                ),
+                const Spacer(),
+                // Links Section
+                _FooterColumn(
+                  title: 'Marketplace',
+                  links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
+                  onTap: (link) => onLinkTap?.call('Marketplace', link),
+                ),
+                const SizedBox(width: 48),
+                _FooterColumn(
+                  title: 'Company',
+                  links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
+                  onTap: (link) => onLinkTap?.call('Company', link),
+                ),
+                const SizedBox(width: 48),
+                _FooterColumn(
+                  title: 'Support',
+                  links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
+                  onTap: (link) => onLinkTap?.call('Support', link),
+                ),
+              ],
+            ),
           const SizedBox(height: 80),
           const Divider(color: Colors.white10),
           const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '© 2026 BoostDrive Namibia. All rights reserved.',
-                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 14, color: BoostDriveTheme.primaryBlue),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'Windhoek, Namibia',
-                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          if (isMobile)
+            const Column(
+              children: [
+                Text(
+                  '© 2026 BoostDrive Namibia. All rights reserved.',
+                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                ),
+                SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.location_on, size: 14, color: Colors.white),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'Windhoek, Namibia',
+                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          else
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '© 2026 BoostDrive Namibia. All rights reserved.',
+                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                ),
+                const Row(
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text(
+                      'Windhoek, Namibia',
+                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ],
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAboutSection() {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'BoostDrive',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        SizedBox(height: 16),
+        Text(
+          'The leading automotive platform in Namibia. Buy parts, rent vehicles, and sell cars with confidence.',
+          style: TextStyle(color: BoostDriveTheme.textDim, height: 1.6),
+        ),
+        SizedBox(height: 32),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _SocialButton(icon: Icons.facebook),
+            _SocialButton(icon: Icons.camera_alt),
+            _SocialButton(icon: Icons.alternate_email),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -13,12 +13,14 @@ dependencies:
   google_fonts: ^6.1.0
   flutter_riverpod: ^2.4.9
   image_picker: ^1.1.2
+  image_cropper: ^8.0.0
   boostdrive_core:
     path: ../boostdrive_core
   boostdrive_auth:
     path: ../boostdrive_auth
   boostdrive_services:
     path: ../boostdrive_services
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:

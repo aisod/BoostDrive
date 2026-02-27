@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:boostdrive_core/boostdrive_core.dart';
 
 class PaymentService {
   final _supabase = Supabase.instance.client;

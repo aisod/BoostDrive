@@ -24,6 +24,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
   String _location = '';
   String _condition = 'used';
   String _category = 'part';
+  String _description = '';
   List<XFile> _selectedImages = [];
 
   // Fitment (Optional)
@@ -75,6 +76,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
         location: _location,
         isFeatured: false,
         createdAt: DateTime.now(),
+        description: _description,
         fitment: (_make != null && _model != null && _year != null)
             ? {
                 'make': _make!,
@@ -144,7 +146,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             decoration: _inputDecoration('Category'),
-                            value: _category,
+                            initialValue: _category,
                             dropdownColor: BoostDriveTheme.surfaceDark,
                             items: const [
                               DropdownMenuItem(value: 'part', child: Text('Part')),
@@ -158,7 +160,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             decoration: _inputDecoration('Condition'),
-                            value: _condition,
+                            initialValue: _condition,
                             dropdownColor: BoostDriveTheme.surfaceDark,
                             items: const [
                               DropdownMenuItem(value: 'new', child: Text('New')),
@@ -213,6 +215,29 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                     ),
 
                     const SizedBox(height: 32),
+                    _buildSectionHeader('Detailed Description'),
+                    TextFormField(
+                      decoration: _inputDecoration('Detailed Item Description (min. 500 chars)')
+                          .copyWith(
+                            alignLabelWithHint: true,
+                            counterText: '${_description.length} / 500 minimum',
+                            counterStyle: TextStyle(
+                              color: _description.length < 500 ? Colors.orange : Colors.green,
+                            ),
+                          ),
+                      maxLines: null,
+                      minLines: 6,
+                      keyboardType: TextInputType.multiline,
+                      onChanged: (v) => setState(() => _description = v),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Description is required';
+                        if (v.length < 500) return 'Description must be at least 500 characters';
+                        return null;
+                      },
+                      onSaved: (v) => _description = v!,
+                    ),
+
+                    const SizedBox(height: 32),
                     _buildSectionHeader('Images'),
                     BoostImagePicker(
                       onChanged: (images) => setState(() => _selectedImages = images),
@@ -227,7 +252,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                       child: ElevatedButton(
                         onPressed: _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: BoostDriveTheme.primaryBlue,
+                          backgroundColor: BoostDriveTheme.primaryColor,
                           foregroundColor: Colors.white, 
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -248,7 +273,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
       child: Text(
         title.toUpperCase(),
         style: const TextStyle(
-          color: BoostDriveTheme.primaryBlue,
+          color: BoostDriveTheme.primaryColor,
           fontSize: 12,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.5,
@@ -264,7 +289,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
       filled: true,
       fillColor: Colors.white.withOpacity(0.05),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BoostDriveTheme.primaryBlue)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor)),
     );
   }
 }

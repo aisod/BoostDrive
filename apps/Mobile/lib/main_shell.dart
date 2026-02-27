@@ -7,8 +7,9 @@ import 'seller_dashboard.dart';
 import 'super_admin_dashboard.dart';
 import 'batlorrih_logistics_dashboard.dart';
 import 'marketplace_page.dart';
-import 'conversations_page.dart';
 import 'providers.dart';
+
+import 'provider_hub.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -33,18 +34,12 @@ class _MainShellState extends ConsumerState<MainShell> {
     Widget body;
     List<BottomNavigationBarItem> navItems;
     
-    if (activeRole == 'service_pro') {
-      body = _buildServiceProBody();
-      navItems = _buildServiceProNav();
-    } else if (activeRole == 'seller') {
-      body = _buildSellerBody();
-      navItems = _buildSellerNav();
+    if (activeRole == 'service_pro' || activeRole == 'seller' || activeRole == 'logistics') {
+      body = _buildProviderBody();
+      navItems = _buildProviderNav();
     } else if (activeRole == 'super_admin') {
       body = _buildSuperAdminBody();
       navItems = _buildSuperAdminNav();
-    } else if (activeRole == 'logistics') {
-      body = _buildLogisticsBody();
-      navItems = _buildLogisticsNav();
     } else {
       body = _buildCustomerBody();
       navItems = _buildCustomerNav();
@@ -70,7 +65,7 @@ class _MainShellState extends ConsumerState<MainShell> {
           currentIndex: _currentIndex,
           onTap: _onTabTapped,
           backgroundColor: BoostDriveTheme.surfaceDark,
-          selectedItemColor: BoostDriveTheme.primaryBlue,
+          selectedItemColor: BoostDriveTheme.primaryColor,
           unselectedItemColor: BoostDriveTheme.textDim,
           type: BottomNavigationBarType.fixed,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
@@ -87,7 +82,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       case 1: return const Center(child: Text('Garage', style: TextStyle(color: Colors.white)));
       case 2: return const MarketplacePage();
       case 3: return const Center(child: Text('Service', style: TextStyle(color: Colors.white)));
-      case 4: return const Center(child: Text('Profile', style: TextStyle(color: Colors.white)));
+      case 4: return const ProfileSettingsPage();
       default: return const CustomerDashboard();
     }
   }
@@ -102,43 +97,24 @@ class _MainShellState extends ConsumerState<MainShell> {
     ];
   }
 
-  Widget _buildServiceProBody() {
+  Widget _buildProviderBody() {
     switch (_currentIndex) {
-      case 0: return const ServiceProDashboard();
-      case 1: return const Center(child: Text('History', style: TextStyle(color: Colors.white)));
-      case 2: return const Center(child: Text('Earnings', style: TextStyle(color: Colors.white)));
-      case 3: return const Center(child: Text('Profile', style: TextStyle(color: Colors.white)));
-      default: return const ServiceProDashboard();
-    }
-  }
-
-  List<BottomNavigationBarItem> _buildServiceProNav() {
-    return const [
-      BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'HOME'),
-      BottomNavigationBarItem(icon: Icon(Icons.history), activeIcon: Icon(Icons.history), label: 'HISTORY'),
-      BottomNavigationBarItem(icon: Icon(Icons.payments_outlined), activeIcon: Icon(Icons.payments), label: 'EARNINGS'),
-      BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'PROFILE'),
-    ];
-  }
-
-  Widget _buildSellerBody() {
-    switch (_currentIndex) {
-      case 0: return const SellerDashboard();
+      case 0: return const ProviderHub();
       case 1: return const Center(child: Text('Inventory', style: TextStyle(color: Colors.white)));
       case 2: return const Center(child: Text('Orders', style: TextStyle(color: Colors.white)));
       case 3: return const Center(child: Text('Services', style: TextStyle(color: Colors.white)));
-      case 4: return const Center(child: Text('Account', style: TextStyle(color: Colors.white)));
-      default: return const SellerDashboard();
+      case 4: return const ProfileSettingsPage();
+      default: return const ProviderHub();
     }
   }
 
-  List<BottomNavigationBarItem> _buildSellerNav() {
+  List<BottomNavigationBarItem> _buildProviderNav() {
     return const [
-      BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), activeIcon: Icon(Icons.grid_view_rounded), label: 'DASHBOARD'),
-      BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), activeIcon: Icon(Icons.inventory_2), label: 'INVENTORY'),
-      BottomNavigationBarItem(icon: Icon(Icons.shopping_cart_outlined), activeIcon: Icon(Icons.shopping_cart), label: 'ORDERS'),
-      BottomNavigationBarItem(icon: Icon(Icons.build_circle_outlined), activeIcon: Icon(Icons.build_circle), label: 'SERVICES'),
-      BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'ACCOUNT'),
+      BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), activeIcon: Icon(Icons.grid_view_rounded), label: 'Dashboard'),
+      BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), activeIcon: Icon(Icons.inventory_2), label: 'Inventory'),
+      BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), activeIcon: Icon(Icons.shopping_bag), label: 'Orders'),
+      BottomNavigationBarItem(icon: Icon(Icons.group_outlined), activeIcon: Icon(Icons.group), label: 'Services'),
+      BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Account'),
     ];
   }
 
@@ -160,25 +136,6 @@ class _MainShellState extends ConsumerState<MainShell> {
       BottomNavigationBarItem(icon: Icon(Icons.group_outlined), activeIcon: Icon(Icons.group), label: 'PARTNERS'),
       BottomNavigationBarItem(icon: Icon(Icons.sos_outlined), activeIcon: Icon(Icons.sos), label: 'SOS FEED'),
       BottomNavigationBarItem(icon: Icon(Icons.menu), activeIcon: Icon(Icons.menu), label: 'MORE'),
-    ];
-  }
-
-  Widget _buildLogisticsBody() {
-    switch (_currentIndex) {
-      case 0: return const BaTLorriHLogisticsDashboard();
-      case 1: return const Center(child: Text('Routes', style: TextStyle(color: Colors.white)));
-      case 2: return const Center(child: Text('Fleet', style: TextStyle(color: Colors.white)));
-      case 3: return const Center(child: Text('Finance', style: TextStyle(color: Colors.white)));
-      default: return const BaTLorriHLogisticsDashboard();
-    }
-  }
-
-  List<BottomNavigationBarItem> _buildLogisticsNav() {
-    return const [
-      BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), activeIcon: Icon(Icons.grid_view_rounded), label: 'HOME'),
-      BottomNavigationBarItem(icon: Icon(Icons.route_outlined), activeIcon: Icon(Icons.route), label: 'ROUTES'),
-      BottomNavigationBarItem(icon: Icon(Icons.group_outlined), activeIcon: Icon(Icons.group), label: 'FLEET'),
-      BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), activeIcon: Icon(Icons.analytics), label: 'FINANCE'),
     ];
   }
 }

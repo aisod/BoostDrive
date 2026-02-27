@@ -20,6 +20,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
   late TextEditingController _subtitleController;
   late TextEditingController _priceController;
   late TextEditingController _locationController;
+  late TextEditingController _descriptionController;
   
   late String _category;
   late String _condition;
@@ -36,6 +37,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
     _locationController = TextEditingController(text: widget.product.location);
     _category = widget.product.category;
     _condition = widget.product.condition;
+    _descriptionController = TextEditingController(text: widget.product.description);
     _existingImageUrls = List.from(widget.product.imageUrls);
   }
 
@@ -45,6 +47,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
     _subtitleController.dispose();
     _priceController.dispose();
     _locationController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -78,6 +81,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
         category: _category,
         location: _locationController.text,
         condition: _condition,
+        description: _descriptionController.text,
       );
 
       await productService.updateProduct(updatedProduct);
@@ -112,7 +116,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _category,
                 decoration: const InputDecoration(labelText: 'Category'),
                 dropdownColor: BoostDriveTheme.surfaceDark,
                 items: const [
@@ -124,7 +128,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
               ),
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
-                value: _condition,
+                initialValue: _condition,
                 decoration: const InputDecoration(labelText: 'Condition'),
                 dropdownColor: BoostDriveTheme.surfaceDark,
                 items: const [
@@ -156,8 +160,28 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
               const SizedBox(height: 20),
               TextFormField(
                 controller: _locationController,
-                decoration: const InputDecoration(labelText: 'Location'),
                 validator: (v) => v!.isEmpty ? 'Enter a location' : null,
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: null,
+                minLines: 5,
+                keyboardType: TextInputType.multiline,
+                decoration: InputDecoration(
+                  labelText: 'Detailed Description',
+                  alignLabelWithHint: true,
+                  counterText: '${_descriptionController.text.length} / 500 minimum',
+                  counterStyle: TextStyle(
+                    color: _descriptionController.text.length < 500 ? Colors.orange : Colors.green,
+                  ),
+                ),
+                onChanged: (v) => setState(() {}),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Description is required';
+                  if (v.length < 500) return 'Description must be at least 500 characters';
+                  return null;
+                },
               ),
               const SizedBox(height: 40),
               const Text('Photos', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -201,7 +225,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryBlue,
+                    backgroundColor: BoostDriveTheme.primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),

@@ -15,6 +15,7 @@ class BoostLoginWidget extends StatefulWidget {
   }) onSignUp;
   final Function(String otp) onVerifyOtp;
   final VoidCallback? onResendOtp;
+  final VoidCallback? onCancelOtp;
   final VoidCallback? onForgotPassword;
   final VoidCallback? onGoogleSignIn;
   final VoidCallback? onAppleSignIn;
@@ -28,6 +29,7 @@ class BoostLoginWidget extends StatefulWidget {
     required this.onSignUp,
     required this.onVerifyOtp,
     this.onResendOtp,
+    this.onCancelOtp,
     this.onForgotPassword,
     this.onGoogleSignIn,
     this.onAppleSignIn,
@@ -130,7 +132,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
         widget.onSignUp(
           fullName: _nameController.text,
           email: _emailController.text,
-          phone: _phoneController.text,
+          phone: '', // Phone number removed from UI
           password: _passwordController.text,
           role: _selectedRole!,
           username: _usernameController.text,
@@ -231,10 +233,10 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           ),
                           const SizedBox(height: 32),
                           
-                          _buildLabel('Email or Username'),
+                          _buildLabel('Email'),
                           TextFormField(
                             controller: _emailController,
-                            decoration: _inputDecoration('Enter your email', Icons.person_outline),
+                            decoration: _inputDecoration('Enter your email', Icons.mail_outline),
                             style: const TextStyle(color: Colors.white),
                             validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
                           ),
@@ -250,30 +252,12 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           ),
                           
                           const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: Checkbox(
-                                      value: true, 
-                                      onChanged: (_) {},
-                                      fillColor: MaterialStateProperty.all(BoostDriveTheme.primaryBlue),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('Remember Me', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                                ],
-                              ),
-                              TextButton(
-                                onPressed: widget.onForgotPassword,
-                                child: const Text('Forgot Password?', style: TextStyle(color: BoostDriveTheme.primaryBlue, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: widget.onForgotPassword,
+                              child: const Text('Forgot Password?', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
+                            ),
                           ),
                           
                           if (widget.errorText != null) ...[
@@ -294,28 +278,6 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           ),
                           
                           const SizedBox(height: 32),
-                          Row(
-                            children: [
-                              Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  'OR CONTINUE WITH',
-                                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5),
-                                ),
-                              ),
-                              Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
-                            ],
-                          ),
-                          
-                          const SizedBox(height: 32),
-                          Row(
-                            children: [
-                              Expanded(child: _buildSocialButton('Google', 'G', widget.onGoogleSignIn)),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildSocialButton('Apple', Icons.apple, widget.onAppleSignIn)),
-                            ],
-                          ),
                           
                           const SizedBox(height: 32),
                           Center(
@@ -325,7 +287,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 const Text("Don't have an account?", style: TextStyle(color: Colors.white60)),
                                 TextButton(
                                   onPressed: () => setState(() => _isSignUp = true),
-                                  child: const Text('Sign Up', style: TextStyle(color: BoostDriveTheme.primaryBlue, fontWeight: FontWeight.bold)),
+                                  child: const Text('Sign Up', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
@@ -353,7 +315,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: widget.onResendOtp,
+              onPressed: widget.onCancelOtp,
             ),
             title: const Text('Verify Identity', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
           ),
@@ -364,7 +326,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                 key: _otpFormKey,
                 child: Column(
                   children: [
-                    const Icon(Icons.mark_email_read_outlined, size: 80, color: BoostDriveTheme.primaryBlue),
+                    const Icon(Icons.mark_email_read_outlined, size: 80, color: BoostDriveTheme.primaryColor),
                     const SizedBox(height: 32),
                     const Text(
                       'Enter Verification Code',
@@ -372,11 +334,17 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'We have sent a 6-digit code to your email/phone.',
+                      'We have sent a 6-digit code to your email.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'If you don\'t see it, please check your spam folder.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white38, fontSize: 12),
+                    ),
+                    const SizedBox(height: 40),
                     
                     TextFormField(
                       controller: _otpController,
@@ -416,7 +384,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           ? 'Resend code in ${_formatDuration(_secondsRemaining)}'
                           : 'Resend Verification Code',
                         style: TextStyle(
-                          color: _secondsRemaining == 0 ? BoostDriveTheme.primaryBlue : Colors.white38,
+                          color: _secondsRemaining == 0 ? BoostDriveTheme.primaryColor : Colors.white38,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -455,7 +423,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                   width: 48,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: BoostDriveTheme.primaryBlue,
+                    color: BoostDriveTheme.primaryColor,
                     borderRadius: BorderRadius.circular(100),
                   ),
                 ),
@@ -498,10 +466,8 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       crossAxisSpacing: 16,
                       childAspectRatio: 1.2,
                       children: [
-                        _buildRoleCard('Customer', 'Owner or Driver', Icons.directions_car),
-                        _buildRoleCard('Service Pro', 'Mechanic / Towing', Icons.build),
-                        _buildRoleCard('Seller', 'Parts / Salvage', Icons.storefront),
-                        _buildRoleCard('Vehicle Host', 'Rental Provider', Icons.key),
+                        _buildRoleCard('Customer', 'Owner, Seller or Driver', Icons.directions_car),
+                        _buildRoleCard('Service Provider', 'Professional Services', Icons.build),
                       ],
                     ),
                     
@@ -533,14 +499,6 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     ),
                     const SizedBox(height: 20),
                     
-                    _buildLabel('PHONE NUMBER'),
-                    TextFormField(
-                      controller: _phoneController,
-                      decoration: _inputDecoration('+1 (555) 000-0000', Icons.smartphone),
-                      style: const TextStyle(color: Colors.white),
-                      validator: (v) => v == null || v.isEmpty ? 'Phone is required' : null,
-                    ),
-                    const SizedBox(height: 20),
                     
                     _buildLabel('PASSWORD'),
                     TextFormField(
@@ -579,9 +537,9 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       height: 56,
                       child: ElevatedButton(
                         onPressed: widget.isLoading ? null : _submit,
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Text('Create Account'),
                             SizedBox(width: 8),
                             Icon(Icons.arrow_forward, size: 20),
@@ -591,28 +549,6 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     ),
                     
                     const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'OR CONTINUE WITH',
-                            style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5),
-                          ),
-                        ),
-                        Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Expanded(child: _buildSocialButton('Google', 'G', widget.onGoogleSignIn)),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildSocialButton('Apple', Icons.apple, widget.onAppleSignIn)),
-                      ],
-                    ),
                     
                     const SizedBox(height: 32),
                     const Text(
@@ -628,7 +564,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           const Text('Already have an account?', style: TextStyle(color: Colors.white60)),
                           TextButton(
                             onPressed: () => setState(() => _isSignUp = false),
-                            child: const Text('Login', style: TextStyle(color: BoostDriveTheme.primaryBlue, fontWeight: FontWeight.bold)),
+                            child: const Text('Login', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -677,10 +613,10 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? BoostDriveTheme.primaryBlue.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+          color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.1) : Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? BoostDriveTheme.primaryBlue : Colors.transparent,
+            color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
             width: 2,
           ),
         ),
@@ -691,10 +627,10 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+                color: BoostDriveTheme.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: BoostDriveTheme.primaryBlue, size: 24),
+              child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

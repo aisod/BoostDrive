@@ -7,7 +7,6 @@ export 'src/product_service.dart';
 export 'src/booking_service.dart';
 export 'src/providers.dart';
 export 'src/message_service.dart';
-export 'src/ai_chat_helper.dart';
 export 'src/user_service.dart';
 export 'src/payment_service.dart';
 export 'src/vehicle_service.dart';

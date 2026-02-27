@@ -72,10 +72,10 @@ class SafetyCenterPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+            color: BoostDriveTheme.primaryColor.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: BoostDriveTheme.primaryBlue, size: 24),
+          child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
         ),
         const SizedBox(width: 24),
         Expanded(
@@ -158,7 +158,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                 SizedBox(height: 32),
                 Text(
                   'Information We Collect',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryBlue),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor),
                 ),
                 SizedBox(height: 12),
                 Text(
@@ -168,7 +168,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                 SizedBox(height: 24),
                 Text(
                   'How We Use Your Information',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryBlue),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor),
                 ),
                 SizedBox(height: 12),
                 Text(

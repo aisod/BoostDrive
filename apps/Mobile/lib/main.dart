@@ -4,6 +4,7 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'auth_gate.dart';
 import 'package:boostdrive_services/src/seed_data.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'web_utils.dart';
 
 void main() async {
@@ -14,12 +15,19 @@ void main() async {
   WebUtils.registerViewFactory('recaptcha-container', 'recaptcha-container');
   
 
+  // Load .env
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print("DEBUG: Error loading .env file: $e");
+  }
+
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'https://jpkkielcwlssmictmjrl.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa2tpZWxjd2xzc21pY3RtanJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4ODUzMTcsImV4cCI6MjA4NTQ2MTMxN30.sKkXhWmx0O6ZdszDRdzCYcz9hZPgxXJuDumzHlkCy8c',
+    url: dotenv.maybeGet('SUPABASE_URL') ?? '',
+    anonKey: dotenv.maybeGet('SUPABASE_ANON_KEY') ?? '',
   );
-  
+
   runApp(
     const ProviderScope(
       child: BoostDriveMobileApp(),
@@ -54,7 +62,7 @@ class BoostDriveMobileApp extends StatelessWidget {
               ),
             ),
             // App Content
-            if (child != null) child,
+            ?child,
           ],
         );
       },

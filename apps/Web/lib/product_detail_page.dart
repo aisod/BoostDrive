@@ -21,11 +21,30 @@ class ProductDetailPage extends ConsumerStatefulWidget {
 class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   late Product _currentProduct;
   bool _hasChanges = false;
+  String? _existingConversationId;
 
   @override
   void initState() {
     super.initState();
     _currentProduct = widget.product;
+    _checkExistingConversation();
+  }
+
+  Future<void> _checkExistingConversation() async {
+    final user = ref.read(currentUserProvider);
+    if (user == null || _currentProduct.sellerId == null) return;
+
+    final conversationId = await ref.read(messageServiceProvider).findExistingConversation(
+      productId: _currentProduct.id,
+      buyerId: user.id,
+      sellerId: _currentProduct.sellerId!,
+    );
+
+    if (mounted) {
+      setState(() {
+        _existingConversationId = conversationId;
+      });
+    }
   }
 
   void _handleDelete() async {
@@ -144,27 +163,30 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _currentProduct.title,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _currentProduct.title,
+                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            _currentProduct.subtitle,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: BoostDriveTheme.textDim,
+                            Text(
+                              _currentProduct.subtitle,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: BoostDriveTheme.textDim,
+                              ),
                             ),
-                          ),
-                        ],
-                       ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
                       Text(
                         'N\$ ${_currentProduct.price.toStringAsFixed(2)}',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: BoostDriveTheme.primaryBlue,
+                          color: BoostDriveTheme.primaryColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -184,6 +206,14 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                     Text(
                       '${_currentProduct.fitment!['make']} ${_currentProduct.fitment!['model']} (${_currentProduct.fitment!['year']})',
                       style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                  if (_currentProduct.description.isNotEmpty) ...[
+                    const SizedBox(height: 32),
+                    _buildSectionTitle(context, 'Description'),
+                    Text(
+                      _currentProduct.description,
+                      style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.white),
                     ),
                   ],
                   const SizedBox(height: 40),
@@ -229,18 +259,56 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   else
                     SizedBox(
                       width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () => _handleAction(context, ref),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: BoostDriveTheme.primaryBlue,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(
-                          _currentProduct.category == 'rental' ? 'Rent Now' : 'Message Seller',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
+                      child: Column(
+                        children: [
+                          if (_existingConversationId != null) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MessagesPage(initialConversationId: _existingConversationId),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white.withOpacity(0.05),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: const BorderSide(color: Colors.white10),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'View Conversation',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: () => _handleAction(context, ref),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: BoostDriveTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: Text(
+                                _currentProduct.category == 'rental' 
+                                  ? 'Rent Now' 
+                                  : (_existingConversationId != null ? 'Message Seller Again' : 'Message Seller'),
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -292,7 +360,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryBlue),
+            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
             child: const Text('Pay Securely Online'),
           ),
         ],
@@ -325,7 +393,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
             context: context,
             barrierDismissible: false,
             builder: (context) => const Center(
-              child: CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+              child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
             ),
           );
 
@@ -389,7 +457,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: BoostDriveTheme.primaryBlue,
+                  backgroundColor: BoostDriveTheme.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -452,7 +520,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: BoostDriveTheme.primaryBlue,
+              backgroundColor: BoostDriveTheme.primaryColor,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -467,7 +535,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(
-          child: CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+          child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
         ),
       );
 
@@ -496,7 +564,12 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           content: messageController.text,
         );
 
-        if (context.mounted) Navigator.pop(context); // Remove loading
+        if (context.mounted) {
+          setState(() {
+            _existingConversationId = conversationId;
+          });
+          Navigator.pop(context); // Remove loading
+        }
 
         if (context.mounted) {
           showDialog(
@@ -534,7 +607,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: BoostDriveTheme.primaryBlue,
+                        backgroundColor: BoostDriveTheme.primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -595,7 +668,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
             const SizedBox(height: 12),
             const Text(
               'NOTE: Payment confirms booking.',
-              style: TextStyle(color: BoostDriveTheme.primaryBlue, fontWeight: FontWeight.bold),
+              style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             Container(
@@ -610,7 +683,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                    const Text('Total Price:', style: TextStyle(color: Colors.white70)),
                   Text(
                     'N\$ ${_currentProduct.price.toStringAsFixed(2)}',
-                    style: const TextStyle(color: BoostDriveTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 18),
+                    style: const TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ],
               ),
@@ -625,7 +698,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: BoostDriveTheme.primaryBlue,
+              backgroundColor: BoostDriveTheme.primaryColor,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -640,7 +713,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(
-          child: CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+          child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
         ),
       );
 
@@ -684,7 +757,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: BoostDriveTheme.primaryBlue,
+                        backgroundColor: BoostDriveTheme.primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

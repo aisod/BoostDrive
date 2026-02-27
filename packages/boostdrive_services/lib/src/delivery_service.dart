@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
+import 'providers.dart';
 
 class DeliveryService {
   final _supabase = Supabase.instance.client;
@@ -52,5 +53,27 @@ final deliveryServiceProvider = Provider<DeliveryService>((ref) {
 });
 
 final activeDeliveriesProvider = StreamProvider.family<List<DeliveryOrder>, String>((ref, userId) {
+  // Watch the refresh trigger for manual updates
+  ref.watch(dashboardRefreshProvider);
+  
+  // Add 20-second polling fallback for external status changes
+  // ignore: unused_local_variable
+  final keepAlive = Stream.periodic(const Duration(seconds: 20)).listen((_) {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => keepAlive.cancel());
+
   return ref.watch(deliveryServiceProvider).getActiveDeliveries(userId);
+});
+
+final globalVolumeProvider = StreamProvider<double>((ref) {
+  return ref.watch(deliveryServiceProvider).getGlobalVolume();
+});
+
+final singleDeliveryProvider = StreamProvider.family<DeliveryOrder?, String>((ref, orderId) {
+  return Supabase.instance.client
+      .from('delivery_orders')
+      .stream(primaryKey: ['id'])
+      .eq('id', orderId)
+      .map((data) => data.isEmpty ? null : DeliveryOrder.fromMap(data.first));
 });

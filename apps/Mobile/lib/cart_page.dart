@@ -47,7 +47,7 @@ class _CartPageState extends ConsumerState<CartPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryBlue),
+            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
             child: const Text('Pay Securely Online'),
           ),
         ],
@@ -79,7 +79,7 @@ class _CartPageState extends ConsumerState<CartPage> {
             context: context,
             barrierDismissible: false,
             builder: (context) => const Center(
-              child: CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+              child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
             ),
           );
 
@@ -150,7 +150,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                   Navigator.pop(context); // Close cart
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: BoostDriveTheme.primaryBlue,
+                  backgroundColor: BoostDriveTheme.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -186,7 +186,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                   Navigator.of(context).pop(); // Close dialog
                   Navigator.of(context).pop(); // Close cart
                 },
-                child: const Text('OK', style: TextStyle(color: BoostDriveTheme.primaryBlue)),
+                child: const Text('OK', style: TextStyle(color: BoostDriveTheme.primaryColor)),
               ),
             ],
           ),
@@ -265,7 +265,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(item.product.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                Text('N\$ ${item.product.price.toStringAsFixed(2)}', style: const TextStyle(color: BoostDriveTheme.primaryBlue)),
+                                Text('N\$ ${item.product.price.toStringAsFixed(2)}', style: const TextStyle(color: BoostDriveTheme.primaryColor)),
                                 if (item.product.category == 'rental') ...[
                                   Text(
                                     '${item.rentalStartDate?.toString().split(" ")[0]} - ${item.rentalEndDate?.toString().split(" ")[0]}',
@@ -314,7 +314,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                 child: ElevatedButton(
                   onPressed: cartItems.isEmpty || _isLoading ? null : _handleCheckout,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryBlue,
+                    backgroundColor: BoostDriveTheme.primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

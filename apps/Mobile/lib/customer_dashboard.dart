@@ -1,6 +1,10 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'providers.dart';
 
 class CustomerDashboard extends ConsumerStatefulWidget {
@@ -18,6 +22,15 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
 
     return PremiumPageLayout(
       showBackground: true,
+      appBar: AppBar(
+        backgroundColor: BoostDriveTheme.primaryColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Customer Dashboard',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: SingleChildScrollView(
@@ -54,7 +67,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               radius: 24,
               backgroundColor: BoostDriveTheme.surfaceDark,
               backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-              child: profile.profileImg.isEmpty ? const Icon(Icons.person, color: BoostDriveTheme.primaryBlue) : null,
+              child: profile.profileImg.isEmpty ? const Icon(Icons.person, color: BoostDriveTheme.primaryColor) : null,
             ),
             const SizedBox(width: 12),
             Column(
@@ -75,14 +88,82 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               ],
             ),
             const Spacer(),
-            _buildHeaderIcon(Icons.notifications_none_rounded),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                GestureDetector(
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (context) => NotificationsOverlay(
+                      onNotificationTap: (type, id) {
+                        if (type == 'message') {
+                          // Find the conversation from the stream or just navigate
+                          // For mobile, we might need more info or just use the ID
+                          // ConversationsPage handles the list, ChatPage handles the specific chat
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                conversationId: id,
+                                productTitle: 'Chat', // Fallback title
+                                buyerId: '', // These will be fetched in ChatPage or should be passed
+                                sellerId: '',
+                              ),
+                            ),
+                          );
+                        } else if (type == 'delivery') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ServiceTrackingPage(orderId: id),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  child: _buildHeaderIcon(Icons.notifications_none_rounded),
+                ),
+                ref.watch(unreadConversationsProvider(uid)).when(
+                  data: (unreadIds) {
+                    if (unreadIds.isEmpty) return const SizedBox();
+                    return Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: BoostDriveTheme.surfaceDark,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${unreadIds.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  },
+                  loading: () => const SizedBox(),
+                  error: (_, __) => const SizedBox(),
+                ),
+              ],
+            ),
             const SizedBox(width: 12),
             _buildHeaderIcon(Icons.settings_outlined),
           ],
         );
       },
       loading: () => const CircularProgressIndicator(),
-      error: (_, __) => const Text('Error loading header'),
+      error: (_, _) => const Text('Error loading header'),
     );
   }
 
@@ -129,12 +210,12 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+                  color: BoostDriveTheme.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
                   'PARTNER PORTAL',
-                  style: TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                  style: TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
               ),
             ],
@@ -160,10 +241,10 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: isActive ? BoostDriveTheme.primaryBlue.withOpacity(0.05) : Colors.white.withOpacity(0.02),
+        color: isActive ? BoostDriveTheme.primaryColor.withOpacity(0.05) : Colors.white.withOpacity(0.02),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActive ? BoostDriveTheme.primaryBlue.withOpacity(0.5) : Colors.white.withOpacity(0.05),
+          color: isActive ? BoostDriveTheme.primaryColor.withOpacity(0.5) : Colors.white.withOpacity(0.05),
           width: isActive ? 1.5 : 1,
         ),
       ),
@@ -175,7 +256,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: isActive ? BoostDriveTheme.primaryBlue : Colors.white38, size: 20),
+            child: Icon(icon, color: isActive ? BoostDriveTheme.primaryColor : Colors.white38, size: 20),
           ),
           const SizedBox(width: 12),
           Column(
@@ -196,10 +277,10 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryBlue.withOpacity(0.2),
+                color: BoostDriveTheme.primaryColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text('Current', style: TextStyle(color: BoostDriveTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)),
+              child: const Text('Current', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
             )
           else if (isLocked)
             ElevatedButton(
@@ -229,8 +310,8 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               },
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(80, 40),
-                side: BorderSide(color: BoostDriveTheme.primaryBlue.withOpacity(0.5)),
-                foregroundColor: BoostDriveTheme.primaryBlue,
+                side: BorderSide(color: BoostDriveTheme.primaryColor.withOpacity(0.5)),
+                foregroundColor: BoostDriveTheme.primaryColor,
               ),
               child: const Text('Switch to...', style: TextStyle(fontSize: 12)),
             ),
@@ -288,7 +369,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Text('Error loading garage'),
+          error: (_, _) => const Text('Error loading garage'),
         ),
       ],
     );
@@ -382,7 +463,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Text('Error loading orders'),
+          error: (_, _) => const Text('Error loading orders'),
         ),
       ],
     );
@@ -404,11 +485,11 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.local_shipping, color: BoostDriveTheme.primaryBlue, size: 20),
+                  const Icon(Icons.local_shipping, color: BoostDriveTheme.primaryColor, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     o.status.toUpperCase().replaceAll('_', ' '),
-                    style: const TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                    style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                   ),
                 ],
               ),
@@ -442,7 +523,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
                       height: 6,
                       width: o.status == 'delivered' ? 400 : 150, // Dummy width for progress
                       decoration: BoxDecoration(
-                        color: BoostDriveTheme.primaryBlue,
+                        color: BoostDriveTheme.primaryColor,
                         borderRadius: BorderRadius.circular(100),
                       ),
                     ),
@@ -452,7 +533,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               const SizedBox(width: 12),
               Text(
                 o.eta.isNotEmpty ? o.eta : 'N/A',
-                style: const TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -503,11 +584,11 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
                 );
               },
               loading: () => const SizedBox(),
-              error: (_, __) => const SizedBox(),
+              error: (_, _) => const SizedBox(),
             );
           },
           loading: () => const SizedBox(),
-          error: (_, __) => const SizedBox(),
+          error: (_, _) => const SizedBox(),
         ),
       ],
     );
@@ -521,11 +602,11 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: BoostDriveTheme.primaryBlue.withOpacity(0.05),
+              color: BoostDriveTheme.primaryColor.withOpacity(0.05),
               shape: BoxShape.circle,
-              border: Border.all(color: BoostDriveTheme.primaryBlue.withOpacity(0.2)),
+              border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.2)),
             ),
-            child: Icon(icon, color: BoostDriveTheme.primaryBlue, size: 22),
+            child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 22),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -566,7 +647,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               children: [
                 const Text(
                   'BOOSTDRIVE.SHOP',
-                  style: TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                  style: TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
                 const SizedBox(height: 8),
                 const Text(

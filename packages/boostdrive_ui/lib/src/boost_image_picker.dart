@@ -70,7 +70,7 @@ class _BoostImagePickerState extends State<BoostImagePicker> {
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.5,
-                color: BoostDriveTheme.primaryBlue,
+                color: BoostDriveTheme.primaryColor,
               ),
             ),
             Text(
@@ -80,7 +80,7 @@ class _BoostImagePickerState extends State<BoostImagePicker> {
           ],
         ),
         const SizedBox(height: 16),
-        Container(
+        SizedBox(
           height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
@@ -112,7 +112,7 @@ class _BoostImagePickerState extends State<BoostImagePicker> {
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_a_photo_outlined, color: BoostDriveTheme.primaryBlue, size: 32),
+            Icon(Icons.add_a_photo_outlined, color: BoostDriveTheme.primaryColor, size: 32),
             SizedBox(height: 8),
             Text(
               'Add Photo',

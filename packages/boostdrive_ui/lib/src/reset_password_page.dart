@@ -77,7 +77,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
           key: _formKey,
           child: Column(
             children: [
-              const Icon(Icons.lock_reset, size: 80, color: BoostDriveTheme.primaryBlue),
+              const Icon(Icons.lock_reset, size: 80, color: BoostDriveTheme.primaryColor),
               const SizedBox(height: 32),
               const Text(
                 'Create New Password',

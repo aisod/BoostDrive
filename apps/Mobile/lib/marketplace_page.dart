@@ -23,6 +23,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
     super.initState();
     _selectedCategory = widget.initialCategory ?? 'all';
   }
+  @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(featuredProductsProvider);
     final user = ref.watch(authStateProvider).value?.session?.user;
@@ -51,7 +52,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
             child: Text(
               profile.isSeller ? 'S' : 'B',
               style: TextStyle(
-                color: profile.isSeller ? BoostDriveTheme.primaryBlue : Colors.blue,
+                color: profile.isSeller ? BoostDriveTheme.primaryColor : Colors.blue,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -91,7 +92,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
           // or we force refresh if it's a FutureProvider)
            ref.refresh(featuredProductsProvider);
         },
-        backgroundColor: BoostDriveTheme.primaryBlue,
+        backgroundColor: BoostDriveTheme.primaryColor,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Sell Item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
@@ -207,17 +208,17 @@ class _CategoryChip extends StatelessWidget {
         label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        selectedColor: BoostDriveTheme.primaryBlue.withOpacity(0.2),
-        checkmarkColor: BoostDriveTheme.primaryBlue,
+        selectedColor: BoostDriveTheme.primaryColor.withOpacity(0.2),
+        checkmarkColor: BoostDriveTheme.primaryColor,
         labelStyle: TextStyle(
-          color: isSelected ? BoostDriveTheme.primaryBlue : BoostDriveTheme.textDim,
+          color: isSelected ? BoostDriveTheme.primaryColor : BoostDriveTheme.textDim,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
         backgroundColor: BoostDriveTheme.surfaceDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: isSelected ? BoostDriveTheme.primaryBlue : Colors.transparent,
+            color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
           ),
         ),
       ),

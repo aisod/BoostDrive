@@ -57,7 +57,7 @@ class CareersPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
             child: Column(
               children: [
-                const Icon(Icons.rocket_launch_outlined, size: 80, color: BoostDriveTheme.primaryBlue),
+                const Icon(Icons.rocket_launch_outlined, size: 80, color: BoostDriveTheme.primaryColor),
                 const SizedBox(height: 32),
                 const Text(
                   'Build the Future of Mobility.',
@@ -192,7 +192,7 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryBlue),
+          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor),
         ),
         const SizedBox(height: 4),
         Text(
@@ -237,7 +237,7 @@ class _JobListing extends StatelessWidget {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Close', style: TextStyle(color: BoostDriveTheme.primaryBlue)),
+                    child: const Text('Close', style: TextStyle(color: BoostDriveTheme.primaryColor)),
                   ),
                 ],
               ),

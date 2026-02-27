@@ -7,6 +7,8 @@ class PremiumPageLayout extends StatelessWidget {
   final List<Widget>? headerSlivers;
   final Widget? appBar;
   final Widget? footer;
+  final Widget? drawer;
+  final Widget? bottomNavigationBar;
   final bool showBackground;
   
   // Simplified AppBar properties for Sliver support
@@ -21,6 +23,8 @@ class PremiumPageLayout extends StatelessWidget {
     this.headerSlivers,
     this.appBar,
     this.footer,
+    this.drawer,
+    this.bottomNavigationBar,
     this.showBackground = true,
     this.title,
     this.actions,
@@ -33,18 +37,14 @@ class PremiumPageLayout extends StatelessWidget {
     final bool useNested = headerSlivers != null;
     
     // Background decoration is safer than a Stack for hit-testing on Web
-    final BoxDecoration? decoration = showBackground ? BoxDecoration(
+    final BoxDecoration decoration = showBackground ? BoxDecoration(
       color: BoostDriveTheme.backgroundDark,
-      image: DecorationImage(
+      image: const DecorationImage(
         image: AssetImage(
           BoostDriveTheme.globalBackgroundImage,
           package: 'boostdrive_ui',
         ),
         fit: BoxFit.cover,
-        colorFilter: ColorFilter.mode(
-          BoostDriveTheme.backgroundDark.withOpacity(0.85),
-          BlendMode.darken,
-        ),
       ),
     ) : const BoxDecoration(color: BoostDriveTheme.backgroundDark);
 
@@ -70,7 +70,7 @@ class PremiumPageLayout extends StatelessWidget {
                 elevation: 0,
                 floating: false,
                 pinned: true,
-                centerTitle: true,
+                centerTitle: false,
               )
             else if (appBar != null)
               SliverToBoxAdapter(
@@ -112,7 +112,7 @@ class PremiumPageLayout extends StatelessWidget {
               elevation: 0,
               floating: false,
               pinned: true,
-              centerTitle: true,
+              centerTitle: false,
             )
           else if (appBar != null)
             SliverToBoxAdapter(
@@ -141,6 +141,8 @@ class PremiumPageLayout extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: BoostDriveTheme.backgroundDark,
+      drawer: drawer,
+      bottomNavigationBar: bottomNavigationBar,
       // Standard AppBar only if not using slivers/nested
       appBar: (!useSlivers && !useNested && appBar != null) ? (appBar as PreferredSizeWidget) : null,
       body: Container(

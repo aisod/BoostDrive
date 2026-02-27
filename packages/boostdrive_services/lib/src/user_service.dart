@@ -9,7 +9,6 @@ class UserService {
   Future<String?> checkDuplicateAccount({
     required String email,
     required String phone,
-    required String role,
   }) async {
     try {
       final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
@@ -25,12 +24,11 @@ class UserService {
           .from('profiles')
           .select()
           .or('email.eq.${email.trim()},phone_number.eq.$formattedPhone')
-          .eq('role', role)
           .maybeSingle();
 
       if (response != null) {
-        if (response['email'] == email.trim()) return 'An account with this email already exists for this role.';
-        if (response['phone_number'] == formattedPhone) return 'An account with this phone number already exists for this role.';
+        if (response['email'] == email.trim()) return 'An account with this email already exists.';
+        if (response['phone_number'] == formattedPhone) return 'An account with this phone number already exists.';
       }
       return null;
     } catch (e) {
@@ -114,6 +112,14 @@ final userServiceProvider = Provider<UserService>((ref) {
   return UserService();
 });
 
-final userProfileProvider = StreamProvider.autoDispose.family<UserProfile?, String>((ref, uid) {
-  return ref.watch(userServiceProvider).streamProfile(uid);
+final userProfileProvider = FutureProvider.autoDispose.family<UserProfile?, String>((ref, uid) {
+  return ref.watch(userServiceProvider).getProfile(uid);
+});
+
+final userCountProvider = StreamProvider<int>((ref) {
+  return ref.watch(userServiceProvider).getUserCount();
+});
+
+final pendingVerificationsProvider = StreamProvider<List<UserProfile>>((ref) {
+  return ref.watch(userServiceProvider).getPendingVerifications();
 });

@@ -84,7 +84,7 @@ class _PartsMarketplacePageState extends ConsumerState<PartsMarketplacePage> {
                 child: Container(
                   height: 300,
                   alignment: Alignment.center,
-                  child: const CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+                  child: const CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
                 ),
               );
             }
@@ -182,7 +182,7 @@ class _PartsMarketplacePageState extends ConsumerState<PartsMarketplacePage> {
               decoration: InputDecoration(
                 hintText: 'Search by part name (e.g. Brake Pads)...',
                 hintStyle: const TextStyle(color: Colors.white24),
-                prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryBlue),
+                prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.05),
                 border: OutlineInputBorder(
@@ -191,7 +191,7 @@ class _PartsMarketplacePageState extends ConsumerState<PartsMarketplacePage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: BoostDriveTheme.primaryBlue),
+                  borderSide: const BorderSide(color: BoostDriveTheme.primaryColor),
                 ),
               ),
             ),
@@ -227,7 +227,7 @@ class _PartsMarketplacePageState extends ConsumerState<PartsMarketplacePage> {
                   });
                   _loadParts();
                 },
-                icon: const Icon(Icons.filter_list_off, size: 20, color: BoostDriveTheme.primaryBlue),
+                icon: const Icon(Icons.filter_list_off, size: 20, color: BoostDriveTheme.primaryColor),
                 label: const Text('Clear Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -1,4 +1,7 @@
-import 'package:boostdrive_core/boostdrive_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'providers.dart';
@@ -12,6 +15,9 @@ class SellerDashboard extends ConsumerStatefulWidget {
 
 class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final Color _accentBlue = const Color(0xFF0095FF);
+  final Color _cardBg = const Color(0xFF131D25);
+  final Color _borderCol = Colors.white.withOpacity(0.05);
 
   @override
   void initState() {
@@ -28,13 +34,13 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    if (user == null) return const Scaffold(body: Center(child: Text('Please log in')));
+    if (user == null) return const Center(child: Text('Please log in'));
 
-    return PremiumPageLayout(
-      showBackground: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -45,11 +51,17 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               const SizedBox(height: 32),
               _buildTabSection(ref, user.id),
               const SizedBox(height: 32),
-              _buildServiceRequests(),
+              _buildServiceRequestsSection(),
               const SizedBox(height: 120),
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        backgroundColor: _accentBlue,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
     );
   }
@@ -61,62 +73,66 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
         return Row(
           children: [
             CircleAvatar(
-              radius: 24,
+              radius: 28,
+              backgroundColor: _cardBg,
               backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-              child: profile.profileImg.isEmpty ? const Icon(Icons.person) : null,
+              child: profile.profileImg.isEmpty ? const Icon(Icons.person, color: Colors.white54) : null,
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profile.fullName,
-                  style: GoogleFonts.manrope(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'BoostDrive Seller',
+                    style: GoogleFonts.manrope(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                Text(
-                  profile.isSeller ? 'Verified Seller' : 'Individual Seller',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
-                ),
-              ],
+                  Text(
+                    'Metro Salvage & Parts',
+                    style: GoogleFonts.manrope(
+                      color: BoostDriveTheme.textDim,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
-            _buildHeaderIcon(Icons.search),
-            const SizedBox(width: 12),
-            _buildHeaderIcon(Icons.notifications_none_rounded, hasNotification: true),
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.search, color: Colors.white70, size: 28),
+            ),
+            _buildNotificationIcon(true),
           ],
         );
       },
-      loading: () => const CircularProgressIndicator(),
-      error: (_, __) => const Text('Error loading header'),
+      loading: () => const SizedBox(height: 56),
+      error: (_, __) => const SizedBox(),
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, {bool hasNotification = false}) {
+  Widget _buildNotificationIcon(bool hasUnread) {
     return Stack(
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.white, size: 22),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white70, size: 28),
         ),
-        if (hasNotification)
+        if (hasUnread)
           Positioned(
-            right: 4,
-            top: 4,
+            right: 12,
+            top: 12,
             child: Container(
               height: 10,
               width: 10,
               decoration: BoxDecoration(
-                color: Colors.red,
+                color: const Color(0xFFFF4D4D),
                 shape: BoxShape.circle,
-                border: Border.all(color: BoostDriveTheme.backgroundDark, width: 2),
+                border: Border.all(color: const Color(0xFF0D1117), width: 2),
               ),
             ),
           ),
@@ -125,72 +141,97 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
   }
 
   Widget _buildPerformanceSection(WidgetRef ref, String uid) {
-    return ref.watch(userProfileProvider(uid)).when(
-      data: (profile) {
-        if (profile == null) return const SizedBox();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Performance',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
-                ),
-                Row(
-                  children: [
-                    Text('All Time', style: TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold)),
-                    const Icon(Icons.keyboard_arrow_down, color: BoostDriveTheme.primaryBlue, size: 18),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 110,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _buildPerformanceCard('Total Earnings', '\$${profile.totalEarnings.toStringAsFixed(0)}', 'LIFETIME', true),
-                  const SizedBox(width: 12),
-                  _buildPerformanceCard('Loyalty Points', profile.loyaltyPoints.toString(), 'REDEEMABLE', true),
-                  const SizedBox(width: 12),
-                  _buildPerformanceCard('Status', profile.verificationStatus.toUpperCase(), 'VERIFIED', false),
-                ],
+            Text(
+              'Performance',
+              style: GoogleFonts.manrope(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
               ),
             ),
+            Row(
+              children: [
+                Text(
+                  'Last 7 Days',
+                  style: GoogleFonts.manrope(
+                    color: _accentBlue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down, color: _accentBlue, size: 20),
+              ],
+            ),
           ],
-        );
-      },
-      loading: () => const SizedBox(),
-      error: (_, __) => const SizedBox(),
+        ),
+        const SizedBox(height: 24),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildPerformanceCard('Total Sales', '\$12,450', '+12%', true),
+              const SizedBox(width: 16),
+              _buildPerformanceCard('Active Listings', '1,248', '+3%', true),
+              const SizedBox(width: 16),
+              _buildPerformanceCard('Pending Orders', '14', '0%', false),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildPerformanceCard(String label, String value, String trend, bool isPositive) {
     return Container(
-      width: 140,
-      padding: const EdgeInsets.all(16),
+      width: 160,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _borderCol),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
+          Text(
+            label,
+            style: GoogleFonts.manrope(
+              color: BoostDriveTheme.textDim,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: GoogleFonts.manrope(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
-              if (isPositive) const Icon(Icons.trending_up, color: Colors.green, size: 12),
-              if (isPositive) const SizedBox(width: 4),
+              Icon(
+                trend == '0%' ? Icons.arrow_forward : (isPositive ? Icons.trending_up : Icons.trending_down),
+                color: trend == '0%' ? Colors.orange : (isPositive ? const Color(0xFF00C853) : const Color(0xFFFF4D4D)),
+                size: 16,
+              ),
+              const SizedBox(width: 4),
               Text(
                 trend,
-                style: TextStyle(color: isPositive ? Colors.green : BoostDriveTheme.textDim, fontSize: 10, fontWeight: FontWeight.bold),
+                style: GoogleFonts.manrope(
+                  color: trend == '0%' ? Colors.orange : (isPositive ? const Color(0xFF00C853) : const Color(0xFFFF4D4D)),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -204,11 +245,17 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
       children: [
         TabBar(
           controller: _tabController,
-          indicatorColor: BoostDriveTheme.primaryBlue,
+          indicatorColor: _accentBlue,
           indicatorWeight: 3,
-          labelColor: Colors.white,
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelColor: _accentBlue,
           unselectedLabelColor: BoostDriveTheme.textDim,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+          dividerColor: Colors.white.withOpacity(0.05),
+          labelStyle: GoogleFonts.manrope(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            letterSpacing: 0.5,
+          ),
           tabs: const [
             Tab(text: 'INVENTORY'),
             Tab(text: 'SERVICE REQUESTS'),
@@ -216,12 +263,12 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
           ],
         ),
         const SizedBox(height: 24),
-        _buildInventoryView(ref, uid),
+        _buildInventorySearchAndList(ref, uid),
       ],
     );
   }
 
-  Widget _buildInventoryView(WidgetRef ref, String uid) {
+  Widget _buildInventorySearchAndList(WidgetRef ref, String uid) {
     return Column(
       children: [
         Row(
@@ -229,98 +276,141 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
             Expanded(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                height: 48,
+                height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
+                  color: _cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _borderCol),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.search, color: Colors.white24, size: 20),
+                    const Icon(Icons.search, color: Colors.white38, size: 24),
                     const SizedBox(width: 12),
-                    Text('Search SKU, name or VIN...', style: TextStyle(color: Colors.white24, fontSize: 13)),
+                    Text(
+                      'Search SKU, name or VIN...',
+                      style: GoogleFonts.manrope(color: Colors.white38, fontSize: 15),
+                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Container(
-              height: 48,
-              width: 48,
+              height: 56,
+              width: 56,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
+                color: _cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _borderCol),
               ),
-              child: const Icon(Icons.tune, color: Colors.white, size: 20),
+              child: const Icon(Icons.tune_rounded, color: Colors.white70, size: 24),
             ),
           ],
         ),
         const SizedBox(height: 24),
         ref.watch(sellerProductsProvider(uid)).when(
           data: (products) {
-            if (products.isEmpty) return Text('No listings in your inventory.', style: TextStyle(color: BoostDriveTheme.textDim));
+            if (products.isEmpty) {
+              // Show dummy data to match the design if no real data
+              return Column(
+                children: [
+                  _buildInventoryCard(
+                    'V8 Engine Block - 2018 Ford F-150 Lariat',
+                    'FRD-5520-X1',
+                    '2,499.00',
+                    'In Stock (1)',
+                    'SALVAGE',
+                    const Color(0xFFFF8A00),
+                    'https://images.unsplash.com/photo-1597762137734-594e9608f27e?auto=format&fit=crop&q=80&w=200',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInventoryCard(
+                    'LED Headlight Assembly (Right)',
+                    'BMW-L-2022-M3',
+                    '845.00',
+                    'Out of Stock',
+                    'NEW OEM',
+                    _accentBlue,
+                    'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&q=80&w=200',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInventoryCard(
+                    'Alloy Wheel Rim 19" - Set of 4',
+                    'WHL-99-TSL',
+                    '1,100.00',
+                    'Draft',
+                    'USED',
+                    const Color(0xFFA855F7),
+                    null,
+                  ),
+                ],
+              );
+            }
             return Column(
               children: products.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: _buildInventoryItem(
-                  name: p.title,
-                  sku: p.id.substring(0, 8).toUpperCase(),
-                  price: '\$${p.price.toStringAsFixed(2)}',
-                  stock: p.status.toUpperCase(),
-                  tag: p.condition.toUpperCase(),
-                  tagColor: p.status == 'active' ? Colors.green : Colors.grey,
-                  imageUrl: p.imageUrl,
+                child: _buildInventoryCard(
+                  p.title,
+                  p.id.substring(0, 8).toUpperCase(),
+                  p.price.toStringAsFixed(2),
+                  p.status == 'active' ? 'In Stock' : 'Out of Stock',
+                  p.condition.toUpperCase(),
+                  p.condition == 'new' ? _accentBlue : (p.condition == 'used' ? const Color(0xFFA855F7) : const Color(0xFFFF8A00)),
+                  p.imageUrl,
                 ),
               )).toList(),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Text('Error loading inventory'),
+          error: (_, __) => const SizedBox(),
         ),
       ],
     );
   }
 
-  Widget _buildInventoryItem({
-    required String name,
-    required String sku,
-    required String price,
-    required String stock,
-    required String tag,
-    required Color tagColor,
-    String? imageUrl,
-  }) {
+  Widget _buildInventoryCard(String title, String sku, String price, String status, String tag, Color tagColor, String? imageUrl) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _borderCol),
       ),
       child: Row(
         children: [
           Stack(
             children: [
               Container(
-                height: 80,
-                width: 80,
+                height: 100,
+                width: 100,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  image: imageUrl != null && imageUrl.isNotEmpty ? DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover) : null,
+                  borderRadius: BorderRadius.circular(16),
+                  image: imageUrl != null && imageUrl.isNotEmpty 
+                      ? DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover) 
+                      : null,
                 ),
-                child: imageUrl == null || imageUrl.isEmpty ? const Icon(Icons.image_outlined, color: Colors.white10) : null,
+                child: imageUrl == null || imageUrl.isEmpty 
+                    ? const Icon(Icons.image_outlined, color: Colors.white10, size: 32) 
+                    : null,
               ),
               Positioned(
-                top: 4,
-                left: 4,
+                top: 8,
+                left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: tagColor,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(tag, style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    tag,
+                    style: GoogleFonts.manrope(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -333,23 +423,56 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                    const Icon(Icons.more_vert, color: Colors.white24, size: 20),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.manrope(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Icons.more_vert, color: Colors.white38),
                   ],
                 ),
-                Text('SKU: $sku', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
+                Text(
+                  'SKU: $sku',
+                  style: GoogleFonts.manrope(color: BoostDriveTheme.textDim, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    Text(price, style: const TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 15, fontWeight: FontWeight.w900)),
+                    Text(
+                      '\$$price',
+                      style: GoogleFonts.manrope(
+                        color: _accentBlue,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        color: status.contains('In Stock') 
+                            ? const Color(0xFF00C853).withOpacity(0.1) 
+                            : (status == 'Draft' ? Colors.orange.withOpacity(0.1) : Colors.white10),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(stock, style: const TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        status,
+                        style: GoogleFonts.manrope(
+                          color: status.contains('In Stock') 
+                              ? const Color(0xFF00C853) 
+                              : (status == 'Draft' ? Colors.orange : Colors.white38),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -361,30 +484,41 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
     );
   }
 
-  Widget _buildServiceRequests() {
+  Widget _buildServiceRequestsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Service Requests',
-              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+              style: GoogleFonts.manrope(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             TextButton(
               onPressed: () {},
-              child: const Text('VIEW ALL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              child: Text(
+                'VIEW ALL',
+                style: GoogleFonts.manrope(
+                  color: _accentBlue,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 16),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+            color: _cardBg,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: _borderCol),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,29 +526,42 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      color: _accentBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.build, color: BoostDriveTheme.primaryBlue, size: 20),
+                    child: Icon(Icons.build_rounded, color: _accentBlue, size: 24),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
+                  const SizedBox(width: 16),
+                  Text(
                     'INSTALLATION REQUEST',
-                    style: TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                    style: GoogleFonts.manrope(
+                      color: _accentBlue,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Text(
+              const SizedBox(height: 20),
+              Text(
                 'Transmission Swap - Alex Johnson',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style: GoogleFonts.manrope(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 'Linked Part: 2015 Camry Transmission (Used)',
-                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                style: GoogleFonts.manrope(
+                  color: BoostDriveTheme.textDim,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 24),
               Row(
@@ -423,12 +570,16 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                     child: ElevatedButton(
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: BoostDriveTheme.primaryBlue,
+                        backgroundColor: _accentBlue,
                         foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 52),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        minimumSize: const Size(0, 56),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: const Text('Accept Task'),
+                      child: Text(
+                        'Accept Task',
+                        style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 15),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -436,12 +587,15 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                     child: OutlinedButton(
                       onPressed: () {},
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 52),
+                        minimumSize: const Size(0, 56),
                         side: BorderSide(color: Colors.white.withOpacity(0.1)),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: const Text('Decline'),
+                      child: Text(
+                        'Decline',
+                        style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 15),
+                      ),
                     ),
                   ),
                 ],
@@ -452,4 +606,5 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
       ],
     );
   }
+}
 }

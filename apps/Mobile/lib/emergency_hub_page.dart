@@ -94,7 +94,7 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Icon(Icons.emergency_share_rounded, size: 80, color: BoostDriveTheme.primaryBlue),
+            const Icon(Icons.emergency_share_rounded, size: 80, color: BoostDriveTheme.primaryColor),
             const SizedBox(height: 16),
             const Text(
               'Stranded? We\'ve got you covered.',
@@ -114,7 +114,7 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> {
               description: 'Flatbed or wheel-lift towing to the nearest garage.',
               icon: Icons.local_shipping_rounded,
               onTap: () => _handleEmergencyRequest('towing'),
-              color: BoostDriveTheme.primaryBlue,
+              color: BoostDriveTheme.primaryColor,
             ),
             
             const SizedBox(height: 20),
@@ -129,7 +129,7 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> {
             
             if (_isRequesting) ...[
               const SizedBox(height: 32),
-              const CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+              const CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
               const SizedBox(height: 16),
               const Text('Locating providers...', style: TextStyle(color: Colors.white)),
             ],

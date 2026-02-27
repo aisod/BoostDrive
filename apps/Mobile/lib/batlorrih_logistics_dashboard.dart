@@ -1,6 +1,9 @@
-import 'package:boostdrive_core/boostdrive_core.dart';
-import 'package:boostdrive_auth/boostdrive_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'providers.dart';
 
 class BaTLorriHLogisticsDashboard extends ConsumerStatefulWidget {
@@ -12,6 +15,7 @@ class BaTLorriHLogisticsDashboard extends ConsumerStatefulWidget {
 
 class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogisticsDashboard> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  GoogleMapController? _mapController;
 
   @override
   void initState() {
@@ -28,30 +32,74 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    if (user == null) return const Scaffold(body: Center(child: Text('Please log in')));
+    if (user == null) return const Center(child: Text('Please log in'));
 
-    return PremiumPageLayout(
-      showBackground: true,
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              _buildHeader(ref, user.id),
-              const SizedBox(height: 32),
-              _buildMetricsRow(ref, user.id),
-              const SizedBox(height: 32),
-              _buildLiveDispatchMap(),
-              const SizedBox(height: 32),
-              _buildTabs(),
-              const SizedBox(height: 24),
-              _buildOrderList(ref, user.id),
-              const SizedBox(height: 120),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            _buildHeader(ref, user.id),
+            const SizedBox(height: 32),
+            _buildMetricsRow(ref, user.id),
+            const SizedBox(height: 32),
+            _buildPurposeHighlights(),
+            const SizedBox(height: 32),
+            _buildLiveDispatchMap(),
+            const SizedBox(height: 32),
+            _buildTabs(),
+            const SizedBox(height: 24),
+            _buildOrderList(ref, user.id),
+            const SizedBox(height: 120),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPurposeHighlights() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'CORE LOGISTICS FOCUS',
+          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
+        ),
+        const SizedBox(height: 16),
+        _buildPurposeCard(Icons.settings_input_component, 'Parts Delivery', 'Logistics from seller/warehouse to user or workshop.'),
+        const SizedBox(height: 12),
+        _buildPurposeCard(Icons.directions_car, 'Vehicle Transport', 'Rental deliveries and marketplace salvage movement.'),
+        const SizedBox(height: 12),
+        _buildPurposeCard(Icons.hub_outlined, 'Ecosystem Connectivity', 'Last-mile solution making digital transactions physical.'),
+      ],
+    );
+  }
+
+  Widget _buildPurposeCard(IconData icon, String title, String desc) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 4),
+                Text(desc, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12, height: 1.3)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -65,10 +113,15 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryBlue,
+                color: BoostDriveTheme.primaryColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.local_shipping, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+               'BaTLorriH',
+               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
             ),
             const SizedBox(width: 12),
             Column(
@@ -83,25 +136,17 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                   ),
                 ),
                 Text(
-                  'Logistics Manager',
+                  'Logistics • Parts & Vehicle Transport',
                   style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
                 ),
               ],
             ),
-            const Spacer(),
-            _buildHeaderIcon(Icons.notifications_outlined, hasNotification: true),
-            const SizedBox(width: 12),
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: BoostDriveTheme.surfaceDark,
-              backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-              child: profile.profileImg.isEmpty ? const Icon(Icons.person, color: Colors.white38) : null,
-            ),
+            const SizedBox(width: 8),
           ],
         );
       },
       loading: () => const CircularProgressIndicator(),
-      error: (_, __) => const Text('Error loading header'),
+      error: (_, _) => const Text('Error loading header'),
     );
   }
 
@@ -135,25 +180,36 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
   }
 
   Widget _buildMetricsRow(WidgetRef ref, String uid) {
-    return ref.watch(userProfileProvider(uid)).when(
+    final profileAsync = ref.watch(userProfileProvider(uid));
+    final deliveriesAsync = ref.watch(activeDeliveriesProvider(uid));
+
+    return profileAsync.when(
       data: (profile) {
         if (profile == null) return const SizedBox();
-        return Row(
-          children: [
-            Expanded(child: _buildMetricCard('FLEET REVENUE', '\$${profile.totalEarnings.toStringAsFixed(0)}', '+12.4%', true)),
-            const SizedBox(width: 16),
-            Expanded(child: _buildMetricCard('COMPLETED', profile.loyaltyPoints.toString(), '98% Success', false, isSuccess: true)),
-          ],
+        return deliveriesAsync.when(
+          data: (deliveries) {
+            final completedCount = deliveries.where((d) => d.status == 'delivered').length;
+            
+            return Row(
+              children: [
+                Expanded(child: _buildMetricCard('REVENUE', '\$${profile.totalEarnings.toStringAsFixed(0)}', '+12.4%', true)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildMetricCard('DELIVERIES', completedCount.toString(), '98% Success', false, isSuccess: true)),
+              ],
+            );
+          },
+          loading: () => const SizedBox(),
+          error: (_, __) => const SizedBox(),
         );
       },
       loading: () => const SizedBox(),
-      error: (_, __) => const SizedBox(),
+      error: (_, _) => const SizedBox(),
     );
   }
 
   Widget _buildMetricCard(String label, String value, String subtext, bool isTrend, {bool isSuccess = false}) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
         borderRadius: BorderRadius.circular(24),
@@ -166,7 +222,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
             label,
             style: TextStyle(
               color: BoostDriveTheme.textDim,
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
             ),
@@ -176,7 +232,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -186,9 +242,12 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
               if (isTrend) const Icon(Icons.trending_up, color: Colors.green, size: 14),
               if (isSuccess) const Icon(Icons.check_circle, color: Colors.green, size: 14),
               const SizedBox(width: 6),
-              Text(
-                subtext,
-                style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  subtext,
+                  style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -198,81 +257,151 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
   }
 
   Widget _buildLiveDispatchMap() {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final user = ref.read(currentUserProvider);
+    if (user == null) return const SizedBox();
+
+    return ref.watch(activeDeliveriesProvider(user.id)).when(
+      data: (deliveries) {
+        final activeDeliveries = deliveries.where((d) => d.status != 'delivered' && d.status != 'cancelled').toList();
+        
+        final Set<Marker> markers = activeDeliveries.map((d) {
+          final lat = d.dropoffLocation['lat'] as double? ?? -22.5609;
+          final lng = d.dropoffLocation['lng'] as double? ?? 17.0658;
+          
+          return Marker(
+            markerId: MarkerId(d.id),
+            position: LatLng(lat, lng),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              d.status == 'in_transit' ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueAzure
+            ),
+          );
+        }).toSet();
+
+        return Column(
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.map_outlined, color: BoostDriveTheme.primaryBlue, size: 18),
-                const SizedBox(width: 8),
-                const Text('Live Dispatch Map', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                const Row(
+                  children: [
+                    Icon(Icons.map_outlined, color: BoostDriveTheme.primaryColor, size: 18),
+                    SizedBox(width: 8),
+                    Text('Live Dispatch Map', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => Dialog.fullscreen(
+                        child: Scaffold(
+                          backgroundColor: BoostDriveTheme.backgroundDark,
+                          appBar: AppBar(
+                            backgroundColor: BoostDriveTheme.primaryColor,
+                            title: const Text('Live Dispatch Map', style: TextStyle(color: Colors.white)),
+                            leading: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                          body: ref.watch(activeDeliveriesProvider(user.id)).when(
+                            data: (deliveries) {
+                              final activeDeliveries = deliveries.where((d) => d.status != 'delivered' && d.status != 'cancelled').toList();
+                              final Set<Marker> markers = activeDeliveries.map((d) {
+                                final lat = d.dropoffLocation['lat'] as double? ?? -22.5609;
+                                final lng = d.dropoffLocation['lng'] as double? ?? 17.0658;
+                                return Marker(
+                                  markerId: MarkerId(d.id),
+                                  position: LatLng(lat, lng),
+                                  infoWindow: InfoWindow(title: 'Order ${d.id.substring(0, 4)}'),
+                                );
+                              }).toSet();
+                              return GoogleMap(
+                                initialCameraPosition: const CameraPosition(target: LatLng(-22.5609, 17.0658), zoom: 6),
+                                markers: markers,
+                                myLocationButtonEnabled: false,
+                                zoomControlsEnabled: true,
+                              );
+                            },
+                            loading: () => const Center(child: CircularProgressIndicator()),
+                            error: (e, _) => Center(child: Text('Error: $e')),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Row(
+                    children: [
+                      Text('FULLSCREEN', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                      SizedBox(width: 4),
+                      Icon(Icons.open_in_full, color: Colors.white, size: 12),
+                    ],
+                  ),
+                ),
               ],
             ),
-            TextButton(
-              onPressed: () {},
-              child: Row(
-                children: const [
-                  Text('FULLSCREEN', style: TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold)),
-                  SizedBox(width: 4),
-                  Icon(Icons.open_in_full, color: BoostDriveTheme.primaryBlue, size: 12),
+            const SizedBox(height: 12),
+            Container(
+              height: 220,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                children: [
+                  GoogleMap(
+                    initialCameraPosition: const CameraPosition(
+                      target: LatLng(-22.5609, 17.0658),
+                      zoom: 6,
+                    ),
+                    onMapCreated: (controller) => _mapController = controller,
+                    markers: markers,
+                    mapType: MapType.normal,
+                    zoomControlsEnabled: false,
+                    myLocationButtonEnabled: false,
+                  ),
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                          const SizedBox(width: 8),
+                          Text('${activeDeliveries.length} DRIVERS LIVE', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          height: 220,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            image: const DecorationImage(
-              image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBmoIr6BNhyne0XHfn3L2EvhS-V9bsoFgFlGNJMtKLZKjMGTfR_McAS2dcIAl3M3dtfm40uzT2zyyj-H4QD3G2WSNQgcWoFgEcGMzQ-01ad_Quuky5HzJP5bnqbeuhWHVOPwzvgZ8ctG8i779MeULOmRxgGxEbSXs2kzFQA_p2bOnC3fGSka5eI8hBpkZGE1ShSpNasZftXZa21yReRcqOEyKgeHPLx-_JNj-gN_NA8cbhIXTXnQiDox5RT2giEQjYNUg3347VVXO4'), // Placeholder map for Chicago as per mockup
-              fit: BoxFit.cover,
-            ),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                top: 16,
-                left: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
-                      const SizedBox(width: 8),
-                      const Text('18 DRIVERS LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ),
-              // Mock location markers
-              const Center(child: Icon(Icons.local_shipping, color: BoostDriveTheme.primaryBlue, size: 30)),
-            ],
-          ),
-        ),
-      ],
+        );
+      },
+      loading: () => const SizedBox(height: 220, child: Center(child: CircularProgressIndicator())),
+      error: (_, __) => const SizedBox(),
     );
   }
 
   Widget _buildTabs() {
     return TabBar(
       controller: _tabController,
-      indicatorColor: BoostDriveTheme.primaryBlue,
+      indicatorColor: BoostDriveTheme.primaryColor,
       indicatorWeight: 3,
       indicatorSize: TabBarIndicatorSize.label,
-      labelColor: BoostDriveTheme.primaryBlue,
+      labelColor: BoostDriveTheme.primaryColor,
       unselectedLabelColor: BoostDriveTheme.textDim,
       labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
+      onTap: (index) => setState(() {}),
       tabs: const [
         Tab(text: 'Active Queue'),
         Tab(text: 'Pickups'),
@@ -283,14 +412,21 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
 
   Widget _buildOrderList(WidgetRef ref, String uid) {
     return ref.watch(activeDeliveriesProvider(uid)).when(
-      data: (orders) {
-        if (orders.isEmpty) return Text('No active orders in queue.', style: TextStyle(color: BoostDriveTheme.textDim));
+      data: (allOrders) {
+        final orders = allOrders.where((o) {
+          if (_tabController.index == 0) return o.status != 'delivered' && o.status != 'cancelled';
+          if (_tabController.index == 1) return o.status == 'pending' || o.status == 'awaiting_pickup';
+          if (_tabController.index == 2) return o.status == 'delivered';
+          return true;
+        }).toList();
+
+        if (orders.isEmpty) return Text('No orders in this category.', style: TextStyle(color: BoostDriveTheme.textDim));
         return Column(
           children: orders.map((o) => Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _buildOrderCard(
               status: o.status.toUpperCase().replaceAll('_', ' '),
-              statusColor: o.status == 'delivered' ? Colors.green : (o.status == 'in_transit' ? Colors.orange : BoostDriveTheme.primaryBlue),
+              statusColor: o.status == 'delivered' ? Colors.green : (o.status == 'in_transit' ? Colors.orange : BoostDriveTheme.primaryColor),
               orderId: '#${o.id.substring(0, 8).toUpperCase()}',
               eta: o.eta.isNotEmpty ? o.eta : 'N/A',
               pickup: o.pickupLocation['address'] ?? 'Unknown Pickup',
@@ -303,7 +439,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Text('Error loading orders'),
+      error: (_, _) => const Text('Error loading orders'),
     );
   }
 
@@ -344,7 +480,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(etaLabel, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 10, fontWeight: FontWeight.bold)),
-                  Text(eta, style: const TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 14, fontWeight: FontWeight.bold)),
+                  Text(eta, style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 14, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -375,10 +511,15 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                 const Text('Finding nearest optimized route...', style: TextStyle(color: Colors.white24, fontSize: 12, fontStyle: FontStyle.italic)),
               const Spacer(),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                   Navigator.push(
+                     context,
+                     MaterialPageRoute<void>(builder: (BuildContext ctx) => ServiceTrackingPage(orderId: o.id)),
+                   );
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: !isAwaiting ? Colors.white.withOpacity(0.05) : BoostDriveTheme.primaryBlue,
-                  foregroundColor: !isAwaiting ? BoostDriveTheme.primaryBlue : Colors.white,
+                  backgroundColor: !isAwaiting ? Colors.white.withOpacity(0.05) : BoostDriveTheme.primaryColor,
+                  foregroundColor: !isAwaiting ? BoostDriveTheme.primaryColor : Colors.white,
                   minimumSize: const Size(100, 48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,

@@ -20,6 +20,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
   final _priceController = TextEditingController();
   final _locationController = TextEditingController();
   final _imageUrlsController = TextEditingController();
+  final _descriptionController = TextEditingController();
   
   String _category = 'car';
   String _condition = 'new';
@@ -33,6 +34,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
     _priceController.dispose();
     _locationController.dispose();
     _imageUrlsController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -87,6 +89,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
         isFeatured: true,
         condition: _condition,
         createdAt: DateTime.now(),
+        description: _descriptionController.text,
       );
 
       await productService.addProduct(product);
@@ -198,10 +201,10 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+                              color: BoostDriveTheme.primaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.add_business, color: BoostDriveTheme.primaryBlue),
+                            child: const Icon(Icons.add_business, color: BoostDriveTheme.primaryColor),
                           ),
                           const SizedBox(width: 20),
                           const SizedBox(width: 20),
@@ -231,7 +234,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                           Expanded(
                             flex: 2,
                             child: DropdownButtonFormField<String>(
-                              value: _category,
+                              initialValue: _category,
                               decoration: const InputDecoration(labelText: 'Category'),
                               dropdownColor: BoostDriveTheme.surfaceDark,
                               items: const [
@@ -246,7 +249,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                           Expanded(
                             flex: 1,
                             child: DropdownButtonFormField<String>(
-                              value: _condition,
+                              initialValue: _condition,
                               decoration: const InputDecoration(labelText: 'Condition'),
                               dropdownColor: BoostDriveTheme.surfaceDark,
                               items: const [
@@ -307,6 +310,28 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: _descriptionController,
+                        maxLines: null,
+                        minLines: 8,
+                        keyboardType: TextInputType.multiline,
+                        decoration: InputDecoration(
+                          labelText: 'Detailed Description',
+                          hintText: 'Provide a comprehensive description of your item (min. 500 characters)...',
+                          alignLabelWithHint: true,
+                          counterText: '${_descriptionController.text.length} / 500 minimum',
+                          counterStyle: TextStyle(
+                            color: _descriptionController.text.length < 500 ? Colors.orange : Colors.green,
+                          ),
+                        ),
+                        onChanged: (v) => setState(() {}),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Description is required';
+                          if (v.length < 500) return 'Description must be at least 500 characters';
+                          return null;
+                        },
+                      ),
 
                       const SizedBox(height: 48),
                       _buildSectionTitle('Media Assets'),
@@ -325,10 +350,10 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: BoostDriveTheme.primaryBlue,
+                            backgroundColor: BoostDriveTheme.primaryColor,
                             foregroundColor: Colors.white,
                             elevation: 8,
-                            shadowColor: BoostDriveTheme.primaryBlue.withOpacity(0.4),
+                            shadowColor: BoostDriveTheme.primaryColor.withOpacity(0.4),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           ),
                           child: _isLoading
@@ -357,11 +382,11 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
             fontSize: 12,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.5,
-            color: BoostDriveTheme.primaryBlue,
+            color: BoostDriveTheme.primaryColor,
           ),
         ),
         const SizedBox(height: 4),
-        Container(width: 40, height: 2, color: BoostDriveTheme.primaryBlue),
+        Container(width: 40, height: 2, color: BoostDriveTheme.primaryColor),
       ],
     );
   }

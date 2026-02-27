@@ -43,7 +43,7 @@ class _NewArrivalsPageState extends ConsumerState<NewArrivalsPage> {
               'Listings added in the last 24 hours.',
               style: TextStyle(
                 fontSize: 16,
-                color: BoostDriveTheme.primaryBlue,
+                color: BoostDriveTheme.primaryColor,
                 fontWeight: FontWeight.bold,
               ),
             ),

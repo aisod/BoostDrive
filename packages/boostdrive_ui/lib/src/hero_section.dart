@@ -65,7 +65,10 @@ class HeroSection extends StatelessWidget {
           
           // Content
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 80.0),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).size.width < 600 ? 16.0 : 48.0, 
+              vertical: MediaQuery.of(context).size.width < 600 ? 40.0 : 80.0,
+            ),
             child: Align(
               alignment: Alignment.centerLeft,
               child: SingleChildScrollView(
@@ -78,14 +81,14 @@ class HeroSection extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+                          color: BoostDriveTheme.primaryColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: BoostDriveTheme.primaryBlue.withOpacity(0.5)),
+                          border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.5)),
                         ),
                         child: const Text(
                           'NAMIBIA\'S #1 AUTOMOTIVE HUB',
                           style: TextStyle(
-                            color: BoostDriveTheme.primaryBlue,
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                             letterSpacing: 1.2,
@@ -93,24 +96,20 @@ class HeroSection extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 64,
-                            fontWeight: FontWeight.w900,
-                            height: 1.1,
-                            color: Colors.white,
-                          ),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width < 600 ? 32 : 64,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          fontSize: 20,
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width < 600 ? 16 : 20,
                           color: BoostDriveTheme.textDim,
                           height: 1.5,
                         ),

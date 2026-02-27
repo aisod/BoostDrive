@@ -30,8 +30,8 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
       if (user != null) {
         // Map selected role to boolean values and string role
         String roleStr = _selectedRole!.toLowerCase().replaceAll(' ', '_');
-        bool isBuyer = _selectedRole == 'Customer' || _selectedRole == 'Vehicle Host';
-        bool isSeller = _selectedRole == 'Seller' || _selectedRole == 'Service Pro';
+        bool isBuyer = roleStr == 'customer';
+        bool isSeller = roleStr == 'customer' || roleStr == 'service_provider';
         
         await ref.read(userServiceProvider).updateRoles(
           uid: user.id,
@@ -64,7 +64,7 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.person_pin_circle_outlined, size: 64, color: BoostDriveTheme.primaryBlue),
+                const Icon(Icons.person_pin_circle_outlined, size: 64, color: BoostDriveTheme.primaryColor),
                 const SizedBox(height: 24),
                 const Text(
                   'Choose Your Role',
@@ -90,10 +90,8 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
                   crossAxisSpacing: 16,
                   childAspectRatio: 1.2,
                   children: [
-                    _buildRoleCard('Customer', 'Owner or Driver', Icons.directions_car),
-                    _buildRoleCard('Service Pro', 'Mechanic / Towing', Icons.build),
-                    _buildRoleCard('Seller', 'Parts / Salvage', Icons.storefront),
-                    _buildRoleCard('Vehicle Host', 'Rental Provider', Icons.key),
+                    _buildRoleCard('Customer', 'Owner, Seller or Driver', Icons.directions_car),
+                    _buildRoleCard('Service Provider', 'Professional Services', Icons.build),
                   ],
                 ),
                 
@@ -123,10 +121,10 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? BoostDriveTheme.primaryBlue.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+          color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.1) : Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? BoostDriveTheme.primaryBlue : Colors.transparent,
+            color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
             width: 2,
           ),
         ),
@@ -137,10 +135,10 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+                color: BoostDriveTheme.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: BoostDriveTheme.primaryBlue, size: 24),
+              child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

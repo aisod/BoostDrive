@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
-import 'ai_chat_helper.dart';
 
 class MessageService {
   final _supabase = Supabase.instance.client;
@@ -44,6 +43,28 @@ class MessageService {
     }
   }
 
+  /// Finds an existing conversation without creating one
+  Future<String?> findExistingConversation({
+    required String productId,
+    required String buyerId,
+    required String sellerId,
+  }) async {
+    try {
+      final existing = await _supabase
+          .from('conversations')
+          .select('id')
+          .eq('product_id', productId)
+          .eq('buyer_id', buyerId)
+          .eq('seller_id', sellerId)
+          .maybeSingle();
+
+      return existing?['id'] as String?;
+    } catch (e) {
+      print('Error finding existing conversation: $e');
+      return null;
+    }
+  }
+
   /// Sends a message in a conversation
   Future<void> sendMessage({
     required String conversationId,
@@ -56,100 +77,53 @@ class MessageService {
         'conversation_id': conversationId,
         'sender_id': senderId,
         'content': content,
+        'is_read': false, // Explicitly set to unread for the recipient
       });
 
-      // 2. Check for automatic AI response
-      _handleAIResponse(conversationId, senderId, content);
+      // 2. Update conversation metadata for sorting
+      // We wrap this in a try-catch because last_message_sender_id might be missing
+      try {
+        await _supabase.from('conversations').update({
+          'created_at': DateTime.now().toIso8601String(),
+        }).eq('id', conversationId);
+      } catch (e) {
+        print('DEBUG: Non-critical error updating conversation metadata: $e');
+      }
 
     } catch (e) {
       print('Error sending message: $e');
       rethrow;
     }
   }
-  
-  
-  
-  Future<void> _handleAIResponse(String conversationId, String senderId, String userMessage) async {
-    try {
-      print('DEBUG: Handling AI response for conversation $conversationId');
-      
-      // Fetch conversation to get product ID and seller ID
-      final conversation = await _supabase
-          .from('conversations')
-          .select('product_id, seller_id')
-          .eq('id', conversationId)
-          .single();
-          
-      final sellerId = conversation['seller_id'] as String;
-      
-      // AI only responds to the buyer (i.e., when sender is NOT the seller)
-      if (senderId == sellerId) {
-        print('DEBUG: Sender is the seller, AI will not respond.');
-        return;
-      }
 
-      print('DEBUG: AI generating response for buyer $senderId');
-      final productId = conversation['product_id'] as String;
 
-      // Fetch product details for the AI context
-      final productData = await _supabase
-          .from('products')
-          .select()
-          .eq('id', productId)
-          .single();
-          
-      final product = Product.fromMap(productData);
-      print('DEBUG: Product context: ${product.title}');
-
-      // Fetch recent conversation history for context
-      final recentMessages = await _supabase
-          .from('messages')
-          .select('content, sender_id')
-          .eq('conversation_id', conversationId)
-          .order('created_at', ascending: false)
-          .limit(5);
-      
-      // Build conversation context
-      final conversationHistory = (recentMessages as List)
-          .reversed
-          .map((m) => '${m['sender_id'] == sellerId ? "Assistant" : "User"}: ${m['content']}')
-          .join('\n');
-
-      // Generate response using OpenAI with conversation context
-      final aiResponse = await AIChatHelper.generateResponseWithContext(
-        userMessage, 
-        product,
-        conversationHistory,
-      );
-
-      if (aiResponse != null && aiResponse.isNotEmpty) {
-        print('DEBUG: AI Response generated: $aiResponse');
-        // Simulate "typing" delay
-        await Future.delayed(const Duration(seconds: 2));
-
-        // Insert AI response as the seller
-        // Insert AI response as the buyer (to pass RLS) but marked as AI
-        await _supabase.from('messages').insert({
-          'conversation_id': conversationId,
-          'sender_id': senderId, // Insert as current user (buyer)
-          'content': '[AI] $aiResponse', // Marker for UI to detect
-        });
-        print('DEBUG: AI Response inserted successfully.');
-      } else {
-        print('DEBUG: AI Response was empty or null.');
-      }
-    } catch (e) {
-      print('DEBUG: AI Error: $e');
-    }
-  }
-
-  /// Streams messages for a specific conversation
   Stream<List<Map<String, dynamic>>> streamMessages(String conversationId) {
     return _supabase
         .from('messages')
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
         .order('created_at', ascending: true);
+  }
+
+  /// Streams IDs of conversations that have unread messages for the user
+  Stream<Set<String>> streamUnreadConversationIds(String userId) {
+    // We stream from the messages table directly to check for unread messages
+    return _supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .map((data) {
+          try {
+            final unread = data
+              .where((m) => m['is_read'] == false && m['sender_id'] != userId)
+              .map((m) => m['conversation_id'] as String)
+              .toSet();
+            print('DEBUG: streamUnreadConversationIds emitted ${unread.length} unread conversations for user $userId');
+            return unread;
+          } catch (e) {
+            print('DEBUG: Error in streamUnreadConversationIds (likely missing is_read column): $e');
+            return <String>{};
+          }
+        });
   }
 
   /// Streams active conversations for a user
@@ -159,7 +133,19 @@ class MessageService {
     return _supabase
         .from('conversations')
         .stream(primaryKey: ['id'])
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .map((data) {
+          if (data.isNotEmpty) {
+            print('DEBUG: Conversation keys: ${data.first.keys.toList()}');
+          }
+          final filtered = data.where((conv) {
+            final buyerId = conv['buyer_id'] as String?;
+            final sellerId = conv['seller_id'] as String?;
+            return buyerId == userId || sellerId == userId;
+          }).toList();
+          print('DEBUG: streamConversations emitted ${filtered.length} conversations for user $userId');
+          return filtered;
+        });
   }
 
   /// Gets a single conversation by ID
@@ -198,8 +184,74 @@ class MessageService {
       rethrow;
     }
   }
+
+  /// Marks all messages in a conversation as read
+  Future<void> markConversationAsRead(String conversationId) async {
+    try {
+      // Mark all messages in that conversation as read where the user is NOT the sender
+      final user = _supabase.auth.currentUser;
+      if (user == null) return;
+
+      // We wrap in a try-catch to handle cases where is_read column might be missing
+      try {
+        await _supabase
+            .from('messages')
+            .update({'is_read': true})
+            .eq('conversation_id', conversationId)
+            .neq('sender_id', user.id);
+      } catch (e) {
+        print('DEBUG: is_read column missing in messages table, skipping update: $e');
+      }
+          
+      print('DEBUG: markConversationAsRead completed for $conversationId');
+    } catch (e) {
+      print('Error marking conversation as read: $e');
+    }
+  }
+
+  /// Marks all conversations for a user as read
+  Future<void> markAllAsRead(String userId) async {
+    try {
+      // Find all conversations where the user is a participant
+      final response = await _supabase
+          .from('conversations')
+          .select('id')
+          .or('buyer_id.eq.$userId,seller_id.eq.$userId');
+          
+      if (response != null && (response as List).isNotEmpty) {
+        final ids = (response as List).map((c) => c['id']).toList();
+        
+        // Mark all messages in these conversations as read where the user is NOT the sender
+        try {
+          await _supabase
+              .from('messages')
+              .update({'is_read': true})
+              .filter('conversation_id', 'in', ids)
+              .neq('sender_id', userId);
+        } catch (e) {
+          print('DEBUG: is_read column missing in messages table, skipping update: $e');
+        }
+      }
+          
+      print('DEBUG: markAllAsRead completed for user $userId');
+    } catch (e) {
+      print('Error marking all as read: $e');
+    }
+  }
 }
 
 final messageServiceProvider = Provider<MessageService>((ref) {
   return MessageService();
+});
+
+final userConversationsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
+  return ref.watch(messageServiceProvider).streamConversations(userId);
+});
+
+final conversationMessagesProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, conversationId) {
+  return ref.watch(messageServiceProvider).streamMessages(conversationId);
+});
+
+final unreadConversationsProvider = StreamProvider.family<Set<String>, String>((ref, userId) {
+  return ref.watch(messageServiceProvider).streamUnreadConversationIds(userId);
 });

@@ -2,6 +2,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SosService {
   final _supabase = Supabase.instance.client;
@@ -94,7 +95,7 @@ class SosService {
     
     // Web needs platformDefault to let browser handle 'tel:'
     // Mobile needs externalApplication to launch dialer
-    final mode = kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication;
+    const mode = kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication;
 
     if (await canLaunchUrl(callUri)) {
       await launchUrl(callUri, mode: mode);
@@ -109,3 +110,13 @@ class SosService {
         .order('created_at', ascending: false);
   }
 }
+
+final sosServiceProvider = Provider<SosService>((ref) => SosService());
+
+final globalActiveSosRequestsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(sosServiceProvider).getGlobalActiveRequests();
+});
+
+final userActiveSosRequestsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
+  return ref.watch(sosServiceProvider).streamActiveRequest(userId);
+});

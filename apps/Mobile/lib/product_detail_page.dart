@@ -170,7 +170,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                     children: [
                       Text(
                         'N\$ ${_currentProduct.price.toStringAsFixed(2)}',
-                        style: const TextStyle(color: BoostDriveTheme.primaryBlue, fontSize: 24, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -211,7 +211,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.car_repair, color: BoostDriveTheme.primaryBlue),
+                          const Icon(Icons.car_repair, color: BoostDriveTheme.primaryColor),
                           const SizedBox(width: 16),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,6 +228,15 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                           ),
                         ],
                       ),
+                    ),
+                  ],
+                  if (_currentProduct.description.isNotEmpty) ...[
+                    const SizedBox(height: 32),
+                    _buildSectionTitle('Description'),
+                    const SizedBox(height: 12),
+                    Text(
+                      _currentProduct.description,
+                      style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.white70),
                     ),
                   ],
                 ],
@@ -284,7 +293,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                     ),
                     child: IconButton(
                       onPressed: () => _openChat(context),
-                      icon: const Icon(Icons.chat_bubble_outline, color: BoostDriveTheme.primaryBlue),
+                      icon: const Icon(Icons.chat_bubble_outline, color: BoostDriveTheme.primaryColor),
                       padding: const EdgeInsets.all(16),
                     ),
                   ),
@@ -293,7 +302,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                     child: ElevatedButton(
                       onPressed: () => _handleAction(context, ref),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: BoostDriveTheme.primaryBlue,
+                        backgroundColor: BoostDriveTheme.primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -387,7 +396,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryBlue),
+            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
             child: const Text('Pay Securely Online'),
           ),
         ],
@@ -416,7 +425,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
             context: context,
             barrierDismissible: false,
             builder: (context) => const Center(
-              child: CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+              child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
             ),
           );
 
@@ -480,7 +489,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: BoostDriveTheme.primaryBlue,
+                  backgroundColor: BoostDriveTheme.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -505,7 +514,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           return Theme(
             data: ThemeData.dark().copyWith(
               colorScheme: const ColorScheme.dark(
-                primary: BoostDriveTheme.primaryBlue,
+                primary: BoostDriveTheme.primaryColor,
                 onPrimary: Colors.white,
                 surface: BoostDriveTheme.surfaceDark,
                 onSurface: Colors.white,

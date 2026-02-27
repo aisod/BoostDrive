@@ -94,7 +94,7 @@ class SuperAdminDashboardPage extends ConsumerWidget {
         );
       },
       loading: () => const CircularProgressIndicator(),
-      error: (_, __) => const Text('Error loading profile'),
+      error: (_, _) => const Text('Error loading profile'),
     );
   }
 
@@ -130,17 +130,20 @@ class SuperAdminDashboardPage extends ConsumerWidget {
       childAspectRatio: 2,
       children: [
         _buildKPICard('MONTHLY REVENUE', 'LIVE', 'N/A', Colors.green),
-        StreamBuilder<List<Map<String, dynamic>>>(
-          stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
-          builder: (context, snapshot) => _buildKPICard('ACTIVE SOS ALERTS', (snapshot.data?.length ?? 0).toString(), '+3%', Colors.redAccent),
+        ref.watch(globalActiveSosRequestsProvider).when(
+          data: (data) => _buildKPICard('ACTIVE SOS ALERTS', data.length.toString(), '+3%', Colors.redAccent),
+          loading: () => _buildKPICard('ACTIVE SOS ALERTS', '...', '...', Colors.redAccent),
+          error: (_, _) => _buildKPICard('ACTIVE SOS ALERTS', 'ERR', 'ERR', Colors.redAccent),
         ),
-        StreamBuilder<double>(
-          stream: ref.watch(deliveryServiceProvider).getGlobalVolume(),
-          builder: (context, snapshot) => _buildKPICard('MARKETPLACE VOL', '\$${(snapshot.data ?? 0).toStringAsFixed(0)}', 'TOTAL', BoostDriveTheme.primaryBlue),
+        ref.watch(globalVolumeProvider).when(
+          data: (data) => _buildKPICard('MARKETPLACE VOL', '\$${data.toStringAsFixed(0)}', 'TOTAL', BoostDriveTheme.primaryColor),
+          loading: () => _buildKPICard('MARKETPLACE VOL', '...', '...', BoostDriveTheme.primaryColor),
+          error: (_, _) => _buildKPICard('MARKETPLACE VOL', 'ERR', 'ERR', BoostDriveTheme.primaryColor),
         ),
-        StreamBuilder<int>(
-          stream: ref.watch(userServiceProvider).getUserCount(),
-          builder: (context, snapshot) => _buildKPICard('USER BASE', (snapshot.data ?? 0).toString(), '+5%', Colors.purpleAccent),
+        ref.watch(userCountProvider).when(
+          data: (data) => _buildKPICard('USER BASE', data.toString(), '+5%', Colors.purpleAccent),
+          loading: () => _buildKPICard('USER BASE', '...', '...', Colors.purpleAccent),
+          error: (_, _) => _buildKPICard('USER BASE', 'ERR', 'ERR', Colors.purpleAccent),
         ),
       ],
     );
@@ -189,7 +192,7 @@ class SuperAdminDashboardPage extends ConsumerWidget {
             border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
           child: const Center(
-            child: Icon(Icons.public, color: BoostDriveTheme.primaryBlue, size: 80),
+            child: Icon(Icons.public, color: BoostDriveTheme.primaryColor, size: 80),
           ),
         ),
       ],
@@ -205,10 +208,8 @@ class SuperAdminDashboardPage extends ConsumerWidget {
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 24),
-        StreamBuilder<List<UserProfile>>(
-          stream: ref.watch(userServiceProvider).getPendingVerifications(),
-          builder: (context, snapshot) {
-            final pending = snapshot.data ?? [];
+        ref.watch(pendingVerificationsProvider).when(
+          data: (pending) {
             if (pending.isEmpty) return Text('No pending verifications.', style: TextStyle(color: BoostDriveTheme.textDim));
             return Column(
               children: pending.map((p) => Padding(
@@ -217,6 +218,8 @@ class SuperAdminDashboardPage extends ConsumerWidget {
               )).toList(),
             );
           },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Text('Error: $err', style: const TextStyle(color: Colors.red)),
         ),
         const SizedBox(height: 48),
         const Text(
@@ -226,7 +229,7 @@ class SuperAdminDashboardPage extends ConsumerWidget {
         const SizedBox(height: 24),
         _buildAlertItem('Database performance degradation in Cluster B', 'URGENT', Colors.orange),
         const SizedBox(height: 12),
-        _buildAlertItem('Unusual sign-up spike detected in Northern Region', 'INFO', BoostDriveTheme.primaryBlue),
+        _buildAlertItem('Unusual sign-up spike detected in Northern Region', 'INFO', BoostDriveTheme.primaryColor),
       ],
     );
   }

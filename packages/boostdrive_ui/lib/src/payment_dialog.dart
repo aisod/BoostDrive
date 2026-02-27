@@ -86,16 +86,16 @@ class _BoostPaymentDialogState extends State<BoostPaymentDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+                  color: BoostDriveTheme.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: BoostDriveTheme.primaryBlue.withOpacity(0.2)),
+                  border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.2)),
                 ),
                 child: Column(
                   children: [
                     const Text(
                       'TOTAL AMOUNT',
                       style: TextStyle(
-                        color: BoostDriveTheme.primaryBlue,
+                        color: BoostDriveTheme.primaryColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.5,
@@ -191,11 +191,11 @@ class _BoostPaymentDialogState extends State<BoostPaymentDialog> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryBlue,
+                    backgroundColor: BoostDriveTheme.primaryColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 8,
-                    shadowColor: BoostDriveTheme.primaryBlue.withOpacity(0.5),
+                    shadowColor: BoostDriveTheme.primaryColor.withOpacity(0.5),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,

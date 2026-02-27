@@ -10,9 +10,11 @@ class Product {
   
   // REAL DATA FIELDS
   final String condition; // 'new', 'used', 'salvage'
+  final String status; // 'active', 'sold', 'draft'
   final Map<String, dynamic>? fitment; // { 'make': 'Toyota', 'model': 'Hilux', 'year': 2020 }
   final String? sellerId;
   final DateTime? createdAt;
+  final String description;
 
   const Product({
     required this.id,
@@ -24,9 +26,11 @@ class Product {
     this.isFeatured = false,
     required this.category,
     this.condition = 'used',
+    this.status = 'active',
     this.fitment,
     this.sellerId,
     this.createdAt,
+    this.description = '',
   });
 
   String get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : '';
@@ -44,11 +48,13 @@ class Product {
       isFeatured: data['is_featured'] ?? false,
       category: data['category'] ?? 'car',
       condition: data['condition'] ?? 'used',
+      status: data['status'] ?? 'active',
       fitment: data['fitment'] != null ? Map<String, dynamic>.from(data['fitment']) : null,
       sellerId: data['seller_id'],
       createdAt: data['created_at'] != null 
           ? DateTime.tryParse(data['created_at'].toString()) 
           : null,
+      description: data['description'] ?? '',
     );
   }
 
@@ -63,9 +69,11 @@ class Product {
       'is_featured': isFeatured,
       'category': category,
       'condition': condition,
+      'status': status,
       if (fitment != null) 'fitment': fitment,
       if (sellerId != null) 'seller_id': sellerId,
       'created_at': (createdAt ?? DateTime.now()).toIso8601String(),
+      'description': description,
     };
   }
 
@@ -79,9 +87,11 @@ class Product {
     bool? isFeatured,
     String? category,
     String? condition,
+    String? status,
     Map<String, dynamic>? fitment,
     String? sellerId,
     DateTime? createdAt,
+    String? description,
   }) {
     return Product(
       id: id ?? this.id,
@@ -93,9 +103,11 @@ class Product {
       isFeatured: isFeatured ?? this.isFeatured,
       category: category ?? this.category,
       condition: condition ?? this.condition,
+      status: status ?? this.status,
       fitment: fitment ?? this.fitment,
       sellerId: sellerId ?? this.sellerId,
       createdAt: createdAt ?? this.createdAt,
+      description: description ?? this.description,
     );
   }
 }

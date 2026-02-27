@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
-import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'product_detail_page.dart';
 
 class AllListingsPage extends ConsumerStatefulWidget {
@@ -15,7 +14,6 @@ class AllListingsPage extends ConsumerStatefulWidget {
 }
 
 class _AllListingsPageState extends ConsumerState<AllListingsPage> {
-  final ProductService _productService = ProductService();
   final TextEditingController _searchController = TextEditingController();
   
   String? _selectedCategory;
@@ -41,7 +39,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
   }
 
   Future<List<Product>> _getListingsData([String? query]) {
-    return _productService.searchProducts(
+    return ref.read(productServiceProvider).searchProducts(
       category: _selectedCategory,
       query: query ?? _searchController.text,
       make: _selectedMake,
@@ -93,7 +91,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
                 child: Container(
                   height: 300,
                   alignment: Alignment.center,
-                  child: const CircularProgressIndicator(color: BoostDriveTheme.primaryBlue),
+                  child: const CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
                 ),
               );
             }
@@ -194,7 +192,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
               decoration: InputDecoration(
                 hintText: 'Search the entire marketplace...',
                 hintStyle: const TextStyle(color: Colors.white24),
-                prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryBlue),
+                prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.05),
                 border: OutlineInputBorder(
@@ -203,7 +201,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: BoostDriveTheme.primaryBlue),
+                  borderSide: const BorderSide(color: BoostDriveTheme.primaryColor),
                 ),
               ),
             ),
@@ -240,7 +238,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
                   });
                   _loadListings();
                 },
-                icon: const Icon(Icons.filter_list_off, size: 20, color: BoostDriveTheme.primaryBlue),
+                icon: const Icon(Icons.filter_list_off, size: 20, color: BoostDriveTheme.primaryColor),
                 label: const Text('Clear Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

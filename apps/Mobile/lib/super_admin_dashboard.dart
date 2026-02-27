@@ -53,11 +53,11 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+                color: BoostDriveTheme.primaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
-                border: Border.all(color: BoostDriveTheme.primaryBlue.withOpacity(0.3)),
+                border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.3)),
               ),
-              child: const Icon(Icons.admin_panel_settings, color: BoostDriveTheme.primaryBlue, size: 24),
+              child: const Icon(Icons.admin_panel_settings, color: BoostDriveTheme.primaryColor, size: 24),
             ),
             const SizedBox(width: 12),
             Column(
@@ -73,19 +73,12 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
                 ),
               ],
             ),
-            const Spacer(),
-            _buildHeaderIcon(Icons.notifications_none, hasNotification: true),
-            const SizedBox(width: 12),
-            CircleAvatar(
-              radius: 20,
-              backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-              child: profile.profileImg.isEmpty ? const Icon(Icons.person) : null,
-            ),
+            const SizedBox(width: 8),
           ],
         );
       },
       loading: () => const CircularProgressIndicator(),
-      error: (_, __) => const Text('Error loading header'),
+      error: (_, _) => const Text('Error loading header'),
     );
   }
 
@@ -150,7 +143,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           children: [
             StreamBuilder<double>(
               stream: ref.watch(deliveryServiceProvider).getGlobalVolume(),
-              builder: (context, snapshot) => _buildKPICard('Marketplace Vol', snapshot.hasData ? '\$${snapshot.data!.toStringAsFixed(0)}' : 'Loading...', 'TOTAL', BoostDriveTheme.primaryBlue, 0.55),
+              builder: (context, snapshot) => _buildKPICard('Marketplace Vol', snapshot.hasData ? '\$${snapshot.data!.toStringAsFixed(0)}' : 'Loading...', 'TOTAL', BoostDriveTheme.primaryColor, 0.55),
             ),
             StreamBuilder<List<Map<String, dynamic>>>(
               stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
@@ -268,7 +261,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
                     children: [
                       _buildMapBadge('SOS ACTIVE: ${snapshot.data?.length ?? 0}', Colors.red),
                       const SizedBox(width: 8),
-                      _buildMapBadge('DRIVERS: ONLINE', BoostDriveTheme.primaryBlue),
+                      _buildMapBadge('DRIVERS: ONLINE', BoostDriveTheme.primaryColor),
                     ],
                   ),
                 ),
@@ -331,7 +324,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           child: Text(
             label,
             style: TextStyle(
-              color: isActive ? BoostDriveTheme.primaryBlue : BoostDriveTheme.textDim,
+              color: isActive ? BoostDriveTheme.primaryColor : BoostDriveTheme.textDim,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -446,15 +439,15 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.primaryBlue.withOpacity(0.1),
+        color: BoostDriveTheme.primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: BoostDriveTheme.primaryBlue.withOpacity(0.2)),
+        border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.2)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: BoostDriveTheme.primaryBlue, borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: BoostDriveTheme.primaryColor, borderRadius: BorderRadius.circular(16)),
             child: const Icon(Icons.local_shipping, color: Colors.white, size: 28),
           ),
           const SizedBox(width: 16),
@@ -471,7 +464,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
             height: 40,
             width: 40,
             decoration: const BoxDecoration(color: BoostDriveTheme.surfaceDark, shape: BoxShape.circle),
-            child: const Icon(Icons.chevron_right, color: BoostDriveTheme.primaryBlue),
+            child: const Icon(Icons.chevron_right, color: BoostDriveTheme.primaryColor),
           ),
         ],
       ),

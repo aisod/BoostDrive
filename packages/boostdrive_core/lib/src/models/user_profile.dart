@@ -13,6 +13,10 @@ class UserProfile {
   final bool isOnline;
   final String verificationStatus;
   final double totalEarnings;
+  final bool remindersEnabled;
+  final bool dealsEnabled;
+  final String emergencyContactName;
+  final String emergencyContactPhone;
 
   const UserProfile({
     required this.uid,
@@ -29,6 +33,10 @@ class UserProfile {
     this.isOnline = true,
     this.verificationStatus = 'pending',
     this.totalEarnings = 0.0,
+    this.remindersEnabled = true,
+    this.dealsEnabled = false,
+    this.emergencyContactName = '',
+    this.emergencyContactPhone = '',
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> data, {String? uid}) {
@@ -51,6 +59,10 @@ class UserProfile {
       isOnline: data['is_online'] ?? true,
       verificationStatus: data['verification_status'] ?? 'pending',
       totalEarnings: (data['total_earnings'] ?? 0.0).toDouble(),
+      remindersEnabled: data['reminders_enabled'] ?? true,
+      dealsEnabled: data['deals_enabled'] ?? false,
+      emergencyContactName: data['emergency_contact_name'] ?? '',
+      emergencyContactPhone: data['emergency_contact_phone'] ?? '',
     );
   }
 
@@ -69,6 +81,10 @@ class UserProfile {
       'is_online': isOnline,
       'verification_status': verificationStatus,
       'total_earnings': totalEarnings,
+      'reminders_enabled': remindersEnabled,
+      'deals_enabled': dealsEnabled,
+      'emergency_contact_name': emergencyContactName,
+      'emergency_contact_phone': emergencyContactPhone,
     };
   }
 
@@ -84,6 +100,10 @@ class UserProfile {
     bool? isOnline,
     String? verificationStatus,
     double? totalEarnings,
+    bool? remindersEnabled,
+    bool? dealsEnabled,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
   }) {
     return UserProfile(
       uid: uid,
@@ -100,6 +120,10 @@ class UserProfile {
       isOnline: isOnline ?? this.isOnline,
       verificationStatus: verificationStatus ?? this.verificationStatus,
       totalEarnings: totalEarnings ?? this.totalEarnings,
+      remindersEnabled: remindersEnabled ?? this.remindersEnabled,
+      dealsEnabled: dealsEnabled ?? this.dealsEnabled,
+      emergencyContactName: emergencyContactName ?? this.emergencyContactName,
+      emergencyContactPhone: emergencyContactPhone ?? this.emergencyContactPhone,
     );
   }
 }

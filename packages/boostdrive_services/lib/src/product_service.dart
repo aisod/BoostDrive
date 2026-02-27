@@ -72,13 +72,16 @@ class ProductService {
       
       if (make != null) supabaseQuery = supabaseQuery.eq('fitment->>make', make);
       if (model != null) supabaseQuery = supabaseQuery.eq('fitment->>model', model);
-      if (year != null) supabaseQuery = supabaseQuery.eq('fitment->>year', year);
+      if (year != null) supabaseQuery = supabaseQuery.eq('fitment->>year', year.toString());
       if (condition != null) supabaseQuery = supabaseQuery.eq('condition', condition);
 
       final response = await supabaseQuery.order('created_at', ascending: false);
       return (response as List).map((data) => Product.fromMap(data)).toList();
     } catch (e) {
-      print('Error searching products: $e');
+      print('DEBUG: Error searching products: $e');
+      if (e is PostgrestException) {
+        print('DEBUG: Supabase Error Details: ${e.message}, Code: ${e.code}, Details: ${e.details}, Hint: ${e.hint}');
+      }
       return [];
     }
   }
@@ -95,7 +98,7 @@ class ProductService {
 
       if (make != null) supabaseQuery = supabaseQuery.eq('fitment->>make', make);
       if (model != null) supabaseQuery = supabaseQuery.eq('fitment->>model', model);
-      if (year != null) supabaseQuery = supabaseQuery.eq('fitment->>year', year);
+      if (year != null) supabaseQuery = supabaseQuery.eq('fitment->>year', year.toString());
       if (condition != null) supabaseQuery = supabaseQuery.eq('condition', condition);
       if (query != null && query.isNotEmpty) {
         supabaseQuery = supabaseQuery.ilike('title', '%$query%');
@@ -104,7 +107,10 @@ class ProductService {
       final response = await supabaseQuery.order('created_at', ascending: false);
       return (response as List).map((data) => Product.fromMap(data)).toList();
     } catch (e) {
-      print('Error searching parts: $e');
+      print('DEBUG: Error searching parts: $e');
+      if (e is PostgrestException) {
+        print('DEBUG: Supabase Error Details: ${e.message}, Code: ${e.code}, Details: ${e.details}, Hint: ${e.hint}');
+      }
       return [];
     }
   }
