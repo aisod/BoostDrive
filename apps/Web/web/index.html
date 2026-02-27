@@ -38,7 +38,17 @@
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" crossorigin="anonymous"
     referrerpolicy="no-referrer"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAL66VgFHZUvy508XeDSKqrfxUHLHB6c_A" async defer></script>
+  <script>
+    (function() {
+      // Load Google Maps API key from a secure source or environment
+      // For Flutter Web, we can inject this during build or use a placeholder
+      var script = document.createElement('script');
+      script.src = "https://maps.googleapis.com/maps/api/js?key=" + (window.GOOGLE_MAPS_API_KEY || "YOUR_KEY_HERE") + "&libraries=places";
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  </script>
 </head>
 
 <body>

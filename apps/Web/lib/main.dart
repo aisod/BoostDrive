@@ -20,6 +20,10 @@ void main() async {
   // Load .env
   try {
     await dotenv.load(fileName: ".env");
+    final mapsKey = dotenv.maybeGet('GOOGLE_MAPS_API_KEY');
+    if (mapsKey != null) {
+      WebUtils.injectGoogleMapsKey(mapsKey);
+    }
   } catch (e) {
     print("DEBUG: Error loading .env file: $e");
   }
