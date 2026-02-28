@@ -1,0 +1,9 @@
+{
+  "name": "boostdrive",
+  "version": "1.0.0",
+  "description": "BoostDrive Monorepo",
+  "scripts": {
+    "build": "bash scripts/build_netlify.sh"
+  },
+  "dependencies": {}
+}

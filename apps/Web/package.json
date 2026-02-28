@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build": "flutter build web --release"
+  },
   "dependencies": {
     "firebase": "^12.8.0"
   }
