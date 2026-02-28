@@ -40,13 +40,17 @@
     referrerpolicy="no-referrer"></script>
   <script>
     (function() {
-      // Load Google Maps API key from a secure source or environment
-      // For Flutter Web, we can inject this during build or use a placeholder
-      var script = document.createElement('script');
-      var mapsKey = window.GOOGLE_MAPS_API_KEY || "YOUR_KEY_HERE";
-      if (mapsKey === "YOUR_KEY_HERE") {
-        console.warn("Google Maps API key not found. Please set GOOGLE_MAPS_API_KEY in your environment.");
+      // These values can be replaced during build or set via environment variables
+      window.SUPABASE_URL = window.SUPABASE_URL || "YOUR_SUPABASE_URL_HERE";
+      window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY_HERE";
+      window.GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || "YOUR_GOOGLE_MAPS_API_KEY_HERE";
+
+      var mapsKey = window.GOOGLE_MAPS_API_KEY;
+      if (mapsKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE" || !mapsKey) {
+        console.warn("Google Maps API key not found. Please set GOOGLE_MAPS_API_KEY.");
       }
+      
+      var script = document.createElement('script');
       script.src = "https://maps.googleapis.com/maps/api/js?key=" + mapsKey + "&libraries=places&loading=async";
       script.async = true;
       script.defer = true;

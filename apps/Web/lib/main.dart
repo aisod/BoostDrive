@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'web_utils.dart';
+import 'dart:html' as html;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,10 +37,25 @@ void main() async {
   }
 
   // Initialize Supabase
-  await Supabase.initialize(
-    url: isDotEnvInitialized ? (dotenv.maybeGet('SUPABASE_URL') ?? '') : '',
-    anonKey: isDotEnvInitialized ? (dotenv.maybeGet('SUPABASE_ANON_KEY') ?? '') : '',
-  );
+  final supabaseUrl = isDotEnvInitialized 
+      ? (dotenv.maybeGet('SUPABASE_URL') ?? WebUtils.getEnv('SUPABASE_URL')) 
+      : WebUtils.getEnv('SUPABASE_URL');
+  final supabaseAnonKey = isDotEnvInitialized 
+      ? (dotenv.maybeGet('SUPABASE_ANON_KEY') ?? WebUtils.getEnv('SUPABASE_ANON_KEY')) 
+      : WebUtils.getEnv('SUPABASE_ANON_KEY');
+
+  if (supabaseUrl.isEmpty || supabaseUrl.contains('YOUR_SUPABASE_URL_HERE')) {
+    print("CRITICAL ERROR: Supabase URL is missing! Check your .env file or environment variables.");
+  }
+
+  try {
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+    );
+  } catch (e) {
+    print("CRITICAL ERROR: Failed to initialize Supabase: $e");
+  }
 
   runApp(
     const ProviderScope(
@@ -54,6 +70,58 @@ class BoostDriveWebApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    
+    // Check if Supabase is initialized correctly
+    bool isSupabaseReady = false;
+    try {
+      Supabase.instance.client;
+      isSupabaseReady = true;
+    } catch (_) {}
+
+    if (!isSupabaseReady) {
+      return MaterialApp(
+        home: Scaffold(
+          backgroundColor: const Color(0xFF0D0D0D),
+          body: Center(
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+              ),
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Configuration Error',
+                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'The application could not connect to the backend services. This is usually caused by missing environment variables (SUPABASE_URL and SUPABASE_ANON_KEY).',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () => html.window.location.reload(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: BoostDriveTheme.primaryColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    ),
+                    child: const Text('Retry Connection'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     
     return MaterialApp(
       title: 'BoostDrive Shop',

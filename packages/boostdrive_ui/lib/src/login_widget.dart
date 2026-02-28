@@ -159,9 +159,11 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
         final isWeb = kIsWeb;
         
         // Mobile-specific or small screen layout
-        if (!isWeb || constraints.maxWidth <= 800) {
+        // On Web, if the available width is less than 900px (e.g. in a side drawer), 
+        // we should probably use a single column layout to avoid cramping.
+        if (!isWeb || constraints.maxWidth < 900) {
           final totalHeight = constraints.maxHeight;
-          final headerHeight = totalHeight * 0.4;
+          final headerHeight = totalHeight * 0.35;
           
           return Container(
             color: BoostDriveTheme.backgroundDark,
@@ -175,7 +177,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       width: double.infinity,
                       decoration: const BoxDecoration(
                         image: DecorationImage(
-                          image: NetworkImage("https://lh3.googleusercontent.com/aida-public/AB6AXuCuAfnKgvQTFU8mdXJOK2OJrSdpcF6QMKvI6MtCv2T_PuowUTuBUYTxnovRCWOeMgWX20Fdpa6ngazsCa0_-jipGQq37sUi9ZbskUd73-uZkY2403hVqKMhDUMbsBkd0ziAG9ADrjcCgutXcPUyzcwP7yp9jbq_dO_Jma3E8CGlLryK-nu_xr2gv3rVZxLZj3aEas8jNt4q2C2SP0dCSVuSaqeNQnM_AVkU5VYP5KnqN10-3azckFoWgiw7Jkar42nxdR9aCLkX6Ps"),
+                          image: NetworkImage("https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=2070&auto=format&fit=crop"),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -197,13 +199,13 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.speed, color: Colors.white, size: 40),
+                                const Icon(Icons.speed, color: Colors.white, size: 32),
                                 const SizedBox(width: 8),
                                 Text(
                                   'BoostDrive',
                                   style: GoogleFonts.manrope(
                                     color: Colors.white,
-                                    fontSize: 32,
+                                    fontSize: 24,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -212,7 +214,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                             const SizedBox(height: 8),
                             const Text(
                               'Your Complete Automotive Ecosystem',
-                              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+                              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -222,13 +224,13 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     // Login Content
                     Expanded(
                       child: Container(
-                        transform: Matrix4.translationValues(0, -32, 0),
+                        transform: Matrix4.translationValues(0, -24, 0),
                         decoration: const BoxDecoration(
                           color: BoostDriveTheme.backgroundDark,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                         ),
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                           child: Form(
                             key: _loginFormKey,
                             child: Column(
@@ -236,29 +238,29 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                               children: [
                                 const Text(
                                   'Welcome Back',
-                                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+                                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
                                 ),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 24),
                                 
-                            _buildLabel('Email'),
-                            TextFormField(
-                              controller: _emailController,
-                              decoration: _inputDecoration('Enter your email', Icons.mail_outline),
-                              style: const TextStyle(color: Colors.black),
-                              validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
-                            ),
-                            const SizedBox(height: 20),
-                            
-                            _buildLabel('Password'),
-                            TextFormField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              decoration: _inputDecoration('Enter your password', Icons.lock_outline, isPassword: true),
-                              style: const TextStyle(color: Colors.black),
-                              validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
-                            ),
-                                
+                                _buildLabel('Email'),
+                                TextFormField(
+                                  controller: _emailController,
+                                  decoration: _inputDecoration('Enter your email', Icons.mail_outline),
+                                  style: const TextStyle(color: Colors.black),
+                                  validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
+                                ),
                                 const SizedBox(height: 16),
+                                
+                                _buildLabel('Password'),
+                                TextFormField(
+                                  controller: _passwordController,
+                                  obscureText: _obscurePassword,
+                                  decoration: _inputDecoration('Enter your password', Icons.lock_outline, isPassword: true),
+                                  style: const TextStyle(color: Colors.black),
+                                  validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
+                                ),
+                                
+                                const SizedBox(height: 12),
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
@@ -268,14 +270,14 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 ),
                                 
                                 if (widget.errorText != null) ...[
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: 16),
                                   _buildErrorDisplay(widget.errorText!),
                                 ],
                                 
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 24),
                                 SizedBox(
                                   width: double.infinity,
-                                  height: 56,
+                                  height: 50,
                                   child: ElevatedButton(
                                     onPressed: widget.isLoading ? null : _submit,
                                     child: widget.isLoading 
@@ -284,10 +286,11 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                   ),
                                 ),
                                 
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 24),
                                 Center(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                  child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
                                     children: [
                                       const Text("Don't have an account?", style: TextStyle(color: Colors.white60)),
                                       TextButton(
@@ -305,12 +308,26 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     ),
                   ],
                 ),
+                // Close Button for Side Panel (Web only)
+                if (isWeb)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black26,
+                        shape: const CircleBorder(),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
         }
 
-        // Web-specific side panel layout
+        // Web-specific side panel layout (Full Split Screen)
         return Material(
           child: Container(
             width: constraints.maxWidth,
@@ -919,16 +936,19 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                       ),
                                       
                                       const SizedBox(height: 24),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Text("Already have an account?", style: TextStyle(color: Colors.black54)),
-                                          TextButton(
-                                            onPressed: () => setState(() => _isSignUp = false),
-                                            child: const Text('Login', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
-                                          ),
-                                        ],
+                                Center(
+                                  child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    children: [
+                                      const Text("Already have an account?", style: TextStyle(color: Colors.black54)),
+                                      TextButton(
+                                        onPressed: () => setState(() => _isSignUp = false),
+                                        child: const Text('Login', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
                                       ),
+                                    ],
+                                  ),
+                                ),
                                     ],
                                   ),
                                 ),

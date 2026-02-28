@@ -17,5 +17,20 @@ class WebUtils {
 
   static void injectGoogleMapsKey(String key) {
     js.context['GOOGLE_MAPS_API_KEY'] = key;
+    js.context['SUPABASE_URL'] = key; // Placeholder for logic if needed, but we use String.fromEnvironment
+  }
+
+  static String getEnv(String key, {String defaultValue = ''}) {
+    // Priority: 1. JS Context (injected), 2. dart-define, 3. Default
+    final jsValue = js.context[key];
+    if (jsValue != null && jsValue is String && jsValue.isNotEmpty) {
+      return jsValue;
+    }
+    
+    // This is for dart-define (passed via --dart-define=KEY=VALUE)
+    if (key == 'SUPABASE_URL') return const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+    if (key == 'SUPABASE_ANON_KEY') return const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+    
+    return defaultValue;
   }
 }
