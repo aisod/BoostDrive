@@ -18,20 +18,27 @@ void main() async {
   
 
   // Load .env
+  bool isDotEnvInitialized = false;
   try {
+    // Check if we are in a web environment and if the .env asset exists
+    // In production/CI (like Netlify), we might not bundle .env and rely on platform env vars
     await dotenv.load(fileName: ".env");
-    final mapsKey = dotenv.maybeGet('GOOGLE_MAPS_API_KEY');
-    if (mapsKey != null) {
-      WebUtils.injectGoogleMapsKey(mapsKey);
-    }
+    isDotEnvInitialized = true;
   } catch (e) {
     print("DEBUG: Error loading .env file: $e");
+    // If .env fails to load, we continue as Supabase.initialize will use empty strings 
+    // which might be overridden by platform environment variables if supported by the build
+  }
+
+  final mapsKey = isDotEnvInitialized ? dotenv.maybeGet('GOOGLE_MAPS_API_KEY') : null;
+  if (mapsKey != null) {
+    WebUtils.injectGoogleMapsKey(mapsKey);
   }
 
   // Initialize Supabase
   await Supabase.initialize(
-    url: dotenv.maybeGet('SUPABASE_URL') ?? '',
-    anonKey: dotenv.maybeGet('SUPABASE_ANON_KEY') ?? '',
+    url: isDotEnvInitialized ? (dotenv.maybeGet('SUPABASE_URL') ?? '') : '',
+    anonKey: isDotEnvInitialized ? (dotenv.maybeGet('SUPABASE_ANON_KEY') ?? '') : '',
   );
 
   runApp(

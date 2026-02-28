@@ -240,23 +240,23 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 ),
                                 const SizedBox(height: 32),
                                 
-                                _buildLabel('Email'),
-                                TextFormField(
-                                  controller: _emailController,
-                                  decoration: _inputDecoration('Enter your email', Icons.mail_outline),
-                                  style: const TextStyle(color: Colors.white),
-                                  validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
-                                ),
-                                const SizedBox(height: 20),
-                                
-                                _buildLabel('Password'),
-                                TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: _obscurePassword,
-                                  decoration: _inputDecoration('Enter your password', Icons.lock_outline, isPassword: true),
-                                  style: const TextStyle(color: Colors.white),
-                                  validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
-                                ),
+                            _buildLabel('Email'),
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: _inputDecoration('Enter your email', Icons.mail_outline),
+                              style: const TextStyle(color: Colors.black),
+                              validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            _buildLabel('Password'),
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              decoration: _inputDecoration('Enter your password', Icons.lock_outline, isPassword: true),
+                              style: const TextStyle(color: Colors.black),
+                              validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
+                            ),
                                 
                                 const SizedBox(height: 16),
                                 Align(
@@ -665,7 +665,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _usernameController,
                             decoration: _inputDecoration('username123', Icons.alternate_email),
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.black),
                           ),
                           const SizedBox(height: 20),
                           
@@ -673,7 +673,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _nameController,
                             decoration: _inputDecoration('John Doe', Icons.person_outline),
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.black),
                             validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
                           ),
                           const SizedBox(height: 20),
@@ -682,7 +682,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _emailController,
                             decoration: _inputDecoration('john@example.com', Icons.mail_outline),
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.black),
                             validator: (v) => v == null || !v.contains('@') ? 'Invalid email' : null,
                           ),
                           const SizedBox(height: 20),
@@ -691,7 +691,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.black),
                             decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true).copyWith(
                               helperText: _isSignUp ? 'Min 8 chars: Upper, Lower, Number & Symbol' : null,
                               helperStyle: const TextStyle(color: Colors.white38, fontSize: 10),
@@ -704,7 +704,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: _obscurePassword,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.black),
                             decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
                             validator: (v) {
                               if (v == null || v.isEmpty) return 'Please confirm password';
