@@ -8,6 +8,8 @@ FLUTTER_SDK_DIR="$HOME/flutter"
 PATH="$PATH:$FLUTTER_SDK_DIR/bin"
 
 # 1. Install/Verify Flutter
+FLUTTER_VERSION=${FLUTTER_VERSION:-"3.10.7"}
+export FLUTTER_VERSION
 bash scripts/install_flutter.sh
 
 # 2. Install Melos
