@@ -24,6 +24,15 @@ melos bootstrap
 # 4. Build Web Application
 echo "Building web application..."
 cd apps/Web
-flutter build web --release
+
+# Pass environment variables to Flutter build
+echo "Using environment variables:"
+echo "SUPABASE_URL=${SUPABASE_URL}"
+echo "GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}"
+
+flutter build web --release \
+  --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
+  --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
+  --dart-define=GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY}"
 
 echo "Build completed successfully."

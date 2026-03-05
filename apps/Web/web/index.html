@@ -40,20 +40,26 @@
     referrerpolicy="no-referrer"></script>
   <script>
     (function() {
-      // These values can be replaced during build or set via environment variables
-      window.SUPABASE_URL = window.SUPABASE_URL || "YOUR_SUPABASE_URL_HERE";
-      window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY_HERE";
-      window.GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || "YOUR_GOOGLE_MAPS_API_KEY_HERE";
+      // Load environment variables from Netlify
+      // These are passed via --dart-define during the Flutter build
+      window.SUPABASE_URL = "https://jpkkielcwlssmictmjrl.supabase.co";
+      window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa2tpZWxjd2xzc21pY3RtanJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4ODUzMTcsImV4cCI6MjA4NTQ2MTMxN30.sKkXhWmx0O6ZdszDRdzCYcz9hZPgxXJuDumzHlkCy8c";
+      window.GOOGLE_MAPS_API_KEY = "AIzaSyBUd76zkS14RJaI6NKIEEoO0V2G_r7W_FQ";
 
       var mapsKey = window.GOOGLE_MAPS_API_KEY;
-      if (mapsKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE" || !mapsKey) {
-        console.warn("Google Maps API key not found. Please set GOOGLE_MAPS_API_KEY.");
+      if (!mapsKey || mapsKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
+        console.warn("Google Maps API key is missing or invalid.");
+        return;
       }
       
+      // Load Google Maps API
       var script = document.createElement('script');
       script.src = "https://maps.googleapis.com/maps/api/js?key=" + mapsKey + "&libraries=places&loading=async";
       script.async = true;
       script.defer = true;
+      script.onerror = function() {
+        console.error("Failed to load Google Maps API. Check your API key.");
+      };
       document.head.appendChild(script);
     })();
   </script>

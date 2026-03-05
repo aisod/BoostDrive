@@ -609,40 +609,30 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
             color: BoostDriveTheme.backgroundDark,
             child: Column(
               children: [
-                AppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => setState(() => _isSignUp = false),
-                  ),
-                  title: const Text('Create Account', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
-                ),
-                // Progress Indicator
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: BoostDriveTheme.primaryColor,
-                          borderRadius: BorderRadius.circular(100),
+                Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: AppBar(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        leading: const SizedBox.shrink(),
+                        title: const Text('Create Account', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.black26,
+                          shape: const CircleBorder(),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 48,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -841,9 +831,41 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                   color: const Color(0xFFF8F9FB),
                   child: Stack(
                     children: [
+                      // Header with Close Button
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          color: Colors.black.withOpacity(0.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Create Account',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white.withOpacity(0.1),
+                                  shape: const CircleBorder(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
                       Center(
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                          padding: const EdgeInsets.fromLTRB(40, 100, 40, 24),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 500),
                             child: Card(
@@ -860,29 +882,29 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(
-                                        'Create Account',
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.w800,
+                                      const Text(
+                                        'Get Started',
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
                                           color: const Color(0xFF1A1D1E),
                                         ),
                                       ),
                                       const SizedBox(height: 8),
                                       const Text(
                                         'Join the BoostDrive community',
-                                        style: TextStyle(color: Colors.black54, fontSize: 16),
+                                        style: TextStyle(color: Colors.black54, fontSize: 14),
                                       ),
                                       const SizedBox(height: 32),
                                       
-                                      // Role Selection
-                                      Row(
-                                        children: [
-                                          Expanded(child: _buildRoleCard('Customer', 'Buyer/Seller', Icons.person_outline)),
-                                          const SizedBox(width: 16),
-                                          Expanded(child: _buildRoleCard('Service Provider', 'Pro Services', Icons.build_circle_outlined)),
-                                        ],
-                                      ),
+                      // Role Selection
+                      Column(
+                        children: [
+                          _buildWebRoleCard('Customer', 'Owner, Seller or Driver', Icons.directions_car),
+                          const SizedBox(height: 16),
+                          _buildWebRoleCard('Service Provider', 'Professional Services', Icons.build),
+                        ],
+                      ),
                                       const SizedBox(height: 32),
                                       
                                       _buildLabel('Full Name'),
@@ -953,24 +975,6 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      
-                      // Close Button
-                      Positioned(
-                        top: 24,
-                        right: 24,
-                        child: IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close, color: Colors.black45, size: 24),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            hoverColor: Colors.black.withOpacity(0.05),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.black.withOpacity(0.05)),
                             ),
                           ),
                         ),
@@ -1124,6 +1128,55 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                 color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF1A1D1E),
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebRoleCard(String title, String subtitle, IconData icon) {
+    bool isSelected = _selectedRole == title;
+    
+    return GestureDetector(
+      onTap: () => setState(() => _selectedRole = title),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? BoostDriveTheme.primaryColor : Colors.black.withOpacity(0.1),
+            width: isSelected ? 3 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF64748B), size: 40),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF1A1D1E),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
