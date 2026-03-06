@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -62,6 +64,36 @@ class MessageService {
     } catch (e) {
       print('Error finding existing conversation: $e');
       return null;
+    }
+  }
+
+  /// Sanitizes a filename for use in storage keys (removes emojis and other invalid characters).
+  static String _sanitizeStorageFileName(String fileName) {
+    final ext = fileName.contains('.') ? fileName.substring(fileName.lastIndexOf('.')) : '.jpg';
+    final nameWithoutExt = fileName.contains('.') ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+    final safeBase = nameWithoutExt.replaceAll(RegExp(r'[^\w\s\-]'), '').replaceAll(RegExp(r'\s+'), '_').trim();
+    return (safeBase.isEmpty ? 'image' : safeBase) + ext;
+  }
+
+  /// Uploads an attachment (image/audio) for a message and returns the public URL.
+  /// Uses bucket 'message-attachments' (create in Supabase Storage and set public if needed) with path userId/timestamp_sanitizedFilename.
+  Future<String> uploadMessageAttachment({
+    required String userId,
+    required List<int> bytes,
+    required String fileName,
+  }) async {
+    try {
+      final safeName = _sanitizeStorageFileName(fileName);
+      final path = '$userId/${DateTime.now().millisecondsSinceEpoch}_$safeName';
+      await _supabase.storage.from('message-attachments').uploadBinary(
+        path,
+        bytes is Uint8List ? bytes : Uint8List.fromList(bytes),
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+      );
+      return _supabase.storage.from('message-attachments').getPublicUrl(path);
+    } catch (e) {
+      print('Error uploading message attachment: $e');
+      rethrow;
     }
   }
 

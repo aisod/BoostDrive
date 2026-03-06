@@ -11,8 +11,9 @@ import 'reset_password_page.dart';
 
 class BoostLoginPage extends ConsumerStatefulWidget {
   final VoidCallback? onLoginSuccess;
+  final VoidCallback? onClose;
 
-  const BoostLoginPage({super.key, this.onLoginSuccess});
+  const BoostLoginPage({super.key, this.onLoginSuccess, this.onClose});
 
   @override
   ConsumerState<BoostLoginPage> createState() => _BoostLoginPageState();
@@ -467,6 +468,15 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
               color: BoostDriveTheme.backgroundDark,
               child: Stack(
                 children: [
+                  const Positioned(
+                    top: 10,
+                    right: 70,
+                    child: SizedBox(
+                      height: 48,
+                      width: 48,
+                      child: HtmlElementView(viewType: 'recaptcha-container'),
+                    ),
+                  ),
                   BoostLoginWidget(
                     onLogin: _login,
                     onSignUp: _signUp,
@@ -479,21 +489,13 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
                         _isLoading = false;
                       });
                     },
+                    onClose: widget.onClose,
                     onForgotPassword: _showForgotPasswordDialog,
                     onGoogleSignIn: _signInWithGoogle,
                     onAppleSignIn: _signInWithApple,
                     isLoading: _isLoading,
                     isOtpSent: _verificationId != null,
                     errorText: _errorText,
-                  ),
-                  const Positioned(
-                    top: 10,
-                    right: 10,
-                    child: SizedBox(
-                      height: 48,
-                      width: 48,
-                      child: HtmlElementView(viewType: 'recaptcha-container'),
-                    ),
                   ),
                 ],
               ),
@@ -519,6 +521,7 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
                 _isLoading = false;
               });
             },
+            onClose: widget.onClose,
             onForgotPassword: _showForgotPasswordDialog,
             onGoogleSignIn: _signInWithGoogle,
             onAppleSignIn: _signInWithApple,

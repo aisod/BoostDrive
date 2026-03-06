@@ -188,11 +188,11 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                     children: [
                       const Text('DISPATCH OVERVIEW', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w900, fontSize: 12)),
                       const SizedBox(height: 16),
-                      _buildMapStat('Active Mechanics', '12'),
+                      _buildMapStat('Active Mechanics', '0'),
                       const SizedBox(height: 12),
-                      _buildMapStat('Pending SOS', '4'),
+                      _buildMapStat('Pending SOS', '0'),
                       const SizedBox(height: 12),
-                      _buildMapStat('Avg Response', '8m'),
+                      _buildMapStat('Avg Response', '—'),
                     ],
                   ),
                 ),
@@ -230,67 +230,36 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
           ],
         ),
         const SizedBox(height: 32),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 24,
-            mainAxisSpacing: 24,
-            childAspectRatio: 1.5,
-          ),
-          itemCount: 6,
-          itemBuilder: (context, index) => _buildStaffCard(index),
-        ),
+        _buildStaffEmpty(),
       ],
     );
   }
 
-  Widget _buildStaffCard(int index) {
-    final names = ['Klaus M.', 'Sarah J.', 'Petrus T.', 'David W.', 'Maria K.', 'John S.'];
-    final status = index % 3 == 0 ? 'ON JOB' : (index % 2 == 0 ? 'AVAILABLE' : 'OFFLINE');
-    final color = status == 'ON JOB' ? Colors.amber : (status == 'AVAILABLE' ? Colors.green : Colors.white24);
-
+  Widget _buildStaffEmpty() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.03),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(radius: 20, backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.white24)),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(names[index], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text('Mobile Mechanic', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
-                ],
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                child: Text(status, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900)),
-              ),
-            ],
-          ),
-          const Spacer(),
-          const Divider(color: Colors.white10),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Today\'s Jobs: 4', style: TextStyle(color: Colors.white70, fontSize: 12)),
-              TextButton(onPressed: () {}, child: const Text('ASSIGN', style: TextStyle(fontSize: 12))),
-            ],
-          ),
-        ],
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.people_outline, size: 48, color: BoostDriveTheme.textDim),
+            const SizedBox(height: 16),
+            Text(
+              'No staff added yet',
+              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add staff to manage fleet and assignments',
+              style: TextStyle(color: BoostDriveTheme.textDim.withOpacity(0.8), fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -415,13 +384,32 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
       children: [
         _buildSectionHeader('Ongoing Jobs', Icons.assignment_ind),
         const SizedBox(height: 24),
-        _buildOngoingJobCard(
-          'Transmission Inspection',
-          'Ford F-150 • #BTL-9021',
-          'In Progress - Diagnostic Phase',
-          0.4,
-        ),
+        _buildOngoingJobsEmpty(),
       ],
+    );
+  }
+
+  Widget _buildOngoingJobsEmpty() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.assignment_outlined, size: 48, color: BoostDriveTheme.textDim),
+            const SizedBox(height: 16),
+            Text(
+              'No ongoing jobs',
+              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

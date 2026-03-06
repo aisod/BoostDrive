@@ -8,6 +8,11 @@ final productServiceProvider = Provider<ProductService>((ref) {
   return ProductService();
 });
 
+/// Single product by id (e.g. for conversation list/header product context).
+final productByIdProvider = FutureProvider.family<Product?, String>((ref, productId) {
+  return ref.watch(productServiceProvider).getProductById(productId);
+});
+
 class ProductService {
   final _supabase = Supabase.instance.client;
 
@@ -21,7 +26,8 @@ class ProductService {
           .order('created_at', ascending: false)
           .limit(10);
 
-      return (response as List).map((e) => Product.fromMap(e)).toList();
+      final list = response is List ? response : (response != null ? [response] : <dynamic>[]);
+      return list.map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map))).toList();
     } catch (e) {
       print('Error fetching featured products: $e');
       return [];
@@ -38,10 +44,27 @@ class ProductService {
           .gte('created_at', yesterday.toIso8601String())
           .order('created_at', ascending: false);
 
-      return (response as List).map((e) => Product.fromMap(e)).toList();
+      final list = response is List ? response : (response != null ? [response] : <dynamic>[]);
+      return list.map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map))).toList();
     } catch (e) {
       print('Error fetching new arrivals: $e');
       return [];
+    }
+  }
+
+  /// Fetches a single product by id (e.g. for conversation product context).
+  Future<Product?> getProductById(String productId) async {
+    try {
+      final response = await _supabase
+          .from('products')
+          .select()
+          .eq('id', productId)
+          .maybeSingle();
+      if (response == null) return null;
+      return Product.fromMap(Map<String, dynamic>.from(response));
+    } catch (e) {
+      print('Error fetching product by id: $e');
+      return null;
     }
   }
 
@@ -76,7 +99,8 @@ class ProductService {
       if (condition != null) supabaseQuery = supabaseQuery.eq('condition', condition);
 
       final response = await supabaseQuery.order('created_at', ascending: false);
-      return (response as List).map((data) => Product.fromMap(data)).toList();
+      final list = response is List ? response : (response != null ? [response] : <dynamic>[]);
+      return list.map((data) => Product.fromMap(Map<String, dynamic>.from(data as Map))).toList();
     } catch (e) {
       print('DEBUG: Error searching products: $e');
       if (e is PostgrestException) {
@@ -105,7 +129,8 @@ class ProductService {
       }
 
       final response = await supabaseQuery.order('created_at', ascending: false);
-      return (response as List).map((data) => Product.fromMap(data)).toList();
+      final list = response is List ? response : (response != null ? [response] : <dynamic>[]);
+      return list.map((data) => Product.fromMap(Map<String, dynamic>.from(data as Map))).toList();
     } catch (e) {
       print('DEBUG: Error searching parts: $e');
       if (e is PostgrestException) {

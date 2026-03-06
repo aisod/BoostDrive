@@ -33,6 +33,12 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
   final ProductService _productService = ProductService();
   late Future<List<Product>> _featuredProductsFuture;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  OverlayEntry? _megaMenuEntry;
+  String? _activeMegaSection;
+  Offset? _menuOffset;
+  final GlobalKey _marketplaceKey = GlobalKey();
+  final GlobalKey _companyKey = GlobalKey();
+  final GlobalKey _supportKey = GlobalKey();
 
   @override
   void initState() {
@@ -40,8 +46,162 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
     _featuredProductsFuture = _productService.getFeaturedProducts();
   }
 
+  @override
+  void dispose() {
+    // Do not call _closeMegaMenu() here: remove() can throw when overlay is already torn down
+    _megaMenuEntry = null;
+    _activeMegaSection = null;
+    _menuOffset = null;
+    super.dispose();
+  }
+
   void _showLoginDialog() {
     _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  void _openAbout() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutPage()));
+  }
+
+  void _closeMegaMenu() {
+    final entry = _megaMenuEntry;
+    _megaMenuEntry = null;
+    _activeMegaSection = null;
+    _menuOffset = null;
+    if (entry != null && mounted) {
+      try {
+        entry.remove();
+      } catch (_) {
+        // Ignore if overlay was already torn down (e.g. after route pop)
+      }
+    }
+  }
+
+  void _toggleMegaMenu(String section) {
+    final offset = _getMenuOffsetForSection(section);
+    setState(() {
+      _activeMegaSection = section;
+      _menuOffset = offset;
+    });
+
+    if (_megaMenuEntry != null) {
+      // Already inserted; just let setState rebuild it with new section/position
+      return;
+    }
+
+    _megaMenuEntry = OverlayEntry(
+      builder: (context) {
+        return Stack(
+          children: [
+            // Tap-outside to close
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _closeMegaMenu,
+                child: const SizedBox.shrink(),
+              ),
+            ),
+            Positioned(
+              top: (_menuOffset?.dy ?? kToolbarHeight + 8),
+              left: (_menuOffset?.dx ?? 0) - 12,
+              child: Material(
+                color: Colors.transparent,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: _MegaMenuPanel(
+                    activeSection: _activeMegaSection,
+                    onClose: _closeMegaMenu,
+                    onTapLink: (title) {
+                      _closeMegaMenu();
+                      _handleNavLinkTap(title);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    final overlay = Overlay.maybeOf(context);
+    if (overlay != null) {
+      overlay.insert(_megaMenuEntry!);
+    }
+  }
+
+  Offset _getMenuOffsetForSection(String section) {
+    GlobalKey key;
+    switch (section) {
+      case 'Company':
+        key = _companyKey;
+        break;
+      case 'Support':
+        key = _supportKey;
+        break;
+      case 'Marketplace':
+      default:
+        key = _marketplaceKey;
+        break;
+    }
+
+    final ctx = key.currentContext;
+    if (ctx == null) {
+      return const Offset(0, kToolbarHeight + 8);
+    }
+    final box = ctx.findRenderObject() as RenderBox;
+    final topLeft = box.localToGlobal(Offset.zero);
+    return Offset(topLeft.dx, topLeft.dy + box.size.height);
+  }
+
+  void _handleNavLinkTap(String title) {
+    Widget? page;
+    switch (title) {
+      case 'Buy Parts':
+        page = const PartsMarketplacePage();
+        break;
+      case 'Rent a Car':
+        page = const RentalMarketplacePage();
+        break;
+      case 'Sell Your Vehicle':
+        if (ref.read(currentUserProvider) == null) {
+          _showLoginDialog();
+          return;
+        }
+        page = const AddListingPage();
+        break;
+      case 'New Arrivals':
+        page = const NewArrivalsPage();
+        break;
+      case 'About Us':
+        page = const AboutPage();
+        break;
+      case 'Contact':
+        page = const ContactPage();
+        break;
+      case 'Careers':
+        page = const CareersPage();
+        break;
+      case 'Partner Program':
+        page = const PartnerProgramPage();
+        break;
+      case 'Safety Center':
+        page = const SafetyCenterPage();
+        break;
+      case 'Terms of Service':
+        page = const TermsPage();
+        break;
+      case 'Privacy Policy':
+        page = const PrivacyPolicyPage();
+        break;
+      case 'FAQ':
+        page = const FaqPage();
+        break;
+    }
+
+    if (page != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => page!));
+    }
   }
 
   @override
@@ -89,6 +249,9 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
     }
 
     final isMobile = MediaQuery.of(context).size.width < 900;
+    if (isMobile && _megaMenuEntry != null) {
+      _closeMegaMenu();
+    }
 
     return PremiumPageLayout(
       scaffoldKey: _scaffoldKey,
@@ -97,6 +260,9 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
         backgroundColor: Colors.white,
         child: BoostLoginPage(
           onLoginSuccess: () {
+            _scaffoldKey.currentState?.closeEndDrawer();
+          },
+          onClose: () {
             _scaffoldKey.currentState?.closeEndDrawer();
           },
         ),
@@ -129,6 +295,11 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
               leading: const Icon(Icons.settings_input_component, color: BoostDriveTheme.primaryColor),
               title: const Text('PARTS', style: TextStyle(color: Colors.white)),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: BoostDriveTheme.primaryColor),
+              title: const Text('ABOUT US', style: TextStyle(color: Colors.white)),
+              onTap: _openAbout,
             ),
             if (user != null)
               ListTile(
@@ -169,75 +340,87 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
               'BoostDrive',
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -1, color: Colors.white),
             ),
-            if (user != null && !isMobile) ...[
-              const SizedBox(width: 24),
-              ref.watch(userProfileProvider(user.id)).when(
-                data: (profile) {
-                  if (profile == null) {
-                    return const SizedBox();
-                  }
-                  
-                  final hour = DateTime.now().hour;
-                  String greeting;
-                  if (hour < 12) {
-                    greeting = 'Good Morning';
-                  } else if (hour < 17) {
-                    greeting = 'Good Afternoon';
-                  } else {
-                    greeting = 'Good Evening';
-                  }
-                  
-                  final name = profile.fullName.trim().split(' ').first;
-                  final displayGreeting = name.isNotEmpty ? '$greeting, $name' : greeting;
-                  
-                  return Flexible(
-                    child: Text(
-                      displayGreeting,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  );
-                },
-                loading: () => const SizedBox(),
-                error: (_, _) => const SizedBox(),
-              ),
-            ],
           ],
         ),
         actions: [
           if (!isMobile) ...[
-            TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
-              child: const Text('PARTS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-            ),
-            if (user != null)
-              TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesPage())),
-                child: const Text('MESSAGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
+            if (user == null)
+              Row(
+                children: [
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    onEnter: (_) => _toggleMegaMenu('Marketplace'),
+                    child: TextButton(
+                      key: _marketplaceKey,
+                      onPressed: () => _toggleMegaMenu('Marketplace'),
+                      child: _NavTopLabel(text: 'Marketplace', isActive: _activeMegaSection == 'Marketplace'),
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    onEnter: (_) => _toggleMegaMenu('Company'),
+                    child: TextButton(
+                      key: _companyKey,
+                      onPressed: () => _toggleMegaMenu('Company'),
+                      child: _NavTopLabel(text: 'Company', isActive: _activeMegaSection == 'Company'),
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    onEnter: (_) => _toggleMegaMenu('Support'),
+                    child: TextButton(
+                      key: _supportKey,
+                      onPressed: () => _toggleMegaMenu('Support'),
+                      child: _NavTopLabel(text: 'Support', isActive: _activeMegaSection == 'Support'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: TextButton(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
+                      child: const Text('PARTS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
+                    ),
+                  ),
+                  if (user != null)
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: TextButton(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesPage())),
+                        child: const Text('MESSAGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
+                      ),
+                    ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: TextButton(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RentalMarketplacePage())),
+                      child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
+                    ),
+                  ),
+                  if (user != null)
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: TextButton(
+                        onPressed: () {
+                          final profile = ref.read(userProfileProvider(user.id)).value;
+                          if (profile != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => _getDashboardForRole(profile.role)),
+                            );
+                          }
+                        },
+                        child: const Text('DASHBOARD', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
+                      ),
+                    ),
+                  const SizedBox(width: 12),
+                ],
               ),
-            TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RentalMarketplacePage())),
-              child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-            ),
-            if (user != null)
-              TextButton(
-                onPressed: () {
-                  final profile = ref.read(userProfileProvider(user.id)).value;
-                  if (profile != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => _getDashboardForRole(profile.role)),
-                    );
-                  }
-                },
-                child: const Text('DASHBOARD', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
-              ),
-            const SizedBox(width: 12),
           ],
           if (user != null && !isMobile)
              ref.watch(userProfileProvider(user.id)).whenData((profile) {
@@ -262,32 +445,35 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                IconButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => NotificationsOverlay(
-                        onNotificationTap: (type, id) {
-                          if (type == 'message') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MessagesPage(initialConversationId: id),
-                              ),
-                            );
-                          } else if (type == 'delivery') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ServiceTrackingPage(orderId: id),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: IconButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => NotificationsOverlay(
+                          onNotificationTap: (type, id) {
+                            if (type == 'message') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MessagesPage(initialConversationId: id),
+                                ),
+                              );
+                            } else if (type == 'delivery') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ServiceTrackingPage(orderId: id),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
+                  ),
                 ),
                 ref.watch(unreadConversationsProvider(user.id)).when(
                   data: (unreadIds) {
@@ -328,25 +514,28 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             ref.watch(userProfileProvider(user.id)).when(
               data: (profile) {
                 if (profile == null) return const SizedBox();
-                return InkWell(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
-                  ),
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-                    child: profile.profileImg.isEmpty
-                        ? Text(
-                            getInitials(profile.fullName),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
+                return MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: InkWell(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
+                    ),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
+                      child: profile.profileImg.isEmpty
+                          ? Text(
+                              getInitials(profile.fullName),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
                 );
               },
@@ -354,76 +543,30 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
               error: (_, _) => const Icon(Icons.account_circle_outlined, color: Colors.white),
             ),
           const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () {
-              if (user == null) {
-                _showLoginDialog();
-              } else {
-                ref.read(authServiceProvider).signOut();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(100, 44),
-              backgroundColor: user == null ? Colors.white : Colors.white10,
-              foregroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.white,
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: ElevatedButton(
+              onPressed: () {
+                if (user == null) {
+                  _showLoginDialog();
+                } else {
+                  ref.read(authServiceProvider).signOut();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(100, 44),
+                backgroundColor: user == null ? Colors.white : Colors.white10,
+                foregroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.white,
+              ),
+              child: Text(user == null ? 'Login' : 'Log Out'),
             ),
-            child: Text(user == null ? 'Login' : 'Log Out'),
           ),
           const SizedBox(width: 40),
         ],
       ),
       footer: AppFooter(
         onLinkTap: (section, title) {
-          if (title == 'Contact') {
-            _showContactDialog(context);
-            return;
-          }
-          
-          Widget? page;
-          switch (title) {
-            case 'Buy Parts':
-              page = const PartsMarketplacePage();
-              break;
-            case 'Rent a Car':
-              page = const RentalMarketplacePage();
-              break;
-            case 'Sell Your Vehicle':
-              // Logic to handle auth before navigation is already in _ShopHomePageState
-              if (ref.read(currentUserProvider) == null) {
-                _showLoginDialog();
-              } else {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AddListingPage()));
-              }
-              return;
-            case 'New Arrivals':
-              page = const NewArrivalsPage();
-              break;
-            case 'About Us':
-              page = const AboutPage();
-              break;
-            case 'Careers':
-              page = const CareersPage();
-              break;
-            case 'Partner Program':
-              page = const PartnerProgramPage();
-              break;
-            case 'Safety Center':
-              page = const SafetyCenterPage();
-              break;
-            case 'Terms of Service':
-              page = const TermsPage();
-              break;
-            case 'Privacy Policy':
-              page = const PrivacyPolicyPage();
-              break;
-            case 'FAQ':
-              page = const FaqPage();
-              break;
-          }
-
-          if (page != null) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => page!));
-          }
+          _handleNavLinkTap(title);
         },
       ),
       child: Column(
@@ -687,3 +830,112 @@ class _ContactItem extends StatelessWidget {
 }
 
 // _WebLoginWrapper and its state class have been removed in favor of BoostLoginPage
+
+class _NavTopLabel extends StatelessWidget {
+  final String text;
+  final bool isActive;
+  const _NavTopLabel({required this.text, required this.isActive});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.2,
+        color: Colors.white.withValues(alpha: isActive ? 1 : 0.9),
+        decoration: isActive ? TextDecoration.underline : TextDecoration.none,
+        decorationColor: Colors.white.withValues(alpha: 0.9),
+        decorationThickness: 2,
+      ),
+    );
+  }
+}
+
+class _MegaMenuPanel extends StatelessWidget {
+  final String? activeSection;
+  final VoidCallback onClose;
+  final void Function(String title) onTapLink;
+
+  const _MegaMenuPanel({
+    required this.activeSection,
+    required this.onClose,
+    required this.onTapLink,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final String section = activeSection ?? 'Marketplace';
+    late final String title;
+    late final List<String> links;
+
+    switch (section) {
+      case 'Company':
+        title = 'Company';
+        links = const ['About Us', 'Contact', 'Careers', 'Partner Program'];
+        break;
+      case 'Support':
+        title = 'Support';
+        links = const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'];
+        break;
+      case 'Marketplace':
+      default:
+        title = 'Marketplace';
+        links = const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'];
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 260),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF6B7280),
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ...links.map(
+              (t) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: InkWell(
+                  onTap: () => onTapLink(t),
+                  hoverColor: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Text(
+                    t,
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

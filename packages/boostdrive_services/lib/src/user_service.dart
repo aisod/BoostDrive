@@ -112,7 +112,7 @@ final userServiceProvider = Provider<UserService>((ref) {
   return UserService();
 });
 
-final userProfileProvider = FutureProvider.autoDispose.family<UserProfile?, String>((ref, uid) {
+final userProfileProvider = FutureProvider.family<UserProfile?, String>((ref, uid) {
   return ref.watch(userServiceProvider).getProfile(uid);
 });
 

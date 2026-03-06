@@ -17,6 +17,7 @@ class BoostLoginWidget extends StatefulWidget {
   final Function(String otp) onVerifyOtp;
   final VoidCallback? onResendOtp;
   final VoidCallback? onCancelOtp;
+  final VoidCallback? onClose;
   final VoidCallback? onForgotPassword;
   final VoidCallback? onGoogleSignIn;
   final VoidCallback? onAppleSignIn;
@@ -31,6 +32,7 @@ class BoostLoginWidget extends StatefulWidget {
     required this.onVerifyOtp,
     this.onResendOtp,
     this.onCancelOtp,
+    this.onClose,
     this.onForgotPassword,
     this.onGoogleSignIn,
     this.onAppleSignIn,
@@ -151,6 +153,15 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
   Widget build(BuildContext context) {
     if (widget.isOtpSent) return _buildOtpView();
     return _isSignUp ? _buildSignUpView() : _buildLoginView();
+  }
+
+  void _handleClose() {
+    final onClose = widget.onClose;
+    if (onClose != null) {
+      onClose();
+      return;
+    }
+    Navigator.of(context).maybePop();
   }
 
   Widget _buildLoginView() {
@@ -314,7 +325,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     top: 16,
                     right: 16,
                     child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: _handleClose,
                       icon: const Icon(Icons.close, color: Colors.white, size: 24),
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.black26,
@@ -566,7 +577,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                         top: 16,
                         right: 16,
                         child: IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: _handleClose,
                           icon: const Icon(Icons.close, color: Colors.white, size: 24),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.black12,
@@ -624,7 +635,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       top: 12,
                       right: 12,
                       child: IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: _handleClose,
                         icon: const Icon(Icons.close, color: Colors.white, size: 24),
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.black26,
@@ -851,7 +862,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: () => Navigator.of(context).pop(),
+                                onPressed: _handleClose,
                                 icon: const Icon(Icons.close, color: Colors.white, size: 24),
                                 style: IconButton.styleFrom(
                                   backgroundColor: Colors.white.withOpacity(0.1),

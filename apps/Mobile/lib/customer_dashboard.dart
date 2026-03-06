@@ -6,6 +6,7 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'providers.dart';
+import 'chat_page.dart';
 
 class CustomerDashboard extends ConsumerStatefulWidget {
   const CustomerDashboard({super.key});
@@ -92,36 +93,12 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               clipBehavior: Clip.none,
               children: [
                 GestureDetector(
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (context) => NotificationsOverlay(
-                      onNotificationTap: (type, id) {
-                        if (type == 'message') {
-                          // Find the conversation from the stream or just navigate
-                          // For mobile, we might need more info or just use the ID
-                          // ConversationsPage handles the list, ChatPage handles the specific chat
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChatPage(
-                                conversationId: id,
-                                productTitle: 'Chat', // Fallback title
-                                buyerId: '', // These will be fetched in ChatPage or should be passed
-                                sellerId: '',
-                              ),
-                            ),
-                          );
-                        } else if (type == 'delivery') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ServiceTrackingPage(orderId: id),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
+                  onTap: () {
+                    // TODO: Implement notifications overlay
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Notifications coming soon')),
+                    );
+                  },
                   child: _buildHeaderIcon(Icons.notifications_none_rounded),
                 ),
                 ref.watch(unreadConversationsProvider(uid)).when(
