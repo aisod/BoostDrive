@@ -343,225 +343,235 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           ],
         ),
         actions: [
-          if (!isMobile) ...[
-            if (user == null)
-              Row(
-                children: [
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    onEnter: (_) => _toggleMegaMenu('Marketplace'),
-                    child: TextButton(
-                      key: _marketplaceKey,
-                      onPressed: () => _toggleMegaMenu('Marketplace'),
-                      child: _NavTopLabel(text: 'Marketplace', isActive: _activeMegaSection == 'Marketplace'),
-                    ),
-                  ),
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    onEnter: (_) => _toggleMegaMenu('Company'),
-                    child: TextButton(
-                      key: _companyKey,
-                      onPressed: () => _toggleMegaMenu('Company'),
-                      child: _NavTopLabel(text: 'Company', isActive: _activeMegaSection == 'Company'),
-                    ),
-                  ),
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    onEnter: (_) => _toggleMegaMenu('Support'),
-                    child: TextButton(
-                      key: _supportKey,
-                      onPressed: () => _toggleMegaMenu('Support'),
-                      child: _NavTopLabel(text: 'Support', isActive: _activeMegaSection == 'Support'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-              )
-            else
-              Row(
-                children: [
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: TextButton(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
-                      child: const Text('PARTS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-                    ),
-                  ),
-                  if (user != null)
-                    MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: TextButton(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesPage())),
-                        child: const Text('MESSAGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-                      ),
-                    ),
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: TextButton(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RentalMarketplacePage())),
-                      child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-                    ),
-                  ),
-                  if (user != null)
-                    MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: TextButton(
-                        onPressed: () {
-                          final profile = ref.read(userProfileProvider(user.id)).value;
-                          if (profile != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => _getDashboardForRole(profile.role)),
-                            );
-                          }
-                        },
-                        child: const Text('DASHBOARD', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
-                      ),
-                    ),
-                  const SizedBox(width: 12),
-                ],
-              ),
-          ],
-          if (user != null && !isMobile)
-             ref.watch(userProfileProvider(user.id)).whenData((profile) {
-               if (profile == null) return const SizedBox();
-               return Container(
-                 margin: const EdgeInsets.only(right: 8),
-                 child: Chip(
-                   label: Text(profile.role.replaceAll('_', ' ').toUpperCase()),
-                   backgroundColor: Colors.white.withOpacity(0.2),
-                   labelStyle: const TextStyle(
-                     color: Colors.white,
-                     fontWeight: FontWeight.w900,
-                     fontSize: 10,
-                     letterSpacing: 0.5,
-                   ),
-                   side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
-                 ),
-               );
-             }).value ?? const SizedBox(),
-          const SizedBox(width: 8),
-          if (user != null) ...[
-            Stack(
-              clipBehavior: Clip.none,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: IconButton(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => NotificationsOverlay(
-                          onNotificationTap: (type, id) {
-                            if (type == 'message') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => MessagesPage(initialConversationId: id),
-                                ),
-                              );
-                            } else if (type == 'delivery') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ServiceTrackingPage(orderId: id),
-                                ),
-                              );
-                            }
+                if (!isMobile) ...[
+                  if (user == null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          onEnter: (_) => _toggleMegaMenu('Marketplace'),
+                          child: TextButton(
+                            key: _marketplaceKey,
+                            onPressed: () => _toggleMegaMenu('Marketplace'),
+                            child: _NavTopLabel(text: 'Marketplace', isActive: _activeMegaSection == 'Marketplace'),
+                          ),
+                        ),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          onEnter: (_) => _toggleMegaMenu('Company'),
+                          child: TextButton(
+                            key: _companyKey,
+                            onPressed: () => _toggleMegaMenu('Company'),
+                            child: _NavTopLabel(text: 'Company', isActive: _activeMegaSection == 'Company'),
+                          ),
+                        ),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          onEnter: (_) => _toggleMegaMenu('Support'),
+                          child: TextButton(
+                            key: _supportKey,
+                            onPressed: () => _toggleMegaMenu('Support'),
+                            child: _NavTopLabel(text: 'Support', isActive: _activeMegaSection == 'Support'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                    )
+                  else
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: TextButton(
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
+                            child: const Text('PARTS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
+                          ),
+                        ),
+                        if (user != null)
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: TextButton(
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesPage())),
+                              child: const Text('MESSAGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
+                            ),
+                          ),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: TextButton(
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RentalMarketplacePage())),
+                            child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
+                          ),
+                        ),
+                        if (user != null)
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: TextButton(
+                              onPressed: () {
+                                final profile = ref.read(userProfileProvider(user.id)).value;
+                                if (profile != null) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => _getDashboardForRole(profile.role)),
+                                  );
+                                }
+                              },
+                              child: const Text('DASHBOARD', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
+                            ),
+                          ),
+                        const SizedBox(width: 12),
+                      ],
+                    ),
+                ],
+                if (user != null && !isMobile)
+                  ref.watch(userProfileProvider(user.id)).whenData((profile) {
+                    if (profile == null) return const SizedBox();
+                    return Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      child: Chip(
+                        label: Text(profile.role.replaceAll('_', ' ').toUpperCase()),
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        labelStyle: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+                      ),
+                    );
+                  }).value ?? const SizedBox(),
+                const SizedBox(width: 8),
+                if (user != null) ...[
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: IconButton(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => NotificationsOverlay(
+                                onNotificationTap: (type, id) {
+                                  if (type == 'message') {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => MessagesPage(initialConversationId: id),
+                                      ),
+                                    );
+                                  } else if (type == 'delivery') {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ServiceTrackingPage(orderId: id),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            );
                           },
+                          icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
+                        ),
+                      ),
+                      ref.watch(unreadConversationsProvider(user.id)).when(
+                        data: (unreadIds) {
+                          if (unreadIds.isEmpty) return const SizedBox();
+                          return Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: BoostDriveTheme.surfaceDark,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                '${unreadIds.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox(),
+                        error: (_, __) => const SizedBox(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                if (user != null)
+                  ref.watch(userProfileProvider(user.id)).when(
+                    data: (profile) {
+                      if (profile == null) return const SizedBox();
+                      return MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: InkWell(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
+                          ),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
+                            child: profile.profileImg.isEmpty
+                                ? Text(
+                                    getInitials(profile.fullName),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : null,
+                          ),
                         ),
                       );
                     },
-                    icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
+                    loading: () => const SizedBox(width: 36, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))),
+                    error: (_, _) => const Icon(Icons.account_circle_outlined, color: Colors.white),
+                  ),
+                const SizedBox(width: 8),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (user == null) {
+                        _showLoginDialog();
+                      } else {
+                        ref.read(authServiceProvider).signOut();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(100, 44),
+                      backgroundColor: user == null ? Colors.white : Colors.white10,
+                      foregroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.white,
+                    ),
+                    child: Text(user == null ? 'Login' : 'Log Out'),
                   ),
                 ),
-                ref.watch(unreadConversationsProvider(user.id)).when(
-                  data: (unreadIds) {
-                    if (unreadIds.isEmpty) return const SizedBox();
-                    return Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: BoostDriveTheme.surfaceDark,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${unreadIds.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    );
-                  },
-                  loading: () => const SizedBox(),
-                  error: (_, __) => const SizedBox(),
-                ),
+                const SizedBox(width: 40),
               ],
             ),
-            const SizedBox(width: 8),
-          ],
-          if (user != null)
-            ref.watch(userProfileProvider(user.id)).when(
-              data: (profile) {
-                if (profile == null) return const SizedBox();
-                return MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: InkWell(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
-                    ),
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.white.withOpacity(0.2),
-                      backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-                      child: profile.profileImg.isEmpty
-                          ? Text(
-                              getInitials(profile.fullName),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : null,
-                    ),
-                  ),
-                );
-              },
-              loading: () => const SizedBox(width: 36, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))),
-              error: (_, _) => const Icon(Icons.account_circle_outlined, color: Colors.white),
-            ),
-          const SizedBox(width: 8),
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: ElevatedButton(
-              onPressed: () {
-                if (user == null) {
-                  _showLoginDialog();
-                } else {
-                  ref.read(authServiceProvider).signOut();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(100, 44),
-                backgroundColor: user == null ? Colors.white : Colors.white10,
-                foregroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.white,
-              ),
-              child: Text(user == null ? 'Login' : 'Log Out'),
-            ),
           ),
-          const SizedBox(width: 40),
         ],
       ),
       footer: AppFooter(

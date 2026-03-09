@@ -158,6 +158,28 @@ class MessageService {
         });
   }
 
+  /// Streams unread message count per conversation (conversationId -> count). Used for WhatsApp-style badges.
+  Stream<Map<String, int>> streamUnreadCountByConversation(String userId) {
+    return _supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .map((data) {
+          try {
+            final Map<String, int> counts = {};
+            for (final m in data) {
+              if (m['is_read'] != false) continue;
+              if (m['sender_id'] == userId) continue;
+              final cid = m['conversation_id'] as String?;
+              if (cid == null || cid.isEmpty) continue;
+              counts[cid] = (counts[cid] ?? 0) + 1;
+            }
+            return counts;
+          } catch (e) {
+            return <String, int>{};
+          }
+        });
+  }
+
   /// Streams active conversations for a user
   Stream<List<Map<String, dynamic>>> streamConversations(String userId) {
     // Note: Supabase stream doesn't support .or() filters
@@ -189,28 +211,32 @@ class MessageService {
         .single();
   }
 
-  /// Deletes a conversation and all its messages
+  /// Deletes a conversation and all its messages.
+  /// Throws if the conversation was not found or could not be deleted (e.g. RLS).
   Future<void> deleteConversation(String conversationId) async {
     try {
       print('Deleting conversation: $conversationId');
-      
+
       // Delete all messages in the conversation first
-      final messagesDeleted = await _supabase
+      await _supabase
           .from('messages')
           .delete()
-          .eq('conversation_id', conversationId)
-          .select();
-      
-      print('Deleted ${messagesDeleted.length} messages');
-      
-      // Then delete the conversation
+          .eq('conversation_id', conversationId);
+
+      // Then delete the conversation; require that exactly one row was deleted
       final conversationDeleted = await _supabase
           .from('conversations')
           .delete()
           .eq('id', conversationId)
           .select();
-      
-      print('Deleted conversation: ${conversationDeleted.length} rows');
+
+      final list = conversationDeleted is List ? conversationDeleted as List : [conversationDeleted];
+      if (list.isEmpty) {
+        throw Exception(
+          'Conversation could not be deleted. You may not have permission, or it may already be deleted.',
+        );
+      }
+      print('Deleted conversation: ${list.length} row(s)');
     } catch (e) {
       print('Error deleting conversation: $e');
       rethrow;
@@ -241,33 +267,55 @@ class MessageService {
     }
   }
 
-  /// Marks all conversations for a user as read
+  /// Marks all conversations for a user as read (persists to DB so badge/dots stay updated after popup close).
   Future<void> markAllAsRead(String userId) async {
     try {
-      // Find all conversations where the user is a participant
-      final response = await _supabase
+      final user = _supabase.auth.currentUser;
+      if (user?.id != userId) return;
+
+      // Fetch conversation IDs where user is buyer or seller (two queries to avoid .or() syntax issues)
+      final asBuyer = await _supabase
           .from('conversations')
           .select('id')
-          .or('buyer_id.eq.$userId,seller_id.eq.$userId');
-          
-      if (response != null && (response as List).isNotEmpty) {
-        final ids = (response as List).map((c) => c['id']).toList();
-        
-        // Mark all messages in these conversations as read where the user is NOT the sender
+          .eq('buyer_id', userId);
+      final asSeller = await _supabase
+          .from('conversations')
+          .select('id')
+          .eq('seller_id', userId);
+
+      final Set<String> ids = {};
+      void addIds(dynamic response) {
+        if (response == null) return;
+        final list = response is List ? response as List : [response];
+        for (final c in list) {
+          if (c is Map<String, dynamic>) {
+            final id = c['id'];
+            if (id != null) {
+              final idStr = id is String ? id : id.toString();
+              if (idStr.isNotEmpty) ids.add(idStr);
+            }
+          }
+        }
+      }
+      addIds(asBuyer);
+      addIds(asSeller);
+
+      for (final conversationId in ids) {
         try {
           await _supabase
               .from('messages')
               .update({'is_read': true})
-              .filter('conversation_id', 'in', ids)
+              .eq('conversation_id', conversationId)
               .neq('sender_id', userId);
         } catch (e) {
-          print('DEBUG: is_read column missing in messages table, skipping update: $e');
+          print('DEBUG: markAllAsRead single conversation $conversationId: $e');
         }
       }
-          
-      print('DEBUG: markAllAsRead completed for user $userId');
+
+      print('DEBUG: markAllAsRead completed for user $userId (${ids.length} conversations)');
     } catch (e) {
       print('Error marking all as read: $e');
+      rethrow;
     }
   }
 }
@@ -286,4 +334,9 @@ final conversationMessagesProvider = StreamProvider.family<List<Map<String, dyna
 
 final unreadConversationsProvider = StreamProvider.family<Set<String>, String>((ref, userId) {
   return ref.watch(messageServiceProvider).streamUnreadConversationIds(userId);
+});
+
+/// Unread message count per conversation (conversationId -> count) for WhatsApp-style badges.
+final unreadCountByConversationProvider = StreamProvider.family<Map<String, int>, String>((ref, userId) {
+  return ref.watch(messageServiceProvider).streamUnreadCountByConversation(userId);
 });

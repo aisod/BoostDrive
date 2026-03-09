@@ -51,6 +51,7 @@ class BoostDriveTheme {
       ).apply(
         bodyColor: textColor,
         displayColor: isDark ? Colors.white : const Color(0xFF101828),
+        fontFamilyFallback: const ['sans-serif'],
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: primaryColor,

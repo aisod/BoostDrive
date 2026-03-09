@@ -20,29 +20,37 @@ class AboutPage extends StatelessWidget {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final isNarrow = constraints.maxWidth < 900;
-                    final aboutText = Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'About BoostDrive',
-                          style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, height: 1.1),
-                        ),
-                        SizedBox(height: 24),
-                        Text(
-                          'BoostDrive is a platform that provides comprehensive e-hailing and transport services. We empower drivers by maximizing their earnings and offer packages for both existing drivers and new individuals entering the e-hailing business.',
-                          style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.7),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Our mission is to create a platform that fosters growth and momentum for drivers while delivering exceptional service to passengers. With BoostDrive, passengers can easily book trips, enjoy privacy, and have the option to book or rent a vehicle with a driver at their disposal.',
-                          style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.7),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Our e-hailing and transport services consultancy is dedicated to empowering drivers and providing exceptional service to car owners. Our objective is to create a strong brand presence and contribute to the growth of the e-hailing ecosystem in Namibia.',
-                          style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.7),
-                        ),
-                      ],
+                    final aboutText = Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'About BoostDrive',
+                            style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, height: 1.1),
+                          ),
+                          SizedBox(height: 24),
+                          Text(
+                            'BoostDrive is a platform that provides comprehensive e-hailing and transport services. We empower drivers by maximizing their earnings and offer packages for both existing drivers and new individuals entering the e-hailing business.',
+                            style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.7),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Our mission is to create a platform that fosters growth and momentum for drivers while delivering exceptional service to passengers. With BoostDrive, passengers can easily book trips, enjoy privacy, and have the option to book or rent a vehicle with a driver at their disposal.',
+                            style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.7),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Our e-hailing and transport services consultancy is dedicated to empowering drivers and providing exceptional service to car owners. Our objective is to create a strong brand presence and contribute to the growth of the e-hailing ecosystem in Namibia.',
+                            style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.7),
+                          ),
+                        ],
+                      ),
                     );
 
                     final aboutImage = ClipRRect(
@@ -336,24 +344,28 @@ class _ContactFormPanelState extends State<_ContactFormPanel> {
         _label('Name*'),
         TextField(
           controller: _nameController,
+          style: const TextStyle(color: Colors.black),
           decoration: _fieldDeco('Your name'),
         ),
         const SizedBox(height: 12),
         _label('Last name'),
         TextField(
           controller: _lastNameController,
+          style: const TextStyle(color: Colors.black),
           decoration: _fieldDeco('Your last name'),
         ),
         const SizedBox(height: 12),
         _label('Your email*'),
         TextField(
           controller: _emailController,
+          style: const TextStyle(color: Colors.black),
           decoration: _fieldDeco('Your email address'),
         ),
         const SizedBox(height: 12),
         _label('Message*'),
         TextField(
           controller: _messageController,
+          style: const TextStyle(color: Colors.black),
           minLines: 4,
           maxLines: 5,
           decoration: _fieldDeco('Enter your message'),
@@ -431,19 +443,27 @@ class _TrainingSection extends StatelessWidget {
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 900;
 
-        final text = const Text(
-          'Through BoostDrive E-hailing drivers can now benefit from fast and convenient follow-up and training services. This initiative aims to enhance their skills and improve their overall efficiency.\n\n'
-          'With the increasing demand and competition in the e-hailing industry, it has become crucial for drivers to stay up-to-date with the latest techniques and regulations. Through this program, drivers can easily access follow-up sessions and training modules tailored specifically to their needs. These sessions cover a wide range of topics such as customer service, navigation, and passenger safety.\n\n'
-          'By participating in these trainings, drivers can not only enhance their professionalism but also provide a better experience to their passengers. This initiative ultimately leads to increased customer satisfaction and improved business opportunities for e-hailing drivers.',
-          style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.7),
+        final text = Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: const Text(
+            'Through BoostDrive E-hailing drivers can now benefit from fast and convenient follow-up and training services. This initiative aims to enhance their skills and improve their overall efficiency.\n\n'
+            'With the increasing demand and competition in the e-hailing industry, it has become crucial for drivers to stay up-to-date with the latest techniques and regulations. Through this program, drivers can easily access follow-up sessions and training modules tailored specifically to their needs. These sessions cover a wide range of topics such as customer service, navigation, and passenger safety.\n\n'
+            'By participating in these trainings, drivers can not only enhance their professionalism but also provide a better experience to their passengers. This initiative ultimately leads to increased customer satisfaction and improved business opportunities for e-hailing drivers.',
+            style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.7),
+          ),
         );
 
         final image = ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: AspectRatio(
             aspectRatio: 16 / 9,
-            child: Image.network(
-              'https://images.unsplash.com/photo-1511910849309-0dffb8786b9b?auto=format&fit=crop&w=1400&q=80',
+            child: Image.asset(
+              'images/steering_wheel.jpg',
               fit: BoxFit.cover,
             ),
           ),
@@ -530,8 +550,8 @@ class _ContactSectionBodyState extends State<_ContactSectionBody> {
           borderRadius: BorderRadius.circular(18),
           child: AspectRatio(
             aspectRatio: 4 / 3,
-            child: Image.network(
-              'https://images.unsplash.com/photo-1518441902117-f0a9d706f5f3?auto=format&fit=crop&w=1400&q=80',
+            child: Image.asset(
+              'images/driving_a_car.jpg',
               fit: BoxFit.cover,
             ),
           ),
@@ -540,9 +560,9 @@ class _ContactSectionBodyState extends State<_ContactSectionBody> {
         final form = Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
+            color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,17 +572,30 @@ class _ContactSectionBodyState extends State<_ContactSectionBody> {
               ),
               const SizedBox(height: 24),
               _fieldLabel('Name'),
-              TextField(controller: _nameController, decoration: _deco('Your name')),
+              TextField(
+                controller: _nameController,
+                style: const TextStyle(color: Colors.black),
+                decoration: _deco('Your name'),
+              ),
               const SizedBox(height: 16),
               _fieldLabel('Last name'),
-              TextField(controller: _lastNameController, decoration: _deco('Your last name')),
+              TextField(
+                controller: _lastNameController,
+                style: const TextStyle(color: Colors.black),
+                decoration: _deco('Your last name'),
+              ),
               const SizedBox(height: 16),
               _fieldLabel('Your email*'),
-              TextField(controller: _emailController, decoration: _deco('Your email address')),
+              TextField(
+                controller: _emailController,
+                style: const TextStyle(color: Colors.black),
+                decoration: _deco('Your email address'),
+              ),
               const SizedBox(height: 16),
               _fieldLabel('Message*'),
               TextField(
                 controller: _messageController,
+                style: const TextStyle(color: Colors.black),
                 minLines: 4,
                 maxLines: 6,
                 decoration: _deco('Enter your message'),
@@ -627,39 +660,54 @@ class CareersPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
             child: Column(
               children: [
-                const Icon(Icons.rocket_launch_outlined, size: 80, color: BoostDriveTheme.primaryColor),
-                const SizedBox(height: 32),
-                const Text(
-                  'Build the Future of Mobility.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'We are always looking for passionate engineers, designers, and automotive enthusiasts to join our remote-first team.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, color: BoostDriveTheme.textDim, height: 1.6),
-                ),
-                const SizedBox(height: 48),
                 Container(
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
                   ),
                   child: Column(
                     children: [
+                      const Icon(Icons.rocket_launch_outlined, size: 80, color: BoostDriveTheme.primaryColor),
+                      const SizedBox(height: 32),
                       const Text(
-                        'Current Openings',
+                        'Build the Future of Mobility.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'We are always looking for passionate engineers, designers, and automotive enthusiasts to join our remote-first team.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18, color: BoostDriveTheme.textDim, height: 1.6),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 48),
+                Container(
+                  padding: const EdgeInsets.all(48),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Column(
+                    children: const [
+                      Icon(Icons.work_outline, size: 48, color: BoostDriveTheme.textDim),
+                      SizedBox(height: 24),
+                      Text(
+                        'No Current Openings',
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 24),
-                      _JobListing(title: 'Senior Flutter Engineer', location: 'Remote (Namibia)'),
-                      const Divider(color: Colors.white10, height: 32),
-                      _JobListing(title: 'Automotive Data Specialist', location: 'Windhoek'),
-                      const Divider(color: Colors.white10, height: 32),
-                      _JobListing(title: 'Customer Success Lead', location: 'Remote'),
+                      SizedBox(height: 12),
+                      Text(
+                        'We don\'t have any open positions at the moment. Please check back later or follow us on social media for updates.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: BoostDriveTheme.textDim, height: 1.5),
+                      ),
                     ],
                   ),
                 ),
@@ -686,18 +734,30 @@ class PartnerProgramPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
             child: Column(
               children: [
-                const Icon(Icons.handshake_outlined, size: 80, color: Colors.blueAccent),
-                const SizedBox(height: 32),
-                const Text(
-                  'Grow with BoostDrive.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'For dealerships, rental agencies, and parts suppliers. Integrate your inventory directly with our platform and reach thousands of verified customers.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, color: BoostDriveTheme.textDim, height: 1.6),
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.handshake_outlined, size: 80, color: Colors.blueAccent),
+                      const SizedBox(height: 32),
+                      const Text(
+                        'Grow with BoostDrive.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'For dealerships, rental agencies, and parts suppliers. Integrate your inventory directly with our platform and reach thousands of verified customers.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18, color: BoostDriveTheme.textDim, height: 1.6),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 48),
                 const SizedBox(height: 24),

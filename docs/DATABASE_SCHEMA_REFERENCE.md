@@ -64,6 +64,10 @@ Used by: `MessageService` (chat messages, read receipts).
 - Read receipts (grey / double orange tick) will not work.  
 - Add: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read boolean DEFAULT false;`
 
+**Row Level Security (RLS):**  
+- For “mark as read” and the notification bell count to work, the **recipient** must be allowed to **UPDATE** `messages` (at least the `is_read` column) for messages they received (i.e. where `sender_id != auth.uid()`).  
+- If updates are blocked by RLS, the app will log "markConversationAsRead completed" / "markAllAsRead completed" but the unread count will not go down. Add a policy that allows `UPDATE` on `messages` when the row’s `conversation_id` is in a conversation where the user is the buyer or seller, and `sender_id != auth.uid()`.
+
 ---
 
 ## 4. **products**
@@ -259,3 +263,41 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read boolean DEFAULT false;
 ```
 
 Then ensure `markConversationAsRead` is called when a user opens a conversation (the app already does this); it updates `messages.is_read` to `true` for that conversation for messages not sent by the current user.
+
+---
+
+## Row Level Security (RLS) for deleting conversations
+
+If you see **"Conversation could not be deleted. You may not have permission"**, RLS is blocking the delete. The app deletes **messages** in that conversation first, then the **conversation** row. Both tables must allow the current user to delete.
+
+Run the following in the Supabase **SQL Editor** (Dashboard → SQL Editor → New query). It enables RLS on both tables if not already on, and adds policies so a user can delete conversations (and their messages) where they are the buyer or seller.
+
+```sql
+-- Enable RLS on tables (no-op if already enabled)
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to DELETE a conversation if they are the buyer or seller
+DROP POLICY IF EXISTS "Users can delete own conversations" ON conversations;
+CREATE POLICY "Users can delete own conversations"
+  ON conversations
+  FOR DELETE
+  USING (
+    auth.uid() = buyer_id OR auth.uid() = seller_id
+  );
+
+-- Allow users to DELETE messages in conversations where they are buyer or seller
+DROP POLICY IF EXISTS "Users can delete messages in own conversations" ON messages;
+CREATE POLICY "Users can delete messages in own conversations"
+  ON messages
+  FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM conversations c
+      WHERE c.id = messages.conversation_id
+        AND (c.buyer_id = auth.uid() OR c.seller_id = auth.uid())
+    )
+  );
+```
+
+After running this, try deleting a conversation again; it should succeed and disappear from the list.

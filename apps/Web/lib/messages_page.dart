@@ -48,21 +48,50 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   double _voiceDragOffset = 0;
   static const double _slideToCancelThreshold = 80;
 
+  /// Polling fallback so the other user's messages appear without reload (Supabase filtered stream often only emits once).
+  Timer? _messagePollTimer;
+  static const Duration _messagePollInterval = Duration(seconds: 2);
+
+  void _startMessagePolling() {
+    _messagePollTimer?.cancel();
+    if (_selectedConversationId == null) return;
+    final conversationId = _selectedConversationId!;
+    _messagePollTimer = Timer.periodic(_messagePollInterval, (_) {
+      if (!mounted || _selectedConversationId != conversationId) {
+        _messagePollTimer?.cancel();
+        return;
+      }
+      ref.invalidate(conversationMessagesProvider(conversationId));
+    });
+  }
+
+  void _stopMessagePolling() {
+    _messagePollTimer?.cancel();
+    _messagePollTimer = null;
+  }
+
   @override
   void initState() {
     super.initState();
     _pendingAttachments = [];
     if (widget.initialConversationId != null) {
       _selectedConversationId = widget.initialConversationId;
-      // Mark as read if an initial conversation is provided
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(messageServiceProvider).markConversationAsRead(widget.initialConversationId!);
+      // Mark as read if an initial conversation is provided (e.g. from notification tap)
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await ref.read(messageServiceProvider).markConversationAsRead(widget.initialConversationId!);
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user != null && mounted) {
+          ref.invalidate(unreadConversationsProvider(user.id));
+          ref.invalidate(unreadCountByConversationProvider(user.id));
+        }
+        if (mounted) _startMessagePolling();
       });
     }
   }
 
   @override
   void dispose() {
+    _stopMessagePolling();
     _voiceRecordingTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
@@ -780,11 +809,22 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     );
 
     if (confirmed == true) {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
       try {
         await ref.read(messageServiceProvider).deleteConversation(conversationId);
-        
-        // If the deleted conversation was selected, clear selection
+
+        if (!mounted) return;
+
+        // Force conversation list and related data to refresh immediately
+        ref.refresh(userConversationsProvider(user.id));
+        ref.invalidate(unreadConversationsProvider(user.id));
+        ref.invalidate(conversationMessagesProvider(conversationId));
+
+        // Clear selection if we deleted the currently selected conversation
         if (_selectedConversationId == conversationId) {
+          _stopMessagePolling();
           setState(() {
             _selectedConversationId = null;
           });
@@ -845,9 +885,11 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             final productTitle = product?.title ?? conv['product_title'] ?? (productId == null ? 'Service Request' : 'Product');
             final roleLabel = _otherPartyRoleLabel(userId, conv['buyer_id'] as String?, conv['seller_id'] as String?);
             
-            // Unread indicator logic for the conversation list
+            // Unread indicator and count (WhatsApp-style: number of messages not yet opened by the receiver)
             final unreadConvs = ref.watch(unreadConversationsProvider(userId)).value ?? {};
             final isUnread = unreadConvs.contains(conv['id']);
+            final unreadCounts = ref.watch(unreadCountByConversationProvider(userId)).value ?? {};
+            final unreadCount = unreadCounts[conv['id']] ?? 0;
 
             return ListTile(
               selected: isSelected,
@@ -857,7 +899,31 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 data: (profile) => Stack(
                   children: [
                     _buildOtherUserAvatar(profile, radius: 20, darkBg: true),
-                    if (isUnread)
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                          decoration: BoxDecoration(
+                            color: BoostDriveTheme.primaryColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              unreadCount > 99 ? '99+' : '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (isUnread)
                       Positioned(
                         right: 0,
                         top: 0,
@@ -935,36 +1001,63 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   ),
                 ],
               ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (conv['created_at'] != null)
-                    Text(
-                      _formatMessageDate(conv['created_at']),
-                      style: TextStyle(
-                        color: isUnread ? BoostDriveTheme.primaryColor : Colors.white24, 
-                        fontSize: 10,
-                        fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                  if (unreadCount > 0)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: BoostDriveTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        unreadCount > 99 ? '99+' : '$unreadCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: () => _showDeleteConfirmation(conv['id'], productTitle),
-                    child: Icon(
-                      Icons.delete_outline,
-                      color: isSelected ? BoostDriveTheme.primaryColor : Colors.red.withOpacity(0.5),
-                      size: 18,
-                    ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (conv['created_at'] != null)
+                        Text(
+                          _formatMessageDate(conv['created_at']),
+                          style: TextStyle(
+                            color: isUnread ? BoostDriveTheme.primaryColor : Colors.white24,
+                            fontSize: 10,
+                            fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      GestureDetector(
+                        onTap: () => _showDeleteConfirmation(conv['id'], productTitle),
+                        child: Icon(
+                          Icons.delete_outline,
+                          color: isSelected ? BoostDriveTheme.primaryColor : Colors.red.withOpacity(0.5),
+                          size: 18,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              onTap: () {
+              onTap: () async {
                 setState(() {
                   _selectedConversationId = conv['id'];
                 });
-                // Mark as read when selected
-                ref.read(messageServiceProvider).markConversationAsRead(conv['id']);
+                _startMessagePolling();
+                // Mark as read when selected so bell count, notification dots, and unread badge update
+                await ref.read(messageServiceProvider).markConversationAsRead(conv['id']);
+                if (mounted) {
+                  ref.invalidate(unreadConversationsProvider(userId));
+                  ref.invalidate(unreadCountByConversationProvider(userId));
+                }
               },
             );
           },

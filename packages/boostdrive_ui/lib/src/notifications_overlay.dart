@@ -19,8 +19,8 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  final Set<String> _optimisticReadIds = {};
-  
+  bool _isMarkingAllAsRead = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +39,51 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     super.dispose();
   }
 
+  /// Derives a descriptive notification title from the product attached to a conversation.
+  String _conversationTitle(Map<String, dynamic> conv) {
+    final productId = conv['product_id'] as String?;
+    if (productId == null || productId.isEmpty) return 'New Message';
+
+    final productAsync = ref.watch(productByIdProvider(productId));
+    final product = productAsync.valueOrNull;
+    if (product == null) return 'New Message';
+
+    final typeLabel = _listingTypeLabel(product.category);
+    final name = product.title.isNotEmpty ? product.title : 'a listing';
+    return '$typeLabel – $name';
+  }
+
+  /// Human-readable listing type from the product category.
+  String _listingTypeLabel(String? category) {
+    if (category == null || category.isEmpty) return 'Message';
+    switch (category.toLowerCase()) {
+      case 'car':
+        return 'Vehicle for sale';
+      case 'part':
+        return 'Spare part for sale';
+      case 'rental':
+        return 'Car for rent';
+      default:
+        return 'Message';
+    }
+  }
+
+  /// Build a subtitle for the notification using the sender's name when available.
+  String _conversationSubtitle(Map<String, dynamic> conv, String currentUserId) {
+    final isBuyer = conv['buyer_id'] == currentUserId;
+    final otherUserId = isBuyer ? conv['seller_id'] : conv['buyer_id'];
+    final otherProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
+    final otherName = otherProfileAsync.valueOrNull?.fullName;
+
+    final lastMsg = conv['last_message'] as String?;
+    if (lastMsg != null && lastMsg.isNotEmpty) {
+      if (otherName != null && otherName.isNotEmpty) return '$otherName: $lastMsg';
+      return lastMsg;
+    }
+    if (otherName != null && otherName.isNotEmpty) return 'Conversation with $otherName';
+    return 'You have an active conversation regarding a product.';
+  }
+
   List<Map<String, dynamic>> _processNotifications(
     String currentUserId,
     List<Map<String, dynamic>> conversations,
@@ -48,27 +93,19 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
   ) {
     final List<Map<String, dynamic>> all = [];
 
-    // 1. Messages from Conversations
     for (var conv in conversations) {
-      // Filter conversations where the user is a participant
       if (conv['buyer_id'] != currentUserId && conv['seller_id'] != currentUserId) continue;
 
       final isBuyer = conv['buyer_id'] == currentUserId;
       final otherPartyId = isBuyer ? conv['seller_id'] : conv['buyer_id'];
       
-      // The orange dot should only appear if:
-      // 1. There are unread messages in the conversation (checked via unreadConversationIds)
-      // 2. OR it's optimistically marked as read
       final convId = conv['id']?.toString() ?? '';
-      final hasUnreadMessages = unreadConversationIds.contains(convId);
-      final isRead = !hasUnreadMessages || _optimisticReadIds.contains('msg_$convId');
-      
-      debugPrint('DEBUG: Notification msg_$convId - hasUnread: $hasUnreadMessages, optimistic: ${_optimisticReadIds.contains('msg_$convId')}, final isRead: $isRead');
+      final isRead = !unreadConversationIds.contains(convId);
       
       all.add({
         'id': 'msg_$convId',
-        'title': 'New Message',
-        'message': conv['last_message'] ?? 'You have an active conversation regarding a product.',
+        'title': _conversationTitle(conv),
+        'message': _conversationSubtitle(conv, currentUserId),
         'time': _formatTime(conv['created_at']),
         'isRead': isRead,
         'icon': Icons.message,
@@ -78,7 +115,6 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       });
     }
 
-    // 2. Delivery Updates
     for (var order in deliveries) {
       all.add({
         'id': 'del_${order.id}',
@@ -92,11 +128,6 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       });
     }
 
-    // 3. SOS Requests (Mobile Only)
-    // We check if we are on web by checking the platform. 
-    // However, since this is a UI package, we'll use a simple check or just rely on the fact that 
-    // SOS data won't be passed from the web app if we remove the providers there.
-    // To be safe, we'll check for kIsWeb.
     const bool isWeb = bool.fromEnvironment('dart.library.js_util'); 
     if (!isWeb) {
       for (var sos in sosRequests) {
@@ -105,7 +136,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
           'title': 'SOS ${sos['status'].toUpperCase()}',
           'message': 'Your emergency request for ${sos['type']} is ${sos['status']}.',
           'time': _formatTime(sos['created_at']),
-          'isRead': true, // Default SOS to read for now since we don't have is_read column
+          'isRead': true,
           'icon': Icons.warning_amber_rounded,
           'type': 'sos',
           'timestamp': DateTime.parse(sos['created_at']),
@@ -113,10 +144,8 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       }
     }
 
-    // Sort by timestamp descending
     all.sort((a, b) => (b['timestamp'] as DateTime).compareTo(a['timestamp'] as DateTime));
 
-    // Filter by tab
     final currentIndex = _tabController.index;
     var filtered = all;
     if (currentIndex == 1) {
@@ -125,7 +154,6 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       filtered = all.where((n) => n['isRead']).toList();
     }
 
-    // Filter by search
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((n) {
         final title = (n['title'] as String).toLowerCase();
@@ -210,10 +238,19 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton.icon(
-                    onPressed: () => _handleMarkAllAsRead(user.id, conversationsAsync.value),
-                    icon: const Icon(Icons.done_all, size: 18, color: BoostDriveTheme.primaryColor),
+                    onPressed: _isMarkingAllAsRead ? null : () => _handleMarkAllAsRead(user.id),
+                    icon: _isMarkingAllAsRead
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: BoostDriveTheme.primaryColor,
+                            ),
+                          )
+                        : const Icon(Icons.done_all, size: 18, color: BoostDriveTheme.primaryColor),
                     label: Text(
-                      'Mark all as read',
+                      _isMarkingAllAsRead ? 'Marking...' : 'Mark all as read',
                       style: GoogleFonts.manrope(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -435,56 +472,61 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     final id = notification['id'] as String;
     final realId = id.split('_').last;
 
-    debugPrint('DEBUG: Notification tapped: $type - $realId');
+    final user = ref.read(currentUserProvider);
 
-    // Mark as read in backend
     try {
       if (type == 'message') {
-        debugPrint('DEBUG: Marking conversation $realId as read');
         await ref.read(messageServiceProvider).markConversationAsRead(realId);
-      } else if (type == 'delivery') {
-        // For deliveries, we might just track if the user viewed it
-        // await ref.read(deliveryServiceProvider).markAsRead(realId);
-      }
-    } catch (e) {
-      debugPrint('DEBUG: Error marking notification as read: $e');
-    }
-
-    // Force a local state update to hide the dot immediately
-    if (mounted) {
-      setState(() {
-        _optimisticReadIds.add('msg_$realId');
-      });
-      
-      // Small delay to ensure the UI updates before the dialog closes
-      await Future.delayed(const Duration(milliseconds: 200));
-      
-      if (mounted) {
-        Navigator.pop(context);
-        if (widget.onNotificationTap != null) {
-          widget.onNotificationTap!(type ?? '', realId);
+        if (user != null) {
+          ref.invalidate(unreadConversationsProvider(user.id));
         }
       }
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context);
+    if (widget.onNotificationTap != null) {
+      widget.onNotificationTap!(type ?? '', realId);
     }
   }
 
-  void _handleMarkAllAsRead(String userId, List<Map<String, dynamic>>? conversations) async {
+  Future<void> _handleMarkAllAsRead(String userId) async {
     if (userId.isEmpty) return;
-    
+    if (_isMarkingAllAsRead) return;
+
+    setState(() => _isMarkingAllAsRead = true);
     try {
-      // Optimistically update local state
-      if (conversations != null) {
-        setState(() {
-          for (var conv in conversations) {
-            final id = conv['id'] as String? ?? '';
-            if (id.isNotEmpty) _optimisticReadIds.add('msg_$id');
-          }
-        });
-      }
-      
       await ref.read(messageServiceProvider).markAllAsRead(userId);
+      if (!mounted) return;
+      ref.invalidate(unreadConversationsProvider(userId));
+      if (!mounted) return;
+      setState(() => _isMarkingAllAsRead = false);
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            'All notifications marked as read',
+            style: GoogleFonts.manrope(fontSize: 14, color: Colors.white),
+          ),
+          backgroundColor: BoostDriveTheme.primaryColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
       debugPrint('Error marking all as read: $e');
+      if (mounted) {
+        setState(() => _isMarkingAllAsRead = false);
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text('Could not mark all as read: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isMarkingAllAsRead = false);
     }
   }
 }
