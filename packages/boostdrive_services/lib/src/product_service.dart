@@ -16,6 +16,24 @@ final productByIdProvider = FutureProvider.family<Product?, String>((ref, produc
 class ProductService {
   final _supabase = Supabase.instance.client;
 
+  /// Tracks a listing click/open and returns the updated click count (best effort).
+  ///
+  /// Uses a Postgres RPC (`increment_product_click_count`) to avoid race conditions.
+  Future<int?> trackListingClick(String productId) async {
+    try {
+      final result = await _supabase.rpc('increment_product_click_count', params: {
+        'p_product_id': productId,
+      });
+      if (result == null) return null;
+      if (result is int) return result;
+      return int.tryParse(result.toString());
+    } catch (e) {
+      // Non-critical: click tracking should never block browsing.
+      print('Error tracking listing click: $e');
+      return null;
+    }
+  }
+
   Future<List<Product>> getFeaturedProducts() async {
     try {
       final response = await _supabase

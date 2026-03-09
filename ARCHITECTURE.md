@@ -53,6 +53,19 @@ graph TD
 
 ---
 
+## 🚑 Service Providers (Responders)
+
+Service Providers are the **physical backbone** of the platform: they bridge digital requests and on-the-ground automotive solutions. The full specification is in **`docs/SERVICE_PROVIDER_SPECIFICATION.md`**. Summary:
+
+- **Emergency Response**: Geolocation-based matching with stranded motorists; immediate assistance (roadside, towing). Implemented via `SosService`, `sos_requests`, and mobile SOS flows.
+- **Diagnostics & Repair**: Identify vehicle issues; upload a **required parts list** to the user’s account, linked to BoostDrive.shop marketplace.
+- **Quality**: Vetted network; rating/review system (schema/UI to be expanded as needed).
+- **Services**: Emergency (roadside, towing), mechanical (mobile + shop), **real-time arrival tracking** for the customer, and **installation** of parts bought on the .shop platform.
+
+Roles in `profiles` (`mechanic`, `towing`, `service_provider`) and `verification_status` support provider vetting; delivery/tracking flows support ETA and status for logistics.
+
+---
+
 ## 🔐 Authentication Flow (Cross-Platform)
 
 BoostDrive uses **Supabase Auth** with support for multiple authentication methods:

@@ -29,6 +29,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   final _shopDisplayNameController = TextEditingController();
   final _storeBioController = TextEditingController();
   final _warehouseAddressController = TextEditingController();
+  final _serviceAreaController = TextEditingController();
+  final _workingHoursController = TextEditingController();
   bool _baTLorriHEnabled = false;
   
   // Optimistic UI state
@@ -45,6 +47,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     _shopDisplayNameController.dispose();
     _storeBioController.dispose();
     _warehouseAddressController.dispose();
+    _serviceAreaController.dispose();
+    _workingHoursController.dispose();
     super.dispose();
   }
 
@@ -180,7 +184,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     final user = ref.read(currentUserProvider);
     if (user != null) {
       final profile = await ref.read(userProfileProvider(user.id).future);
-      final isProvider = profile != null && (profile.role.toLowerCase().contains('service') || profile.role.toLowerCase().contains('seller'));
+      final isProvider = profile != null && _isProviderRole(profile.role);
       final fullName = isProvider && _shopDisplayNameController.text.isNotEmpty
           ? _shopDisplayNameController.text
           : _nameController.text;
@@ -190,6 +194,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         phoneNumber: _phoneController.text,
         emergencyContactName: _emergencyNameController.text,
         emergencyContactPhone: _emergencyPhoneController.text,
+        serviceAreaDescription: isProvider ? _serviceAreaController.text.trim() : null,
+        workingHours: isProvider ? _workingHoursController.text.trim() : null,
       );
       setState(() => _isEditing = false);
       if (mounted) {
@@ -198,6 +204,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         );
       }
     }
+  }
+
+  bool _isProviderRole(String role) {
+    final r = role.toLowerCase();
+    return r.contains('service') || r.contains('seller') || r == 'mechanic' || r == 'towing' || r == 'rental';
   }
 
   Future<void> _showProfilePhotoOptions() async {
@@ -629,6 +640,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   const SizedBox(height: 24),
                   _buildProviderMetrics(),
                   const SizedBox(height: 32),
+                  _buildProviderServiceAreaAndHours(profile),
+                  const SizedBox(height: 32),
                   _buildProviderShopBranding(profile),
                   const SizedBox(height: 32),
                   _buildProviderShippingLogistics(),
@@ -764,6 +777,43 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Service area (how far / where) and working hours — shown on Find a Provider cards.
+  Widget _buildProviderServiceAreaAndHours(UserProfile profile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.location_on_outlined, color: BoostDriveTheme.primaryColor, size: 22),
+            const SizedBox(width: 10),
+            Text('Service area & working hours', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Shown to customers on Find a Provider. E.g. "Within 50 km of Windhoek" and "Mon–Fri 8am–6pm".',
+          style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085)),
+        ),
+        const SizedBox(height: 16),
+        _providerLabel('How far you\'re located / service area'),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _serviceAreaController,
+          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          decoration: _providerInputDecoration(hint: 'e.g. Within 50 km of Windhoek, City centre'),
+        ),
+        const SizedBox(height: 16),
+        _providerLabel('Working hours'),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _workingHoursController,
+          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          decoration: _providerInputDecoration(hint: 'e.g. Mon–Fri 8am–6pm, Sat 9am–1pm or 24/7'),
+        ),
+      ],
     );
   }
 
@@ -1065,9 +1115,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           _phoneController.text = profile.phoneNumber;
           _emergencyNameController.text = profile.emergencyContactName;
           _emergencyPhoneController.text = profile.emergencyContactPhone;
+          _serviceAreaController.text = profile.serviceAreaDescription;
+          _workingHoursController.text = profile.workingHours;
         }
 
-        final isProvider = profile.role.toLowerCase().contains('service') || profile.role.toLowerCase().contains('seller');
+        final isProvider = profile.role.toLowerCase().contains('service') || profile.role.toLowerCase().contains('seller') || profile.role == 'mechanic' || profile.role == 'towing' || profile.role == 'rental';
         final isWide = MediaQuery.of(context).size.width > 900;
 
         if (isProvider) {

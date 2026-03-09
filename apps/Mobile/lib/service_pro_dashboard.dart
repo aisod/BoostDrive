@@ -400,16 +400,19 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 child: Text('Scanning for nearby requests...', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, fontStyle: FontStyle.italic)),
               ),
             );
+            final userId = ref.read(currentUserProvider)?.id;
             return Column(
               children: requests.map((req) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _buildRequestCard(
+                  ref: ref,
                   tag: 'SOS - ${req['type']?.toString().toUpperCase() ?? 'EMERGENCY'}',
                   distance: '2.4 KM AWAY',
                   title: req['user_note'] ?? 'No notes provided',
                   user: 'Customer ID: ${req['user_id']?.toString().substring(0, 8)}',
                   tagColor: req['type'] == 'emergency' ? Colors.redAccent : Colors.blueAccent,
-                  requestId: req['id'],
+                  requestId: req['id']?.toString() ?? '',
+                  userId: userId,
                 ),
               )).toList(),
             );
@@ -420,12 +423,14 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Widget _buildRequestCard({
+    required WidgetRef ref,
     required String tag,
     required String distance,
     required String title,
     required String user,
     required Color tagColor,
     required String requestId,
+    required String? userId,
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -459,9 +464,24 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Accept logic
-                  },
+                  onPressed: (userId == null || requestId.isEmpty)
+                      ? null
+                      : () async {
+                          try {
+                            await ref.read(sosServiceProvider).acceptRequest(requestId, userId);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Request accepted. Customer will see you as assigned.')),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to accept: $e')),
+                              );
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BoostDriveTheme.primaryColor,
                     minimumSize: const Size(0, 56),

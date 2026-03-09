@@ -102,12 +102,32 @@ class SosService {
     }
   }
 
+  /// Pending SOS requests (for providers to accept).
   Stream<List<Map<String, dynamic>>> getGlobalActiveRequests() {
     return _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
         .eq('status', 'pending')
         .order('created_at', ascending: false);
+  }
+
+  /// Requests assigned to this provider (accepted by them).
+  Stream<List<Map<String, dynamic>>> streamProviderAssignedRequests(String providerId) {
+    return _supabase
+        .from('sos_requests')
+        .stream(primaryKey: ['id'])
+        .eq('assigned_provider_id', providerId)
+        .order('created_at', ascending: false)
+        .map((data) => data.where((r) => ['accepted', 'assigned'].contains(r['status']?.toString())).toList());
+  }
+
+  /// Provider accepts a pending SOS request (sets assigned_provider_id, responded_at, status).
+  Future<void> acceptRequest(String requestId, String providerId) async {
+    await _supabase.from('sos_requests').update({
+      'assigned_provider_id': providerId,
+      'responded_at': DateTime.now().toIso8601String(),
+      'status': 'assigned',
+    }).eq('id', requestId).eq('status', 'pending');
   }
 }
 
@@ -119,4 +139,9 @@ final globalActiveSosRequestsProvider = StreamProvider<List<Map<String, dynamic>
 
 final userActiveSosRequestsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
   return ref.watch(sosServiceProvider).streamActiveRequest(userId);
+});
+
+/// For service providers: requests they have accepted (assigned to them).
+final providerAssignedRequestsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, providerId) {
+  return ref.watch(sosServiceProvider).streamProviderAssignedRequests(providerId);
 });

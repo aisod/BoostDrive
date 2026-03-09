@@ -477,6 +477,8 @@ class AuthService {
     bool? dealsEnabled,
     String? emergencyContactName,
     String? emergencyContactPhone,
+    String? serviceAreaDescription,
+    String? workingHours,
   }) async {
     final Map<String, dynamic> updates = {
       'last_active': DateTime.now().toIso8601String(),
@@ -488,6 +490,8 @@ class AuthService {
     if (dealsEnabled != null) updates['deals_enabled'] = dealsEnabled;
     if (emergencyContactName != null) updates['emergency_contact_name'] = emergencyContactName;
     if (emergencyContactPhone != null) updates['emergency_contact_phone'] = emergencyContactPhone;
+    if (serviceAreaDescription != null) updates['service_area_description'] = serviceAreaDescription;
+    if (workingHours != null) updates['working_hours'] = workingHours;
 
     await _supabase.from('profiles').update(updates).eq('id', userId);
     print("DEBUG: Profile updated for $userId");

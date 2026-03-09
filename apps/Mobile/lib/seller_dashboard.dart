@@ -357,6 +357,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                   p.condition.toUpperCase(),
                   p.condition == 'new' ? _accentBlue : (p.condition == 'used' ? const Color(0xFFA855F7) : const Color(0xFFFF8A00)),
                   p.imageUrl,
+                  clickCount: p.clickCount ?? 0,
                 ),
               )).toList(),
             );
@@ -368,7 +369,16 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
     );
   }
 
-  Widget _buildInventoryCard(String title, String sku, String price, String status, String tag, Color tagColor, String? imageUrl) {
+  Widget _buildInventoryCard(
+    String title,
+    String sku,
+    String price,
+    String status,
+    String tag,
+    Color tagColor,
+    String? imageUrl, {
+    int clickCount = 0,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -472,6 +482,21 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.visibility_outlined, size: 16, color: Colors.white38),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Clicks: $clickCount',
+                      style: GoogleFonts.manrope(
+                        color: Colors.white38,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],

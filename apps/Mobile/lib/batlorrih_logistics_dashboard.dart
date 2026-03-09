@@ -427,7 +427,8 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
             child: _buildOrderCard(
               status: o.status.toUpperCase().replaceAll('_', ' '),
               statusColor: o.status == 'delivered' ? Colors.green : (o.status == 'in_transit' ? Colors.orange : BoostDriveTheme.primaryColor),
-              orderId: '#${o.id.substring(0, 8).toUpperCase()}',
+              orderIdDisplay: '#${o.id.substring(0, 8).toUpperCase()}',
+              realOrderId: o.id,
               eta: o.eta.isNotEmpty ? o.eta : 'N/A',
               pickup: o.pickupLocation['address'] ?? 'Unknown Pickup',
               dropoff: o.dropoffLocation['address'] ?? 'Unknown Drop-off',
@@ -446,7 +447,8 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
   Widget _buildOrderCard({
     required String status,
     required Color statusColor,
-    required String orderId,
+    required String orderIdDisplay,
+    required String realOrderId,
     required String eta,
     String etaLabel = 'ETA',
     required String pickup,
@@ -486,7 +488,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
             ],
           ),
           const SizedBox(height: 8),
-          Text('Order $orderId', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          Text('Order $orderIdDisplay', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           _buildLocationItem(Icons.radio_button_checked, Colors.blue, 'PICKUP', pickup),
           Padding(
@@ -514,7 +516,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                 onPressed: () {
                    Navigator.push(
                      context,
-                     MaterialPageRoute<void>(builder: (BuildContext ctx) => ServiceTrackingPage(orderId: orderId)),
+                     MaterialPageRoute<void>(builder: (BuildContext ctx) => ServiceTrackingPage(orderId: realOrderId)),
                    );
                 },
                 style: ElevatedButton.styleFrom(

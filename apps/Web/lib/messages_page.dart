@@ -39,18 +39,47 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   List<_PendingAttachment>? _pendingAttachments;
   final AudioRecorder _audioRecorder = AudioRecorder();
   bool _isRecordingVoice = false;
+  /// WhatsApp-style 3-mode voice: (A) Tap & hold → release = send; (B) Slide left = cancel; (C) Slide up = lock (hands-free, then Stop/Trash).
+  /// Optional future: Supabase Edge + Whisper for transcript under the voice note.
+  bool _voiceLocked = false;
   StreamSubscription<Uint8List>? _recordingSub;
   Completer<void>? _recordingStreamDone;
   final BytesBuilder _voiceBuffer = BytesBuilder();
   DateTime? _voiceRecordingStartTime;
   Timer? _voiceRecordingTimer;
   bool _voiceSlideToCancel = false;
-  double _voiceDragOffset = 0;
-  static const double _slideToCancelThreshold = 80;
+  double _voiceDragOffsetX = 0;
+  double _voiceDragOffsetY = 0;
+  bool _voiceMicPulse = false;
+  static const double _slideToCancelThresholdPx = 100;
+  static const double _lockThresholdPx = 100;
+
+  /// After stopping recording, the voice note is kept in memory until the user taps Send or Discard.
+  /// No upload or send happens on stop—only when the user explicitly taps Send in the pending bar.
+  Uint8List? _pendingVoiceNoteBytes;
+  String _pendingVoiceNoteDuration = '0:00';
+  /// When the pending bar was first shown; used to ignore accidental/immediate taps on Send.
+  DateTime? _pendingVoiceNoteShownAt;
+  /// When user taps "continue" on the pending bar: PCM to prepend to the next recording (append mode).
+  Uint8List? _pendingPcmPrefix;
+  /// Duration in seconds of _pendingPcmPrefix; added to timer when in append mode.
+  int _pendingRecordingDurationSeconds = 0;
+  /// Restore this duration string if user cancels while in append mode.
+  String _pendingVoiceNoteDurationWhenContinued = '0:00';
 
   /// Polling fallback so the other user's messages appear without reload (Supabase filtered stream often only emits once).
   Timer? _messagePollTimer;
   static const Duration _messagePollInterval = Duration(seconds: 2);
+
+  /// Lightweight polling for unread counts and the conversation list.
+  /// Supabase Realtime can occasionally miss updates (especially across tabs),
+  /// so this acts as a safety net to keep badges and the list fresh without
+  /// requiring a full page reload.
+  Timer? _unreadPollTimer;
+  static const Duration _unreadPollInterval = Duration(seconds: 4);
+
+  /// Which voice message URL is currently playing. Only one at a time; others stop when this changes.
+  final ValueNotifier<String?> currentPlayingVoiceUrl = ValueNotifier<String?>(null);
 
   void _startMessagePolling() {
     _messagePollTimer?.cancel();
@@ -61,7 +90,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         _messagePollTimer?.cancel();
         return;
       }
-      ref.invalidate(conversationMessagesProvider(conversationId));
+      ref.refresh(conversationMessagesProvider(conversationId));
     });
   }
 
@@ -70,10 +99,33 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     _messagePollTimer = null;
   }
 
+  void _startUnreadPolling() {
+    _unreadPollTimer?.cancel();
+    _unreadPollTimer = Timer.periodic(_unreadPollInterval, (_) {
+      if (!mounted) {
+        _stopUnreadPolling();
+        return;
+      }
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        // Refresh unread badges + conversation list as a safety net when Realtime is flaky.
+        ref.invalidate(unreadConversationsProvider(user.id));
+        ref.invalidate(unreadCountByConversationProvider(user.id));
+        ref.invalidate(userConversationsProvider(user.id));
+      }
+    });
+  }
+
+  void _stopUnreadPolling() {
+    _unreadPollTimer?.cancel();
+    _unreadPollTimer = null;
+  }
+
   @override
   void initState() {
     super.initState();
     _pendingAttachments = [];
+    _startUnreadPolling();
     if (widget.initialConversationId != null) {
       _selectedConversationId = widget.initialConversationId;
       // Mark as read if an initial conversation is provided (e.g. from notification tap)
@@ -82,7 +134,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         final user = Supabase.instance.client.auth.currentUser;
         if (user != null && mounted) {
           ref.invalidate(unreadConversationsProvider(user.id));
-          ref.invalidate(unreadCountByConversationProvider(user.id));
+          ref.refresh(unreadCountByConversationProvider(user.id));
         }
         if (mounted) _startMessagePolling();
       });
@@ -92,7 +144,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   @override
   void dispose() {
     _stopMessagePolling();
+    _stopUnreadPolling();
     _voiceRecordingTimer?.cancel();
+    currentPlayingVoiceUrl.dispose();
     _messageController.dispose();
     _scrollController.dispose();
     _recordingSub?.cancel();
@@ -129,9 +183,12 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     );
     _voiceRecordingStartTime = DateTime.now();
     _voiceSlideToCancel = false;
-    _voiceDragOffset = 0;
-    _voiceRecordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
+    _voiceLocked = false;
+    _voiceDragOffsetX = 0;
+    _voiceDragOffsetY = 0;
+    _voiceMicPulse = false;
+    _voiceRecordingTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) setState(() => _voiceMicPulse = !_voiceMicPulse);
     });
     if (mounted) setState(() => _isRecordingVoice = true);
   }
@@ -151,13 +208,18 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       return;
     }
 
-    // Stop recording: stop the recorder and wait for stream to close so we get all data
-    setState(() => _isRecordingVoice = false);
+    // Stop recording and show pending bar (user taps Send or Discard).
+    final durationText = _voiceRecordingDurationText;
+    setState(() {
+      _isRecordingVoice = false;
+      _voiceLocked = false;
+      _voiceSlideToCancel = false;
+      _voiceDragOffsetX = 0;
+      _voiceDragOffsetY = 0;
+    });
     _voiceRecordingTimer?.cancel();
     _voiceRecordingTimer = null;
     _voiceRecordingStartTime = null;
-    _voiceSlideToCancel = false;
-    _voiceDragOffset = 0;
     try {
       await _audioRecorder.stop();
       await _recordingStreamDone?.future.timeout(
@@ -171,7 +233,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     _recordingSub = null;
     _recordingStreamDone = null;
 
-    if (_voiceBuffer.isEmpty) {
+    if (_voiceBuffer.isEmpty && _pendingPcmPrefix == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No audio recorded. Try again.')),
@@ -179,34 +241,123 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       }
       return;
     }
-    final pcmBytes = _voiceBuffer.toBytes();
+    final newPcm = _voiceBuffer.toBytes();
     _voiceBuffer.clear();
-    final bytes = _pcm16MonoToWav(pcmBytes, 44100);
+    final Uint8List fullPcm;
+    if (_pendingPcmPrefix != null) {
+      fullPcm = Uint8List.fromList([..._pendingPcmPrefix!, ...newPcm]);
+      setState(() {
+        _pendingPcmPrefix = null;
+        _pendingRecordingDurationSeconds = 0;
+        _pendingVoiceNoteDurationWhenContinued = '0:00';
+      });
+    } else {
+      fullPcm = Uint8List.fromList(newPcm);
+    }
+    final bytes = _pcm16MonoToWav(fullPcm, 44100);
 
+    // Stop only: keep the recording in memory. Do not upload or send here.
+    // Delay before showing the pending bar so the tap that stopped recording cannot hit Send.
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      setState(() {
+        _pendingVoiceNoteBytes = Uint8List.fromList(bytes);
+        _pendingVoiceNoteDuration = durationText;
+        _pendingVoiceNoteShownAt = DateTime.now();
+      });
+    }
+  }
+
+  Future<void> _sendPendingVoiceNote() async {
+    final bytes = _pendingVoiceNoteBytes;
+    if (bytes == null || _selectedConversationId == null) return;
+    // Ignore taps that happen within 400ms of the pending bar appearing (avoids accidental send from same gesture as Stop).
+    final shownAt = _pendingVoiceNoteShownAt;
+    if (shownAt != null && DateTime.now().difference(shownAt) < const Duration(milliseconds: 400)) {
+      return;
+    }
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    setState(() {
+      _pendingVoiceNoteBytes = null;
+      _pendingVoiceNoteDuration = '0:00';
+      _pendingVoiceNoteShownAt = null;
+    });
     try {
       final url = await ref.read(messageServiceProvider).uploadMessageAttachment(
         userId: user.id,
         bytes: bytes,
         fileName: 'voice_message.wav',
       );
-      await _sendText(url);
+      if (mounted) await _sendText(url);
     } catch (e) {
       if (mounted) {
+        setState(() => _pendingVoiceNoteBytes = bytes);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send voice message: $e')),
+          SnackBar(content: Text('Failed to send voice note: $e')),
         );
       }
     }
   }
 
+  void _discardPendingVoiceNote() {
+    setState(() {
+      _pendingVoiceNoteBytes = null;
+      _pendingVoiceNoteDuration = '0:00';
+      _pendingVoiceNoteShownAt = null;
+      _pendingPcmPrefix = null;
+      _pendingRecordingDurationSeconds = 0;
+      _pendingVoiceNoteDurationWhenContinued = '0:00';
+    });
+  }
+
+  /// Continue recording: append to the existing pending voice note (tap mic icon on pending bar).
+  Future<void> _continueVoiceRecording() async {
+    if (_pendingVoiceNoteBytes == null || _pendingVoiceNoteBytes!.length <= 44 || _isRecordingVoice) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    final hasPermission = await _audioRecorder.hasPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Microphone permission is required to add more')),
+        );
+      }
+      return;
+    }
+    // Decode WAV to PCM (skip 44-byte header); 16-bit mono 44100 Hz → seconds = length / 88200
+    final pcm = Uint8List.fromList(_pendingVoiceNoteBytes!.sublist(44));
+    final prefixSeconds = pcm.length ~/ 88200;
+    setState(() {
+      _pendingPcmPrefix = pcm;
+      _pendingRecordingDurationSeconds = prefixSeconds;
+      _pendingVoiceNoteDurationWhenContinued = _pendingVoiceNoteDuration;
+      _pendingVoiceNoteBytes = null;
+      _pendingVoiceNoteDuration = '0:00';
+      _pendingVoiceNoteShownAt = null;
+    });
+    await _startVoiceRecording();
+  }
+
   Future<void> _cancelVoiceRecording() async {
     if (!_isRecordingVoice) return;
-    setState(() => _isRecordingVoice = false);
+    final wasAppending = _pendingPcmPrefix != null;
+    final prefixPcm = _pendingPcmPrefix;
+    final durationWhenContinued = _pendingVoiceNoteDurationWhenContinued;
+    setState(() {
+      _isRecordingVoice = false;
+      _voiceLocked = false;
+      _voiceSlideToCancel = false;
+      _voiceDragOffsetX = 0;
+      _voiceDragOffsetY = 0;
+      _voiceMicPulse = false;
+      _pendingPcmPrefix = null;
+      _pendingRecordingDurationSeconds = 0;
+      _pendingVoiceNoteDurationWhenContinued = '0:00';
+    });
     _voiceRecordingTimer?.cancel();
     _voiceRecordingTimer = null;
     _voiceRecordingStartTime = null;
-    _voiceSlideToCancel = false;
-    _voiceDragOffset = 0;
     try {
       await _audioRecorder.stop();
       await _recordingStreamDone?.future.timeout(const Duration(seconds: 2), onTimeout: () {});
@@ -215,43 +366,139 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     _recordingSub = null;
     _recordingStreamDone = null;
     _voiceBuffer.clear();
-    if (mounted) {
+    if (wasAppending && prefixPcm != null && mounted) {
+      final wav = _pcm16MonoToWav(prefixPcm, 44100);
+      setState(() {
+        _pendingVoiceNoteBytes = Uint8List.fromList(wav);
+        _pendingVoiceNoteDuration = durationWhenContinued;
+        _pendingVoiceNoteShownAt = DateTime.now();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Added part cancelled; previous recording kept')),
+      );
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Voice message cancelled')),
       );
     }
   }
 
+  /// Called when user releases finger (Mode A: send immediately) or when pan ends on the bar.
+  void _onVoiceRelease() {
+    if (!_isRecordingVoice) return;
+    if (_voiceSlideToCancel) {
+      _cancelVoiceRecording();
+      return;
+    }
+    if (_voiceLocked) return; // Keep recording hands-free; user will tap Stop or Trash.
+    _stopAndSendVoiceNoteImmediately();
+  }
+
+  /// Mode A: Stop recording and send the voice note immediately (no pending bar).
+  Future<void> _stopAndSendVoiceNoteImmediately() async {
+    if (_selectedConversationId == null || !_isRecordingVoice) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    setState(() {
+      _isRecordingVoice = false;
+      _voiceLocked = false;
+      _voiceSlideToCancel = false;
+      _voiceDragOffsetX = 0;
+      _voiceDragOffsetY = 0;
+      _voiceMicPulse = false;
+    });
+    _voiceRecordingTimer?.cancel();
+    _voiceRecordingTimer = null;
+    final durationText = _voiceRecordingDurationText;
+    _voiceRecordingStartTime = null;
+    try {
+      await _audioRecorder.stop();
+      await _recordingStreamDone?.future.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {},
+      );
+    } catch (_) {}
+    _recordingSub?.cancel();
+    _recordingSub = null;
+    _recordingStreamDone = null;
+    if (_voiceBuffer.isEmpty && _pendingPcmPrefix == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No audio recorded. Try again.')),
+        );
+      }
+      return;
+    }
+    final newPcm = _voiceBuffer.toBytes();
+    _voiceBuffer.clear();
+    final Uint8List fullPcm;
+    if (_pendingPcmPrefix != null) {
+      fullPcm = Uint8List.fromList([..._pendingPcmPrefix!, ...newPcm]);
+      setState(() {
+        _pendingPcmPrefix = null;
+        _pendingRecordingDurationSeconds = 0;
+        _pendingVoiceNoteDurationWhenContinued = '0:00';
+      });
+    } else {
+      fullPcm = Uint8List.fromList(newPcm);
+    }
+    final bytes = _pcm16MonoToWav(fullPcm, 44100);
+    try {
+      final url = await ref.read(messageServiceProvider).uploadMessageAttachment(
+        userId: user.id,
+        bytes: Uint8List.fromList(bytes),
+        fileName: 'voice_message.wav',
+      );
+      if (mounted) await _sendText(url);
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send voice note: $e')),
+        );
+      }
+    }
+  }
+
   String get _voiceRecordingDurationText {
-    if (_voiceRecordingStartTime == null) return '0:00';
-    final sec = DateTime.now().difference(_voiceRecordingStartTime!).inSeconds;
-    final m = sec ~/ 60;
-    final s = sec % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
+    final baseSec = _voiceRecordingStartTime != null
+        ? DateTime.now().difference(_voiceRecordingStartTime!).inSeconds
+        : 0;
+    final totalSec = baseSec + _pendingRecordingDurationSeconds;
+    final m = totalSec ~/ 60;
+    final s = totalSec % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   void _onVoiceRecordingBarPanUpdate(DragUpdateDetails details) {
-    _voiceDragOffset += details.delta.dx;
-    if (_voiceDragOffset < -_slideToCancelThreshold && !_voiceSlideToCancel) {
+    _voiceDragOffsetX += details.delta.dx;
+    _voiceDragOffsetY += details.delta.dy;
+    if (!_voiceLocked && _voiceDragOffsetY <= -_lockThresholdPx) {
+      setState(() => _voiceLocked = true);
+    }
+    if (!_voiceLocked && _voiceDragOffsetX <= -_slideToCancelThresholdPx && !_voiceSlideToCancel) {
       setState(() => _voiceSlideToCancel = true);
     }
   }
 
   void _onVoiceRecordingBarPanEnd(DragEndDetails details) {
-    if (_voiceSlideToCancel) {
-      _cancelVoiceRecording();
-    }
+    _onVoiceRelease();
   }
 
   void _onVoiceRecordingBarPanStart(DragStartDetails details) {
-    _voiceDragOffset = 0;
+    _voiceDragOffsetX = 0;
+    _voiceDragOffsetY = 0;
   }
 
+  /// Sends the current input: text first (if any), then each image attachment in order.
   Future<void> _sendMessage() async {
     if (_selectedConversationId == null) return;
     final text = _messageController.text.trim();
     final hasText = text.isNotEmpty;
-    final hasImages = (_pendingAttachments ?? []).isNotEmpty;
+    final attachments = List<_PendingAttachment>.from(_pendingAttachments ?? []);
+    final hasImages = attachments.isNotEmpty;
     if (!hasText && !hasImages) return;
 
     final user = Supabase.instance.client.auth.currentUser;
@@ -259,8 +506,16 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     final conversationId = _selectedConversationId!;
 
     try {
-      if (hasText) await _sendText(text);
-      for (final att in _pendingAttachments ?? []) {
+      // 1. Always send text first so it appears above the image(s) in the chat.
+      if (hasText) {
+        await _sendText(text);
+        // Brief delay so the text message gets an earlier timestamp than the following image(s).
+        if (attachments.isNotEmpty) {
+          await Future<void>.delayed(const Duration(milliseconds: 150));
+        }
+      }
+      // 2. Then send each image as a separate message, in the order they were attached.
+      for (final att in attachments) {
         final url = await ref.read(messageServiceProvider).uploadMessageAttachment(
           userId: user.id,
           bytes: att.bytes,
@@ -273,7 +528,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         _pendingAttachments?.clear();
         _messageController.clear();
       });
-      ref.invalidate(conversationMessagesProvider(conversationId));
+      ref.refresh(conversationMessagesProvider(conversationId));
       if (_scrollController.hasClients) {
         _scrollController.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
       }
@@ -300,8 +555,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         content: content,
       );
       if (!mounted) return;
-      // Force the message list to refresh so the sent message appears immediately
-      ref.invalidate(conversationMessagesProvider(conversationId));
+      ref.refresh(conversationMessagesProvider(conversationId));
       // Scroll to show the latest message (only if the list is mounted)
       if (_scrollController.hasClients) {
         _scrollController.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
@@ -369,10 +623,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.mic_rounded,
-              color: Colors.redAccent,
-              size: 28,
+            // Pulsing red mic (WhatsApp-style)
+            Transform.scale(
+              scale: _voiceMicPulse ? 1.08 : 0.96,
+              child: const Icon(Icons.mic_rounded, color: Colors.redAccent, size: 28),
             ),
             const SizedBox(width: 12),
             Text(
@@ -387,21 +641,96 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                _voiceSlideToCancel ? 'Release to cancel' : 'Slide to cancel',
+                _voiceLocked
+                    ? 'Recording locked • Tap Stop or Trash'
+                    : _voiceSlideToCancel
+                        ? 'Release to cancel'
+                        : 'Slide left to cancel • Slide up to lock',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: _voiceSlideToCancel ? 0.9 : 0.6),
                   fontSize: 13,
                 ),
               ),
             ),
-            IconButton(
-              onPressed: _voiceSlideToCancel ? _cancelVoiceRecording : _toggleVoiceRecording,
-              icon: Icon(
-                _voiceSlideToCancel ? Icons.close_rounded : Icons.send_rounded,
-                color: _voiceSlideToCancel ? Colors.white70 : BoostDriveTheme.primaryColor,
-                size: 24,
+            if (_voiceLocked) ...[
+              IconButton(
+                onPressed: _toggleVoiceRecording,
+                icon: const Icon(Icons.stop_rounded, color: BoostDriveTheme.primaryColor, size: 24),
+                tooltip: 'Stop and send or discard',
               ),
-              tooltip: _voiceSlideToCancel ? 'Cancel' : 'Send',
+              IconButton(
+                onPressed: _cancelVoiceRecording,
+                icon: Icon(Icons.delete_outline_rounded, color: Colors.white.withValues(alpha: 0.9), size: 24),
+                tooltip: 'Delete recording',
+              ),
+            ] else
+              IconButton(
+                onPressed: _voiceSlideToCancel ? _cancelVoiceRecording : _toggleVoiceRecording,
+                icon: Icon(
+                  _voiceSlideToCancel ? Icons.close_rounded : Icons.stop_rounded,
+                  color: _voiceSlideToCancel ? Colors.white70 : BoostDriveTheme.primaryColor,
+                  size: 24,
+                ),
+                tooltip: _voiceSlideToCancel ? 'Cancel' : 'Stop (then Send or Discard)',
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Bar shown after stopping a voice recording: user can Send or Discard before the message is sent.
+  /// Tapping the mic icon or "Voice note" label continues recording (appends to the same note).
+  Widget _buildPendingVoiceNoteBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Tooltip(
+              message: 'Tap to add more',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _continueVoiceRecording,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.mic_rounded, color: BoostDriveTheme.primaryColor, size: 24),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Voice note $_pendingVoiceNoteDuration',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            TextButton.icon(
+              onPressed: _sendPendingVoiceNote,
+              icon: const Icon(Icons.send_rounded, size: 18, color: BoostDriveTheme.primaryColor),
+              label: const Text('Send', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600)),
+            ),
+            TextButton.icon(
+              onPressed: _discardPendingVoiceNote,
+              icon: Icon(Icons.close_rounded, size: 18, color: Colors.white.withValues(alpha: 0.8)),
+              label: Text('Discard', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
             ),
           ],
         ),
@@ -567,10 +896,20 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
               icon: const Icon(Icons.photo_library_rounded, color: _inputIconColor, size: 24),
               tooltip: 'Attach image',
             ),
-            // Microphone – tap to start/stop, or hold to record and release to send (WhatsApp-style)
+            // Microphone – WhatsApp-style: long-press to record; release = send (Mode A); slide left = cancel (B); slide up = lock (C)
             GestureDetector(
               onLongPressStart: (_) => _startVoiceRecording(),
-              onLongPressEnd: (_) => _toggleVoiceRecording(),
+              onLongPressEnd: (_) => _onVoiceRelease(),
+              onPanUpdate: (d) {
+                if (!_isRecordingVoice) return;
+                setState(() {
+                  _voiceDragOffsetX += d.delta.dx;
+                  _voiceDragOffsetY += d.delta.dy;
+                  if (!_voiceLocked && _voiceDragOffsetY <= -_lockThresholdPx) _voiceLocked = true;
+                  if (!_voiceLocked && _voiceDragOffsetX <= -_slideToCancelThresholdPx) _voiceSlideToCancel = true;
+                });
+              },
+              onPanEnd: (_) => _onVoiceRelease(),
               child: IconButton(
                 onPressed: _toggleVoiceRecording,
                 icon: Icon(
@@ -578,7 +917,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   color: _isRecordingVoice ? Colors.redAccent : _inputIconColor,
                   size: 24,
                 ),
-                tooltip: _isRecordingVoice ? 'Stop recording' : 'Hold to record, release to send',
+                tooltip: _isRecordingVoice
+                    ? 'Release to send • Slide left to cancel • Slide up to lock'
+                    : 'Hold to record • Release to send',
               ),
             ),
             const SizedBox(width: 8),
@@ -595,6 +936,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_isRecordingVoice) _buildVoiceRecordingBar(),
+                    if (_pendingVoiceNoteBytes != null) _buildPendingVoiceNoteBar(),
                     if ((_pendingAttachments ?? []).isNotEmpty) _buildPendingThumbnails(),
                     TextField(
                       controller: _messageController,
@@ -820,7 +1162,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         // Force conversation list and related data to refresh immediately
         ref.refresh(userConversationsProvider(user.id));
         ref.invalidate(unreadConversationsProvider(user.id));
-        ref.invalidate(conversationMessagesProvider(conversationId));
+        ref.refresh(conversationMessagesProvider(conversationId));
 
         // Clear selection if we deleted the currently selected conversation
         if (_selectedConversationId == conversationId) {
@@ -885,60 +1227,24 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             final productTitle = product?.title ?? conv['product_title'] ?? (productId == null ? 'Service Request' : 'Product');
             final roleLabel = _otherPartyRoleLabel(userId, conv['buyer_id'] as String?, conv['seller_id'] as String?);
             
-            // Unread indicator and count (WhatsApp-style: number of messages not yet opened by the receiver)
+            // Unread indicator and count (WhatsApp-style: number disappears when conversation is opened)
             final unreadConvs = ref.watch(unreadConversationsProvider(userId)).value ?? {};
             final isUnread = unreadConvs.contains(conv['id']);
             final unreadCounts = ref.watch(unreadCountByConversationProvider(userId)).value ?? {};
-            final unreadCount = unreadCounts[conv['id']] ?? 0;
+            // When this conversation is open, show 0 so the badge disappears immediately
+            final unreadCount = isSelected ? 0 : (unreadCounts[conv['id']] ?? 0);
+
+            // Selected row uses white background with dark text for contrast.
+            final fgColor = isSelected ? Colors.black87 : Colors.white;
+            final fgDim = isSelected ? Colors.black54 : Colors.white70;
+            final fgDimmer = isSelected ? Colors.black45 : Colors.white54;
 
             return ListTile(
               selected: isSelected,
-              selectedTileColor: BoostDriveTheme.primaryColor.withOpacity(0.1),
+              selectedTileColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: ref.watch(userProfileProvider(otherUserId)).when(
-                data: (profile) => Stack(
-                  children: [
-                    _buildOtherUserAvatar(profile, radius: 20, darkBg: true),
-                    if (unreadCount > 0)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                          decoration: BoxDecoration(
-                            color: BoostDriveTheme.primaryColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black, width: 2),
-                          ),
-                          child: Center(
-                            child: Text(
-                              unreadCount > 99 ? '99+' : '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    else if (isUnread)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: BoostDriveTheme.primaryColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black, width: 2),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                data: (profile) => _buildOtherUserAvatar(profile, radius: 20, darkBg: true),
                 loading: () => const CircleAvatar(backgroundColor: Colors.white10, child: CircularProgressIndicator(strokeWidth: 2)),
                 error: (_, __) => const CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.white24)),
               ),
@@ -949,8 +1255,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                       child: Text(
                         profile?.fullName ?? 'User',
                         style: TextStyle(
-                          color: Colors.white, 
-                          fontWeight: isUnread ? FontWeight.w900 : FontWeight.w600, 
+                          color: fgColor,
+                          fontWeight: isUnread ? FontWeight.w900 : FontWeight.w600,
                           fontSize: 14,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -960,18 +1266,22 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         listingType.toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                loading: () => const Text('Loading...', style: TextStyle(color: Colors.white54, fontSize: 14)),
-                error: (_, __) => const Text('User', style: TextStyle(color: Colors.white, fontSize: 14)),
+                loading: () => Text('Loading...', style: TextStyle(color: fgDimmer, fontSize: 14)),
+                error: (_, __) => Text('User', style: TextStyle(color: fgColor, fontSize: 14)),
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -979,20 +1289,24 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 children: [
                   Text(
                     roleLabel,
-                    style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
+                    style: TextStyle(color: fgDim, fontSize: 11, fontWeight: FontWeight.w500),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     productTitle,
-                    style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: isSelected ? Colors.black87 : BoostDriveTheme.primaryColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     conv['last_message'] ?? 'Start a conversation',
                     style: TextStyle(
-                      color: isUnread ? Colors.white : Colors.white54, 
+                      color: isUnread ? fgColor : fgDimmer,
                       fontSize: 12,
                       fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -1029,7 +1343,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         Text(
                           _formatMessageDate(conv['created_at']),
                           style: TextStyle(
-                            color: isUnread ? BoostDriveTheme.primaryColor : Colors.white24,
+                            color: isUnread ? BoostDriveTheme.primaryColor : (isSelected ? Colors.black54 : Colors.white24),
                             fontSize: 10,
                             fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
                           ),
@@ -1039,7 +1353,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         onTap: () => _showDeleteConfirmation(conv['id'], productTitle),
                         child: Icon(
                           Icons.delete_outline,
-                          color: isSelected ? BoostDriveTheme.primaryColor : Colors.red.withOpacity(0.5),
+                          color: isSelected ? Colors.black54 : Colors.red.withOpacity(0.5),
                           size: 18,
                         ),
                       ),
@@ -1052,11 +1366,11 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   _selectedConversationId = conv['id'];
                 });
                 _startMessagePolling();
-                // Mark as read when selected so bell count, notification dots, and unread badge update
+                // Mark as read when selected so unread count disappears and bell/notification update
                 await ref.read(messageServiceProvider).markConversationAsRead(conv['id']);
                 if (mounted) {
                   ref.invalidate(unreadConversationsProvider(userId));
-                  ref.invalidate(unreadCountByConversationProvider(userId));
+                  ref.refresh(unreadCountByConversationProvider(userId));
                 }
               },
             );
@@ -1116,13 +1430,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.all(Radius.circular(4)),
                               ),
                               child: Text(
                                 chatListingType.toUpperCase(),
-                                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900),
+                                style: const TextStyle(color: Colors.black87, fontSize: 9, fontWeight: FontWeight.w900),
                               ),
                             ),
                           ],
@@ -1138,16 +1452,6 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         ),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      // WhatsApp Bridge Logic
-                      final phone = '264812345678'; // Placeholder
-                      final url = 'https://wa.me/$phone';
-                      // launchUrl(Uri.parse(url));
-                    },
-                    icon: const Icon(Icons.chat, color: Colors.white),
-                    tooltip: 'WhatsApp Bridge',
                   ),
                 ],
               ),
@@ -1292,6 +1596,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                       _VoiceMessagePlayer(
                         url: msg['content'] as String,
                         isMe: isMe,
+                        currentPlayingUrlNotifier: currentPlayingVoiceUrl,
                       )
                     else
                       Text(
@@ -1317,7 +1622,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         ),
                         if (isMe) ...[
                           const SizedBox(width: 4),
-                          _buildReadReceiptTicks(msg['is_read'] == true),
+                          _buildReadReceiptTicks(
+                            isRead: msg['is_read'] == true,
+                            isDelivered: true, // Message exists in DB, so treat as delivered
+                          ),
                         ],
                       ],
                     ),
@@ -1331,9 +1639,14 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     );
   }
 
-  /// WhatsApp-style read receipts: single grey tick = delivered but not seen, double orange tick = seen.
-  Widget _buildReadReceiptTicks(bool isRead) {
+  /// WhatsApp-style read receipts:
+  /// - Single grey tick  = sent to server (not currently distinguished in UI).
+  /// - Double grey ticks = delivered to the other user but not yet opened (`is_read == false`).
+  /// - Double orange     = opened/read by the other user (`is_read == true`).
+  Widget _buildReadReceiptTicks({required bool isRead, required bool isDelivered}) {
     const double tickSize = 14;
+
+    // Read: double orange ticks
     if (isRead) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -1346,6 +1659,22 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         ],
       );
     }
+
+    // Delivered but not read: double grey ticks
+    if (isDelivered) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.done_rounded, size: tickSize, color: Colors.grey.shade500),
+          Transform.translate(
+            offset: const Offset(-4, 2),
+            child: Icon(Icons.done_rounded, size: tickSize, color: Colors.grey.shade500),
+          ),
+        ],
+      );
+    }
+
+    // Fallback: single grey tick (sending state)
     return Icon(
       Icons.done_rounded,
       size: tickSize,
@@ -1423,11 +1752,17 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
 }
 
 /// In-app player for voice message URLs so the receiver can play without leaving the app.
+/// Only one voice note plays at a time; starting another stops the current one.
 class _VoiceMessagePlayer extends StatefulWidget {
-  const _VoiceMessagePlayer({required this.url, required this.isMe});
+  const _VoiceMessagePlayer({
+    required this.url,
+    required this.isMe,
+    required this.currentPlayingUrlNotifier,
+  });
 
   final String url;
   final bool isMe;
+  final ValueNotifier<String?> currentPlayingUrlNotifier;
 
   @override
   State<_VoiceMessagePlayer> createState() => _VoiceMessagePlayerState();
@@ -1443,6 +1778,16 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
   StreamSubscription? _durationSub;
   StreamSubscription? _positionSub;
   StreamSubscription? _completeSub;
+  void _onCurrentPlayingUrlChanged() {
+    final current = widget.currentPlayingUrlNotifier.value;
+    if (current != null && current != widget.url && _playing && mounted) {
+      _player.stop();
+      setState(() {
+        _playing = false;
+        _position = Duration.zero;
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -1454,15 +1799,24 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
       if (mounted) setState(() => _position = p);
     });
     _completeSub = _player.onPlayerComplete.listen((_) {
+      widget.currentPlayingUrlNotifier.value = null;
       if (mounted) setState(() {
         _playing = false;
         _position = Duration.zero;
       });
     });
+
+    widget.currentPlayingUrlNotifier.addListener(_onCurrentPlayingUrlChanged);
+
+    // Preload the audio source so we know the full duration
+    // before the user taps play (WhatsApp-style voice notes).
+    _player.setSource(UrlSource(widget.url)).catchError((_) {});
   }
 
   @override
   void dispose() {
+    widget.currentPlayingUrlNotifier.removeListener(_onCurrentPlayingUrlChanged);
+    if (_playing) widget.currentPlayingUrlNotifier.value = null;
     _durationSub?.cancel();
     _positionSub?.cancel();
     _completeSub?.cancel();
@@ -1481,13 +1835,16 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
     try {
       if (_playing) {
         await _player.pause();
+        widget.currentPlayingUrlNotifier.value = null;
         setState(() => _playing = false);
         return;
       }
       setState(() { _loading = true; _error = null; });
+      widget.currentPlayingUrlNotifier.value = widget.url;
       await _player.play(UrlSource(widget.url));
       if (mounted) setState(() { _playing = true; _loading = false; });
     } catch (e) {
+      widget.currentPlayingUrlNotifier.value = null;
       if (mounted) setState(() {
         _loading = false;
         _playing = false;
@@ -1506,9 +1863,13 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
         style: TextStyle(color: secondary, fontSize: 13),
       );
     }
-    final progress = _duration.inMilliseconds > 0
+    final hasDuration = _duration.inMilliseconds > 0;
+    final progress = hasDuration
         ? _position.inMilliseconds / _duration.inMilliseconds
         : 0.0;
+    final timeLabel = hasDuration
+        ? '${_formatDuration(_position)} / ${_formatDuration(_duration)}'
+        : _formatDuration(_position);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1543,7 +1904,7 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${_formatDuration(_position)} / ${_formatDuration(_duration)}',
+                    timeLabel,
                     style: TextStyle(color: secondary, fontSize: 11, fontFeatures: const [FontFeature.tabularFigures()]),
                   ),
                 ],

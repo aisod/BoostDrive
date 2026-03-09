@@ -129,6 +129,17 @@ class MessageService {
   }
 
 
+  /// One-time fetch of messages for a conversation. Use for chat view with polling (Realtime filtered stream is unreliable).
+  Future<List<Map<String, dynamic>>> getMessages(String conversationId) async {
+    final response = await _supabase
+        .from('messages')
+        .select()
+        .eq('conversation_id', conversationId)
+        .order('created_at', ascending: true);
+    final list = response is List ? response as List : [response];
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
   Stream<List<Map<String, dynamic>>> streamMessages(String conversationId) {
     return _supabase
         .from('messages')
@@ -328,6 +339,12 @@ final userConversationsProvider = StreamProvider.family<List<Map<String, dynamic
   return ref.watch(messageServiceProvider).streamConversations(userId);
 });
 
+/// Messages for one conversation (Realtime stream).
+///
+/// Note: we keep this as a StreamProvider so the chat view rebuilds as soon
+/// as new messages arrive. The web messages page also has a lightweight
+/// polling fallback which periodically invalidates this provider while a
+/// conversation is open, to work around any edge cases with filtered streams.
 final conversationMessagesProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, conversationId) {
   return ref.watch(messageServiceProvider).streamMessages(conversationId);
 });

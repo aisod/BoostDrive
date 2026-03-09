@@ -106,6 +106,72 @@ class UserService {
         .eq('verification_status', 'pending')
         .map((data) => data.map((json) => UserProfile.fromMap(json)).toList());
   }
+
+  /// Returns service providers for the Find a Provider directory.
+  /// Types: mechanic, towing, parts (seller), rental, or null for all.
+  /// Tries verified first; if none, returns providers by role so the page is never empty.
+  Future<List<UserProfile>> getVerifiedProviders({String? serviceType}) async {
+    String? roleFilter;
+    if (serviceType != null && serviceType.isNotEmpty) {
+      switch (serviceType.toLowerCase()) {
+        case 'mechanic':
+          roleFilter = 'mechanic';
+          break;
+        case 'towing':
+          roleFilter = 'towing';
+          break;
+        case 'parts':
+          roleFilter = 'seller';
+          break;
+        case 'rental':
+          roleFilter = 'rental';
+          break;
+        default:
+          break;
+      }
+    }
+
+    try {
+      // 1) Try verified providers first (verification_status = 'approved')
+      var list = await _fetchProvidersByRole(roleFilter: roleFilter, verifiedOnly: true);
+      // 2) If none, show any provider with that role so the directory isn't blank
+      if (list.isEmpty) {
+        list = await _fetchProvidersByRole(roleFilter: roleFilter, verifiedOnly: false);
+      }
+      return list;
+    } catch (e) {
+      print('Error fetching verified providers: $e');
+      return [];
+    }
+  }
+
+  Future<List<UserProfile>> _fetchProvidersByRole({String? roleFilter, required bool verifiedOnly}) async {
+    var query = _supabase.from('profiles').select();
+    if (verifiedOnly) {
+      query = query.eq('verification_status', 'approved');
+    }
+    if (roleFilter != null && roleFilter.isNotEmpty) {
+      query = query.eq('role', roleFilter);
+    } else {
+      query = query.or(
+        'role.eq.mechanic,role.eq.towing,role.eq.service_provider,role.eq.seller,role.eq.rental',
+      );
+    }
+    final response = await query;
+    final rawList = response is List ? response as List : [response];
+    final result = <UserProfile>[];
+    for (final item in rawList) {
+      try {
+        final map = item is Map ? Map<String, dynamic>.from(item as Map) : null;
+        if (map != null) {
+          result.add(UserProfile.fromMap(map));
+        }
+      } catch (e) {
+        print('Skip invalid profile row: $e');
+      }
+    }
+    return result;
+  }
 }
 
 final userServiceProvider = Provider<UserService>((ref) {
@@ -122,4 +188,10 @@ final userCountProvider = StreamProvider<int>((ref) {
 
 final pendingVerificationsProvider = StreamProvider<List<UserProfile>>((ref) {
   return ref.watch(userServiceProvider).getPendingVerifications();
+});
+
+/// Verified service providers for customer/seller discovery (mechanic, towing, service_provider).
+/// Pass [serviceType] 'mechanic' or 'towing' to filter, or null for all.
+final verifiedProvidersProvider = FutureProvider.family<List<UserProfile>, String?>((ref, serviceType) {
+  return ref.watch(userServiceProvider).getVerifiedProviders(serviceType: serviceType);
 });

@@ -22,12 +22,31 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   late Product _currentProduct;
   bool _hasChanges = false;
   String? _existingConversationId;
+  bool _hasTrackedClick = false;
 
   @override
   void initState() {
     super.initState();
     _currentProduct = widget.product;
     _checkExistingConversation();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _trackListingClick());
+  }
+
+  Future<void> _trackListingClick() async {
+    if (_hasTrackedClick) return;
+    _hasTrackedClick = true;
+
+    // Don't count the seller viewing their own listing
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null && _currentProduct.sellerId != null && user.id == _currentProduct.sellerId) {
+      return;
+    }
+
+    final updated = await ref.read(productServiceProvider).trackListingClick(_currentProduct.id);
+    if (!mounted || updated == null) return;
+    setState(() {
+      _currentProduct = _currentProduct.copyWith(clickCount: updated);
+    });
   }
 
   Future<void> _checkExistingConversation() async {
@@ -192,6 +211,19 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                       ),
                     ],
                   ),
+                  if (isOwner) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.visibility_outlined, size: 16, color: BoostDriveTheme.textDim),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Clicks: ${_currentProduct.clickCount ?? 0}',
+                          style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 24),

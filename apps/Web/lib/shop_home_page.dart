@@ -21,6 +21,7 @@ import 'logistics_dashboard_page.dart';
 // import 'role_selection_page.dart'; // Removing local import
 
 import 'provider_hub_page.dart';
+import 'find_providers_page.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
   const ShopHomePage({super.key});
@@ -188,6 +189,9 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
       case 'Safety Center':
         page = const SafetyCenterPage();
         break;
+      case 'Find a Provider':
+        page = const FindProvidersPage();
+        break;
       case 'Terms of Service':
         page = const TermsPage();
         break;
@@ -296,11 +300,6 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
               title: const Text('PARTS', style: TextStyle(color: Colors.white)),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
             ),
-            ListTile(
-              leading: const Icon(Icons.info_outline, color: BoostDriveTheme.primaryColor),
-              title: const Text('ABOUT US', style: TextStyle(color: Colors.white)),
-              onTap: _openAbout,
-            ),
             if (user != null)
               ListTile(
                 leading: const Icon(Icons.message_outlined, color: BoostDriveTheme.primaryColor),
@@ -380,6 +379,13 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                             child: _NavTopLabel(text: 'Support', isActive: _activeMegaSection == 'Support'),
                           ),
                         ),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: TextButton(
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FindProvidersPage())),
+                            child: const _NavTopLabel(text: 'Find a Provider', isActive: false),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                       ],
                     )
@@ -409,6 +415,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                             child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
                           ),
                         ),
+                        _buildFindProviderOrServicesRequestedNav(ref, context, user!),
                         if (user != null)
                           MouseRegion(
                             cursor: SystemMouseCursors.click,
@@ -794,16 +801,58 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
       case 'service pro':
       case 'service_provider':
       case 'service provider':
+      case 'mechanic':
+      case 'towing':
       case 'mechanic & towing':
       case 'seller':
       case 'parts & salvage seller':
       case 'logistics':
       case 'batlorrih logistics':
+      case 'rental':
         return const ProviderHubPage();
       case 'customer':
       default:
         return const CustomerDashboardPage();
     }
+  }
+
+  /// True if the role is a service provider (mechanic, towing, seller, etc.) who sees "Services requested" in nav.
+  bool _isProviderRole(String role) {
+    switch (role.toLowerCase()) {
+      case 'service_provider':
+      case 'service_pro':
+      case 'mechanic':
+      case 'towing':
+      case 'seller':
+      case 'logistics':
+      case 'batlorrih logistics':
+      case 'rental':
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /// Customer nav: "Find a Provider" → FindProvidersPage. Provider nav: "Services requested" → ProviderHubPage.
+  Widget _buildFindProviderOrServicesRequestedNav(WidgetRef ref, BuildContext context, dynamic user) {
+    final profile = ref.watch(userProfileProvider(user.id)).value;
+    final isProviderRole = profile != null && _isProviderRole(profile.role);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: TextButton(
+        onPressed: () {
+          if (isProviderRole) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProviderHubPage()));
+          } else {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const FindProvidersPage()));
+          }
+        },
+        child: Text(
+          isProviderRole ? 'SERVICES REQUESTED' : 'FIND A PROVIDER',
+          style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white),
+        ),
+      ),
+    );
   }
 }
 
@@ -886,7 +935,7 @@ class _MegaMenuPanel extends StatelessWidget {
         break;
       case 'Support':
         title = 'Support';
-        links = const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'];
+        links = const ['Find a Provider', 'Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'];
         break;
       case 'Marketplace':
       default:

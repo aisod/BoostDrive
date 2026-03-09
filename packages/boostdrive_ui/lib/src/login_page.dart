@@ -52,6 +52,13 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
       }
     }
     
+    // 400 Bad Request – often from auth (e.g. token refresh failed, invalid grant)
+    if (message.contains('400') || message.contains('bad request')) {
+      if (message.contains('refresh') || message.contains('token') || message.contains('grant')) {
+        return 'Your session may have expired. Please sign out and sign in again.';
+      }
+      return 'Request was invalid. Please try again or sign in again.';
+    }
     if (message.contains('invalid login credentials')) {
       return 'Invalid email or password. Please try again.';
     }
@@ -64,8 +71,10 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
     if (message.contains('user already exists') || message.contains('already registered')) {
       return 'An account with this email already exists.';
     }
-    if (message.contains('network') || message.contains('connection')) {
-      return 'Poor network connection. Please check your internet.';
+    if (message.contains('network') || message.contains('connection') ||
+        message.contains('failed to fetch') || message.contains('clientexception') ||
+        message.contains('connection_timed_out') || message.contains('name_not_resolved')) {
+      return 'Unable to connect. Please check your internet connection and try again.';
     }
     if (message.contains('otp') || message.contains('verification code')) {
       return 'Incorrect or expired verification code.';
@@ -80,10 +89,14 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
       return 'Database error: ${e.message}';
     }
     
-    // Handle RetryableFetchException (often 500 errors from Supabase)
+    // Handle RetryableFetchException (often 500 or network errors from Supabase)
     if (rawMessage.contains('AuthRetryableFetchException')) {
       if (message.contains('sending confirmation email') || message.contains('unexpected_failure')) {
         return 'The email service is currently reaching its limit or improperly configured in Supabase. Please check your SMTP settings in the Supabase Dashboard.';
+      }
+      if (message.contains('failed to fetch') || message.contains('clientexception') ||
+          message.contains('connection_timed_out') || message.contains('name_not_resolved')) {
+        return 'Unable to connect. Please check your internet connection and try again.';
       }
       return 'Server connection error. Please try again in a few moments.';
     }

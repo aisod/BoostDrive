@@ -387,6 +387,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                   p.condition.toUpperCase(),
                   p.condition == 'new' ? _accentBlue : (p.condition == 'used' ? const Color(0xFFA855F7) : const Color(0xFFFF8A00)),
                   p.imageUrl,
+                  clickCount: p.clickCount ?? 0,
                 );
               },
             );
@@ -398,7 +399,16 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
-  Widget _buildInventoryCard(String title, String sku, String price, String status, String tag, Color tagColor, String? imageUrl) {
+  Widget _buildInventoryCard(
+    String title,
+    String sku,
+    String price,
+    String status,
+    String tag,
+    Color tagColor,
+    String? imageUrl, {
+    int clickCount = 0,
+  }) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -503,6 +513,21 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.visibility_outlined, color: Colors.white38, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Clicks: $clickCount',
+                      style: GoogleFonts.manrope(
+                        color: Colors.white38,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],

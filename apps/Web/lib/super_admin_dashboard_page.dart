@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
@@ -130,11 +131,15 @@ class SuperAdminDashboardPage extends ConsumerWidget {
       childAspectRatio: 2,
       children: [
         _buildKPICard('MONTHLY REVENUE', 'LIVE', 'N/A', Colors.green),
-        ref.watch(globalActiveSosRequestsProvider).when(
-          data: (data) => _buildKPICard('ACTIVE SOS ALERTS', data.length.toString(), '+3%', Colors.redAccent),
-          loading: () => _buildKPICard('ACTIVE SOS ALERTS', '...', '...', Colors.redAccent),
-          error: (_, _) => _buildKPICard('ACTIVE SOS ALERTS', 'ERR', 'ERR', Colors.redAccent),
-        ),
+        // SOS alerts only on mobile; on web show placeholder
+        if (kIsWeb)
+          _buildKPICard('ALERTS', 'Mobile', 'App only', Colors.orange)
+        else
+          ref.watch(globalActiveSosRequestsProvider).when(
+            data: (data) => _buildKPICard('ACTIVE SOS ALERTS', data.length.toString(), '+3%', Colors.redAccent),
+            loading: () => _buildKPICard('ACTIVE SOS ALERTS', '...', '...', Colors.redAccent),
+            error: (_, _) => _buildKPICard('ACTIVE SOS ALERTS', 'ERR', 'ERR', Colors.redAccent),
+          ),
         ref.watch(globalVolumeProvider).when(
           data: (data) => _buildKPICard('MARKETPLACE VOL', '\$${data.toStringAsFixed(0)}', 'TOTAL', BoostDriveTheme.primaryColor),
           loading: () => _buildKPICard('MARKETPLACE VOL', '...', '...', BoostDriveTheme.primaryColor),

@@ -123,36 +123,42 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(otherProfile?.fullName ?? productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                                Text(otherProfile != null ? productTitle : 'Seller Chat', style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                                Text(
+                                  otherProfile?.fullName ?? productTitle,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor),
+                                ),
+                                Text(
+                                  otherProfile != null ? productTitle : 'Seller Chat',
+                                  style: const TextStyle(fontSize: 12, color: BoostDriveTheme.primaryColor),
+                                ),
                               ],
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: BoostDriveTheme.primaryColor.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               conversation?['product_title'] != null ? 'INQUIRY' : 'REPAIR JOB',
-                              style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900),
+                              style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 8, fontWeight: FontWeight.w900),
                             ),
                           ),
                           IconButton(
                             onPressed: () {
                               // WhatsApp Bridge
                             },
-                            icon: const Icon(Icons.chat, size: 20),
+                            icon: const Icon(Icons.chat, size: 20, color: BoostDriveTheme.primaryColor),
                           ),
                         ],
                       ),
-                      loading: () => Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                      error: (_, __) => Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      loading: () => Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
+                      error: (_, __) => Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
                     )
-                  : Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                backgroundColor: BoostDriveTheme.primaryColor,
-                iconTheme: const IconThemeData(color: Colors.white),
+                  : Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
+                backgroundColor: Colors.white,
+                iconTheme: const IconThemeData(color: BoostDriveTheme.primaryColor),
                 elevation: 1,
               ),
               body: Column(

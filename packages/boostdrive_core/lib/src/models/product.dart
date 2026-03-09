@@ -7,6 +7,8 @@ class Product {
   final String location;
   final bool isFeatured;
   final String category; // 'car', 'part', 'rental'
+  /// How many times the listing was opened/clicked. Null if DB has no column or value.
+  final int? clickCount;
   
   // REAL DATA FIELDS
   final String condition; // 'new', 'used', 'salvage'
@@ -25,6 +27,7 @@ class Product {
     required this.location,
     this.isFeatured = false,
     required this.category,
+    this.clickCount,
     this.condition = 'used',
     this.status = 'active',
     this.fitment,
@@ -34,6 +37,15 @@ class Product {
   });
 
   String get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : '';
+
+  /// Parses click_count from API/DB (may be null, int, or number string).
+  static int? _parseClickCount(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    final parsed = int.tryParse(v.toString());
+    return parsed;
+  }
 
   factory Product.fromMap(Map<String, dynamic> data, {String? id}) {
     return Product(
@@ -47,6 +59,7 @@ class Product {
       location: data['location'] ?? 'Namibia',
       isFeatured: data['is_featured'] ?? false,
       category: data['category'] ?? 'car',
+      clickCount: _parseClickCount(data['click_count'] ?? data['clickCount']),
       condition: data['condition'] ?? 'used',
       status: data['status'] ?? 'active',
       fitment: data['fitment'] != null ? Map<String, dynamic>.from(data['fitment']) : null,
@@ -68,6 +81,7 @@ class Product {
       'location': location,
       'is_featured': isFeatured,
       'category': category,
+      if (clickCount != null) 'click_count': clickCount,
       'condition': condition,
       'status': status,
       if (fitment != null) 'fitment': fitment,
@@ -86,6 +100,7 @@ class Product {
     String? location,
     bool? isFeatured,
     String? category,
+    int? clickCount,
     String? condition,
     String? status,
     Map<String, dynamic>? fitment,
@@ -102,6 +117,7 @@ class Product {
       location: location ?? this.location,
       isFeatured: isFeatured ?? this.isFeatured,
       category: category ?? this.category,
+      clickCount: clickCount ?? this.clickCount,
       condition: condition ?? this.condition,
       status: status ?? this.status,
       fitment: fitment ?? this.fitment,

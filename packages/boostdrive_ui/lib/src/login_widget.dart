@@ -1298,12 +1298,14 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+            const SizedBox(width: 12),
+            Text(
               error,
               style: const TextStyle(
                 color: Colors.redAccent,
@@ -1312,8 +1314,8 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                 height: 1.4,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

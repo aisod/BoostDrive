@@ -17,6 +17,10 @@ class UserProfile {
   final bool dealsEnabled;
   final String emergencyContactName;
   final String emergencyContactPhone;
+  /// Provider: e.g. "Within 50 km of Windhoek" or "City centre"
+  final String serviceAreaDescription;
+  /// Provider: e.g. "Mon–Fri 8am–6pm, Sat 9am–1pm" or "24/7"
+  final String workingHours;
 
   const UserProfile({
     required this.uid,
@@ -37,32 +41,42 @@ class UserProfile {
     this.dealsEnabled = false,
     this.emergencyContactName = '',
     this.emergencyContactPhone = '',
+    this.serviceAreaDescription = '',
+    this.workingHours = '',
   });
+
+  /// Coerces any value to non-null String (avoids "null is not a subtype of String" from API).
+  static String _str(dynamic v, [String fallback = '']) {
+    if (v == null) return fallback;
+    return v is String ? v : v.toString();
+  }
 
   factory UserProfile.fromMap(Map<String, dynamic> data, {String? uid}) {
     return UserProfile(
-      uid: uid ?? data['id'] ?? data['uid'] ?? '',
-      fullName: data['full_name'] ?? data['fullName'] ?? '',
-      phoneNumber: data['phone_number'] ?? data['phoneNumber'] ?? '',
-      email: data['email'] ?? '',
-      role: data['role'] ?? 'customer',
-      profileImg: data['profile_img'] ?? data['profileImg'] ?? '',
+      uid: _str(uid ?? data['id'] ?? data['uid']),
+      fullName: _str(data['full_name'] ?? data['fullName']),
+      phoneNumber: _str(data['phone_number'] ?? data['phoneNumber']),
+      email: _str(data['email']),
+      role: _str(data['role'], 'customer'),
+      profileImg: _str(data['profile_img'] ?? data['profileImg']),
       isBuyer: data['is_buyer'] ?? data['isBuyer'] ?? true,
       isSeller: data['is_seller'] ?? data['isSeller'] ?? false,
-      createdAt: data['created_at'] != null 
+      createdAt: data['created_at'] != null
           ? DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      lastActive: data['last_active'] != null 
+      lastActive: data['last_active'] != null
           ? DateTime.tryParse(data['last_active'].toString()) ?? DateTime.now()
           : DateTime.now(),
       loyaltyPoints: data['loyalty_points'] ?? 0,
       isOnline: data['is_online'] ?? true,
-      verificationStatus: data['verification_status'] ?? 'pending',
+      verificationStatus: _str(data['verification_status'], 'pending'),
       totalEarnings: (data['total_earnings'] ?? 0.0).toDouble(),
       remindersEnabled: data['reminders_enabled'] ?? true,
       dealsEnabled: data['deals_enabled'] ?? false,
-      emergencyContactName: data['emergency_contact_name'] ?? '',
-      emergencyContactPhone: data['emergency_contact_phone'] ?? '',
+      emergencyContactName: _str(data['emergency_contact_name'] ?? data['emergencyContactName']),
+      emergencyContactPhone: _str(data['emergency_contact_phone'] ?? data['emergencyContactPhone']),
+      serviceAreaDescription: _str(data['service_area_description'] ?? data['serviceAreaDescription']),
+      workingHours: _str(data['working_hours'] ?? data['workingHours']),
     );
   }
 
@@ -85,6 +99,8 @@ class UserProfile {
       'deals_enabled': dealsEnabled,
       'emergency_contact_name': emergencyContactName,
       'emergency_contact_phone': emergencyContactPhone,
+      'service_area_description': serviceAreaDescription,
+      'working_hours': workingHours,
     };
   }
 
@@ -104,6 +120,8 @@ class UserProfile {
     bool? dealsEnabled,
     String? emergencyContactName,
     String? emergencyContactPhone,
+    String? serviceAreaDescription,
+    String? workingHours,
   }) {
     return UserProfile(
       uid: uid,
@@ -124,6 +142,8 @@ class UserProfile {
       dealsEnabled: dealsEnabled ?? this.dealsEnabled,
       emergencyContactName: emergencyContactName ?? this.emergencyContactName,
       emergencyContactPhone: emergencyContactPhone ?? this.emergencyContactPhone,
+      serviceAreaDescription: serviceAreaDescription ?? this.serviceAreaDescription,
+      workingHours: workingHours ?? this.workingHours,
     );
   }
 }

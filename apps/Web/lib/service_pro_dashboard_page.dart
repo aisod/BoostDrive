@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
@@ -38,7 +39,10 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
   }
 
   Widget _buildTopNavBar() {
-    final sections = ['HOME', 'ROUTES', 'FLEET', 'FINANCE'];
+    // SOS (REQUESTS) only on mobile; hide on web
+    final sections = kIsWeb
+        ? ['HOME', 'ROUTES', 'FLEET', 'FINANCE']
+        : ['HOME', 'REQUESTS', 'ROUTES', 'FLEET', 'FINANCE'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Container(
@@ -55,6 +59,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             IconData icon;
             switch (section) {
               case 'HOME': icon = Icons.grid_view_rounded; break;
+              case 'REQUESTS': icon = Icons.emergency_outlined; break;
               case 'ROUTES': icon = Icons.map_outlined; break;
               case 'FLEET': icon = Icons.local_shipping_outlined; break;
               case 'FINANCE': icon = Icons.account_balance_wallet_outlined; break;
@@ -94,10 +99,13 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
   }
 
   Widget _buildSectionContent(String userId) {
+    if (_currentSection == 'REQUESTS') {
+      if (kIsWeb) return _buildSosMobileOnlyMessage();
+      return _buildIncomingRequestsSection(userId);
+    }
     if (_currentSection == 'ROUTES') {
       return _buildRoutesSection();
     }
-    
     if (_currentSection == 'FLEET') {
       return _buildFleetSection();
     }
@@ -148,6 +156,211 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
+  /// Shown on web when SOS is requested; SOS is mobile-only.
+  Widget _buildSosMobileOnlyMessage() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(48),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.phone_android, size: 64, color: BoostDriveTheme.primaryColor.withOpacity(0.6)),
+            const SizedBox(height: 24),
+            Text(
+              'SOS requests are managed on the BoostDrive mobile app',
+              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Use the mobile app to view and accept incoming roadside and mechanic requests.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIncomingRequestsSection(String userId) {
+    final pendingAsync = ref.watch(globalActiveSosRequestsProvider);
+    final myAssignedAsync = ref.watch(providerAssignedRequestsProvider(userId));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Incoming SOS requests', Icons.emergency),
+        const SizedBox(height: 8),
+        Text(
+          'Accept pending requests from customers needing roadside or mechanic help. Requests you accept appear under My assignments.',
+          style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14),
+        ),
+        const SizedBox(height: 24),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final pendingSection = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Pending (awaiting provider)', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w800, fontSize: 12)),
+                const SizedBox(height: 12),
+                pendingAsync.when(
+                  data: (list) {
+                    if (list.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        ),
+                        child: Center(
+                          child: Text('No pending requests right now.', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14)),
+                        ),
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: list.map<Widget>((r) => _buildSosRequestCard(r, pending: true, userId: userId)).toList(),
+                    );
+                  },
+                  loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor))),
+                  error: (e, _) => Text('Could not load: $e', style: TextStyle(color: Colors.red.shade300, fontSize: 12)),
+                ),
+              ],
+            );
+            final assignedSection = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('My assignments', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w800, fontSize: 12)),
+                const SizedBox(height: 12),
+                myAssignedAsync.when(
+                  data: (list) {
+                    if (list.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        ),
+                        child: Center(
+                          child: Text('No assignments yet. Accept a request above.', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14)),
+                        ),
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: list.map<Widget>((r) => _buildSosRequestCard(r, pending: false, userId: userId)).toList(),
+                    );
+                  },
+                  loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor))),
+                  error: (e, _) => Text('Could not load: $e', style: TextStyle(color: Colors.red.shade300, fontSize: 12)),
+                ),
+              ],
+            );
+            if (constraints.maxWidth < 700) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  pendingSection,
+                  const SizedBox(height: 24),
+                  assignedSection,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: pendingSection),
+                const SizedBox(width: 24),
+                Expanded(child: assignedSection),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSosRequestCard(Map<String, dynamic> r, {required bool pending, required String userId}) {
+    final id = r['id'] as String?;
+    final type = (r['type'] as String?) ?? 'assistance';
+    final status = (r['status'] as String?) ?? '';
+    final userNote = (r['user_note'] as String?) ?? '';
+    final loc = r['location'] is Map ? r['location'] as Map<String, dynamic>? : null;
+    final lat = loc?['lat'];
+    final lng = loc?['lng'];
+    final createdAt = r['created_at']?.toString();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.emergency, color: BoostDriveTheme.primaryColor, size: 20),
+              const SizedBox(width: 8),
+              Text(type.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+              const Spacer(),
+              if (pending && id != null)
+                TextButton.icon(
+                  onPressed: () async {
+                    try {
+                      await ref.read(sosServiceProvider).acceptRequest(id, userId);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Request accepted. Customer will see you as assigned.')),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to accept: $e')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.check_circle, size: 18, color: BoostDriveTheme.primaryColor),
+                  label: const Text('Accept'),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: BoostDriveTheme.primaryColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(status.toUpperCase(), style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.w800)),
+                ),
+            ],
+          ),
+          if (userNote.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(userNote, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+          ],
+          if (lat != null && lng != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text('Location: $lat, $lng', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11)),
+            ),
+          if (createdAt != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(createdAt.length > 16 ? createdAt.substring(0, 16) : createdAt, style: TextStyle(color: Colors.white54, fontSize: 11)),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRoutesSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,8 +402,10 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                       const Text('DISPATCH OVERVIEW', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w900, fontSize: 12)),
                       const SizedBox(height: 16),
                       _buildMapStat('Active Mechanics', '0'),
-                      const SizedBox(height: 12),
-                      _buildMapStat('Pending SOS', '0'),
+                      if (!kIsWeb) ...[
+                        const SizedBox(height: 12),
+                        _buildMapStat('Pending SOS', '0'),
+                      ],
                       const SizedBox(height: 12),
                       _buildMapStat('Avg Response', '—'),
                     ],
