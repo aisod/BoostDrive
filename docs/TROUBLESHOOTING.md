@@ -36,22 +36,16 @@ Assertion failed: file:///.../flutter/.../mouse_tracker.dart:199:12
 **Cause:** Known Flutter web issue where the mouse tracker can get into an inconsistent state during pointer/layout updates, especially after hot reload or when using certain widgets (dropdowns, overlays, segmented controls).
 
 **What we did in the app:**
-- On the **Find a Provider** page, replaced all widgets that use Flutter’s mouse/hover tracking with simple tap-only widgets:
-  - **SegmentedButton** → custom `_ListMapToggle` and `_ToggleSegment` (GestureDetector + Container).
-  - **DropdownButton** (Sort by) → `_SortChip` (GestureDetector + Container).
-  - **FilterChip** (category/quick links) → custom chips using **GestureDetector** + Container.
-  - **InkWell** → **GestureDetector** (cards, quick links, list/map segments).
-  - **IconButton** → **GestureDetector** + Icon (call button, app bar back).
-  - **Tooltip** → removed (they use hover).
-  - **OutlinedButton** / **ElevatedButton** (detail page) → **GestureDetector** + Container.
-- Wrapped the Find a Provider page body in **RepaintBoundary** to isolate repaints.
+- Wrapped the **root** Web app body in **RepaintBoundary** (`main.dart`: `home: RepaintBoundary(child: ShopHomePage())`) to isolate repaints from the mouse tracker.
+- On **Shop Home**: replaced **InkWell** (profile avatar, mega menu links) with **GestureDetector** to avoid hover/pointer tracking that can trigger the assertion.
+- On the **Find a Provider** page: replaced SegmentedButton, DropdownButton, FilterChip, InkWell, IconButton, Tooltip, and buttons with **GestureDetector** + Container where possible; page body wrapped in **RepaintBoundary**.
 
 **What you should do:**
 1. **Full restart** (do not rely on hot reload): stop the app (`Ctrl+C`), then run again:
    ```bash
    flutter run -d chrome
    ```
-2. If it still happens only when opening Find a Provider, close that tab and reopen the app, or navigate away and back after a full restart.
+2. If assertions persist, try running without the Dart debug extension: `flutter run -d chrome --no-enable-dwds`, or test a release build: `flutter build web && flutter run -d chrome --release` (if supported).
 3. Ensure you're on a recent Flutter stable channel; this has been improved in newer SDK versions.
 
 ---

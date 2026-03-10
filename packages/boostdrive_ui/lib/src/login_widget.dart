@@ -151,8 +151,12 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isOtpSent) return _buildOtpView();
-    return _isSignUp ? _buildSignUpView() : _buildLoginView();
+    // TextField/TextFormField require a Material ancestor; provide one so login works
+    // when this widget is used inside Container/Stack (e.g. login_page split layout) without a Scaffold.
+    return Material(
+      color: Colors.transparent,
+      child: widget.isOtpSent ? _buildOtpView() : (_isSignUp ? _buildSignUpView() : _buildLoginView()),
+    );
   }
 
   void _handleClose() {
@@ -257,7 +261,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 TextFormField(
                                   controller: _emailController,
                                   decoration: _inputDecoration('Enter your email', Icons.mail_outline),
-                                  style: const TextStyle(color: Colors.black),
+                                  style: const TextStyle(color: Colors.white),
                                   validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
                                 ),
                                 const SizedBox(height: 16),
@@ -267,7 +271,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
                                   decoration: _inputDecoration('Enter your password', Icons.lock_outline, isPassword: true),
-                                  style: const TextStyle(color: Colors.black),
+                                  style: const TextStyle(color: Colors.white),
                                   validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
                                 ),
                                 
@@ -683,7 +687,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _usernameController,
                             decoration: _inputDecoration('username123', Icons.alternate_email),
-                            style: const TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.white),
                           ),
                           const SizedBox(height: 20),
                           
@@ -691,7 +695,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _nameController,
                             decoration: _inputDecoration('John Doe', Icons.person_outline),
-                            style: const TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.white),
                             validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
                           ),
                           const SizedBox(height: 20),
@@ -700,7 +704,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _emailController,
                             decoration: _inputDecoration('john@example.com', Icons.mail_outline),
-                            style: const TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.white),
                             validator: (v) => v == null || !v.contains('@') ? 'Invalid email' : null,
                           ),
                           const SizedBox(height: 20),
@@ -709,7 +713,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            style: const TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.white),
                             decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true).copyWith(
                               helperText: _isSignUp ? 'Min 8 chars: Upper, Lower, Number & Symbol' : null,
                               helperStyle: const TextStyle(color: Colors.white38, fontSize: 10),
@@ -722,7 +726,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: _obscurePassword,
-                            style: const TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.white),
                             decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
                             validator: (v) {
                               if (v == null || v.isEmpty) return 'Please confirm password';
@@ -1021,14 +1025,27 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
   InputDecoration _inputDecoration(String hint, IconData icon, {bool isPassword = false}) {
     final isWeb = kIsWeb;
     if (!isWeb) {
+      // Mobile: no white overlay — transparent fill with subtle border so fields stay visible on dark background.
       return InputDecoration(
         hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.white24),
+        hintStyle: const TextStyle(color: Colors.white38),
+        prefixIcon: Icon(icon, color: Colors.white38),
+        filled: true,
+        fillColor: Colors.transparent,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.white24, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         suffixIcon: isPassword 
           ? IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                color: Colors.white24,
+                color: Colors.white38,
               ),
               onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
             )
@@ -1073,16 +1090,17 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
     bool isSelected = _selectedRole == title;
 
     if (!isWeb) {
+      // Mobile: no white overlay — transparent/dark tint only, border for visibility.
       return GestureDetector(
         onTap: () => setState(() => _selectedRole = title),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+            color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.15) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
-              width: 2,
+              color: isSelected ? BoostDriveTheme.primaryColor : Colors.white24,
+              width: isSelected ? 2 : 1,
             ),
           ),
           child: Column(

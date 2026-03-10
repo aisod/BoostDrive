@@ -129,7 +129,7 @@ class BoostDriveWebApp extends ConsumerWidget {
       theme: BoostDriveTheme.lightTheme(context),
       darkTheme: BoostDriveTheme.darkTheme(context),
       themeMode: themeMode,
-      home: const ShopHomePage(),
+      home: RepaintBoundary(child: const ShopHomePage()),
     );
   }
 }

@@ -381,6 +381,48 @@ class AuthService {
     }
   }
 
+  /// Uploads a provider verification document (e.g. BIPA, tax certificate) to Supabase storage.
+  ///
+  /// Files are stored in the `provider-docs` bucket under:
+  /// `docs/<userId>/<timestamp>.<ext>` and the public URL is returned.
+  Future<String> uploadProviderDocument(List<int> bytes, String fileName) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User must be logged in to upload documents');
+      }
+
+      final extension = fileName.split('.').last;
+      final path = 'docs/$userId/${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+      await _supabase.storage.from('provider-docs').uploadBinary(
+            path,
+            Uint8List.fromList(bytes),
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      final String publicUrl = _supabase.storage.from('provider-docs').getPublicUrl(path);
+      return publicUrl;
+    } on StorageException catch (e) {
+      if (e.statusCode == '404' && e.message.contains('Bucket not found')) {
+        throw Exception(
+          'Storage bucket "provider-docs" not found.\n\n'
+          'Please create it in Supabase Dashboard:\n'
+          '1. Go to Storage section\n'
+          '2. Click "New bucket"\n'
+          '3. Name: "provider-docs"\n'
+          '4. Enable "Public bucket"\n'
+          '5. Click "Create bucket"',
+        );
+      }
+      print('Storage error uploading provider document: $e');
+      rethrow;
+    } catch (e) {
+      print('Error uploading provider document: $e');
+      rethrow;
+    }
+  }
+
   Future<void> _handlePostAuthSync(User user) async {
     try {
       await syncUserProfile(user);
@@ -479,6 +521,7 @@ class AuthService {
     String? emergencyContactPhone,
     String? serviceAreaDescription,
     String? workingHours,
+    List<String>? providerServiceTypes,
   }) async {
     final Map<String, dynamic> updates = {
       'last_active': DateTime.now().toIso8601String(),
@@ -492,6 +535,7 @@ class AuthService {
     if (emergencyContactPhone != null) updates['emergency_contact_phone'] = emergencyContactPhone;
     if (serviceAreaDescription != null) updates['service_area_description'] = serviceAreaDescription;
     if (workingHours != null) updates['working_hours'] = workingHours;
+    if (providerServiceTypes != null) updates['provider_service_types'] = providerServiceTypes.isEmpty ? '' : providerServiceTypes.join(',');
 
     await _supabase.from('profiles').update(updates).eq('id', userId);
     print("DEBUG: Profile updated for $userId");

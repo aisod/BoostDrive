@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
@@ -653,14 +655,17 @@ class _ProviderCard extends StatelessWidget {
                     if (profile.phoneNumber.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       GestureDetector(
-                        onTap: () => _launchTel(profile.phoneNumber),
+                        onTap: () => _launchTel(context, profile.phoneNumber),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(Icons.phone_outlined, size: 14, color: BoostDriveTheme.primaryColor),
                             const SizedBox(width: 6),
-                            Text(
-                              profile.phoneNumber,
-                              style: TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
+                            Expanded(
+                              child: SelectableText(
+                                profile.phoneNumber,
+                                style: TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
+                              ),
                             ),
                           ],
                         ),
@@ -672,7 +677,7 @@ class _ProviderCard extends StatelessWidget {
               if (profile.phoneNumber.isNotEmpty)
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => _launchTel(profile.phoneNumber),
+                  onTap: () => _launchTel(context, profile.phoneNumber),
                   child: const Padding(
                     padding: EdgeInsets.all(8),
                     child: Icon(Icons.phone_outlined, color: BoostDriveTheme.primaryColor, size: 24),
@@ -701,7 +706,55 @@ class _ProviderCard extends StatelessWidget {
     }
   }
 
-  static Future<void> _launchTel(String phone) async {
+  /// On web, shows a dialog with the number and Copy so the tab doesn't navigate to a blank tel: page.
+  static Future<void> _launchTel(BuildContext context, String phone) async {
+    if (kIsWeb) {
+      if (!context.mounted) return;
+      final trimmed = phone.trim();
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Provider phone number'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SelectableText(
+                trimmed,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+              ),
+              if (trimmed.length < 10) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'This number may be incomplete. The provider can update it in Profile Settings.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: trimmed));
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Phone number copied to clipboard')),
+                  );
+                  Navigator.pop(ctx);
+                }
+              },
+              icon: const Icon(Icons.copy, size: 18),
+              label: const Text('Copy'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
     final uri = Uri(scheme: 'tel', path: digits);
     if (await canLaunchUrl(uri)) {
@@ -831,12 +884,18 @@ class _ProviderDetailPage extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _SectionTitle(title: 'Contact'),
                   GestureDetector(
-                    onTap: () => _ProviderCard._launchTel(profile.phoneNumber),
+                    onTap: () => _ProviderCard._launchTel(context, profile.phoneNumber),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(Icons.phone_outlined, color: BoostDriveTheme.primaryColor, size: 20),
                         const SizedBox(width: 8),
-                        Text(profile.phoneNumber, style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 16, decoration: TextDecoration.underline)),
+                        Expanded(
+                          child: SelectableText(
+                            profile.phoneNumber,
+                            style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 16, decoration: TextDecoration.underline),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -847,7 +906,7 @@ class _ProviderDetailPage extends ConsumerWidget {
                     if (profile.phoneNumber.isNotEmpty)
                       Expanded(
                         child: GestureDetector(
-                          onTap: () => _ProviderCard._launchTel(profile.phoneNumber),
+                          onTap: () => _ProviderCard._launchTel(context, profile.phoneNumber),
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(

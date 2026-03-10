@@ -31,12 +31,7 @@
 ### Web (Provider Hub)
 1. Log in with an account whose **role** is **service_provider**, **mechanic**, or **towing** (or equivalent).  
 2. You land on **Provider Hub** (dashboard for providers).  
-3. Open the **REQUESTS** tab in the dashboard top nav.  
-4. **Incoming SOS requests**  
-   - Left column: **Pending** – SOS requests from customers (type, location, note, time).  
-   - **Accept** on a card to assign yourself; the request moves to **My assignments** (right column).  
-5. **My assignments**  
-   - Right column: requests you have accepted; customer sees you as “assigned” / “en route”.
+3. The provider dashboard nav on **web** shows **HOME**, **ROUTES**, **FLEET**, **FINANCE** only. **Services requested** (incoming SOS) is **mobile-only**; see Mobile (Provider app) below.
 
 ### Mobile (Provider app)
 1. Log in as a **service pro** (mechanic/towing/service_provider).  

@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
+import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'providers.dart';
 
 class SuperAdminDashboard extends ConsumerStatefulWidget {
@@ -360,12 +363,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
             return Column(
               children: pendings.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _buildVerificationCard(
-                  p.fullName,
-                  'Applied: recently • ${p.role.toUpperCase()}',
-                  p.role == 'service_pro' ? Icons.build : Icons.store,
-                  p.uid,
-                ),
+                child: _buildVerificationCard(p),
               )).toList(),
             );
           },
@@ -374,7 +372,10 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     );
   }
 
-  Widget _buildVerificationCard(String title, String subtitle, IconData icon, String uid) {
+  Widget _buildVerificationCard(UserProfile profile) {
+    final title = profile.fullName;
+    final subtitle = 'Applied: recently • ${profile.role.toUpperCase()}';
+    final icon = profile.role == 'service_pro' ? Icons.build : Icons.store;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -405,14 +406,9 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           ),
           GestureDetector(
             onTap: () {
-              // Logic to approve
-              ref.read(userServiceProvider).updateProfile(UserProfile(
-                id: uid,
-                uid: uid,
-                fullName: title,
-                role: 'service_pro', // Placeholder logic
-                verificationStatus: 'verified',
-              ));
+              ref.read(userServiceProvider).updateProfile(
+                profile.copyWith(verificationStatus: 'approved', role: 'service_provider'),
+              );
             },
             child: _buildActionButton(Icons.check, Colors.green),
           ),
@@ -463,8 +459,8 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           Container(
             height: 40,
             width: 40,
-            decoration: const BoxDecoration(color: BoostDriveTheme.surfaceDark, shape: BoxShape.circle),
-            child: const Icon(Icons.chevron_right, color: BoostDriveTheme.primaryColor),
+            decoration: BoxDecoration(color: BoostDriveTheme.surfaceDark, shape: BoxShape.circle),
+            child: Icon(Icons.chevron_right, color: BoostDriveTheme.primaryColor),
           ),
         ],
       ),

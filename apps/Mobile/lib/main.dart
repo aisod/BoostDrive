@@ -15,17 +15,27 @@ void main() async {
   WebUtils.registerViewFactory('recaptcha-container', 'recaptcha-container');
   
 
-  // Load .env
+  // Load .env (optional: if missing, Supabase URL/key will be empty and auth may not work until you add assets/.env)
+  bool isDotEnvInitialized = false;
   try {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: "assets/.env");
+    isDotEnvInitialized = true;
   } catch (e) {
-    print("DEBUG: Error loading .env file: $e");
+    // Fallback for projects that keep .env at app root (e.g. some IDEs)
+    try {
+      await dotenv.load(fileName: ".env");
+      isDotEnvInitialized = true;
+    } catch (_) {
+      debugPrint("DEBUG: .env not loaded (404 or missing). Add assets/.env with SUPABASE_URL and SUPABASE_ANON_KEY for auth.");
+    }
   }
 
-  // Initialize Supabase
+  final supabaseUrl = isDotEnvInitialized ? (dotenv.maybeGet('SUPABASE_URL') ?? '') : '';
+  final anonKey = isDotEnvInitialized ? (dotenv.maybeGet('SUPABASE_ANON_KEY') ?? '') : '';
+
   await Supabase.initialize(
-    url: dotenv.maybeGet('SUPABASE_URL') ?? '',
-    anonKey: dotenv.maybeGet('SUPABASE_ANON_KEY') ?? '',
+    url: supabaseUrl,
+    anonKey: anonKey,
   );
 
   runApp(

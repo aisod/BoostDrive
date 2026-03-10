@@ -415,7 +415,11 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                             child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
                           ),
                         ),
-                        _buildFindProviderOrServicesRequestedNav(ref, context, user!),
+                        if (user != null) ...[
+                          // Show "Find a Provider" only for customers; no "Services requested" on provider homepage
+                          if (!_isProviderRole(ref.watch(userProfileProvider(user.id)).valueOrNull?.role ?? ''))
+                            _buildFindProviderOrServicesRequestedNav(ref, context, user),
+                        ],
                         if (user != null)
                           MouseRegion(
                             cursor: SystemMouseCursors.click,
@@ -528,13 +532,13 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                   ref.watch(userProfileProvider(user.id)).when(
                     data: (profile) {
                       if (profile == null) return const SizedBox();
-                      return MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: InkWell(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
-                          ),
+                      return GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
+                        ),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
                           child: CircleAvatar(
                             radius: 18,
                             backgroundColor: Colors.white.withOpacity(0.2),
@@ -977,10 +981,9 @@ class _MegaMenuPanel extends StatelessWidget {
             ...links.map(
               (t) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
-                child: InkWell(
+                child: GestureDetector(
                   onTap: () => onTapLink(t),
-                  hoverColor: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(4),
+                  behavior: HitTestBehavior.opaque,
                   child: Text(
                     t,
                     style: const TextStyle(

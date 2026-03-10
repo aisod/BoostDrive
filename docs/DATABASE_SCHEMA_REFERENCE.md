@@ -17,6 +17,7 @@ If a feature does not work (e.g. Find a Provider blank, read receipts not updati
 | **SOS – provider Accept** | `sos_requests.assigned_provider_id`, `sos_requests.responded_at`; RLS: allow **UPDATE** for provider when accepting. | [HOW_SERVICES_AND_PROVIDERS_WORK.md](HOW_SERVICES_AND_PROVIDERS_WORK.md#database-requirement-for-accept-to-work) |
 | **Listing click count** | `products.click_count` (bigint, default 0). | [§4 products](#4-products) |
 | **Provider location & hours** | `profiles.service_area_description` (text), `profiles.working_hours` (text). | [§1 profiles](#1-profiles) |
+| **Provider service types (mobile)** | `profiles.provider_service_types` (text, comma-separated e.g. `mechanic,towing`). | [§1 profiles](#1-profiles) |
 
 ---
 
@@ -46,12 +47,22 @@ Used by: `UserService` (auth, profile, roles, verification).
 | `emergency_contact_phone` | `text` | |
 | **`service_area_description`** | **`text`** | **Optional.** Provider: e.g. "Within 50 km of Windhoek". Shown on Find a Provider cards. |
 | **`working_hours`** | **`text`** | **Optional.** Provider: e.g. "Mon–Fri 8am–6pm" or "24/7". Shown on Find a Provider cards. |
+| **`provider_service_types`** | **`text`** | **Optional.** Provider (mobile): comma-separated service types, e.g. `mechanic,towing,parts`. Used for "Services you provide" (min 1). |
+| **Provider business profile** | See below | Operational, specializations, financial, trust, notifications. Run **`docs/supabase_provider_profile_columns.sql`**. |
 
 **Provider location & hours:** To show "how far" and "working hours" on provider cards and detail, add:
 ```sql
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS service_area_description text DEFAULT '';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS working_hours text DEFAULT '';
 ```
+
+**Provider service types (mobile):** For providers to choose which services they offer (Mechanics, Towing, Parts, Rental, Service station) with at least 1 required:
+
+```sql
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS provider_service_types text DEFAULT '';
+```
+
+**Full provider business profile (operational, specializations, financial, trust, notifications):** Run the full script **`docs/supabase_provider_profile_columns.sql`** to add: `business_hours_24_7`, `service_radius_km`, `workshop_address`, `workshop_lat`, `workshop_lng`, `social_facebook`, `social_instagram`, `website_url`, `brand_expertise`, `service_tags`, `towing_capabilities`, `bank_account_number`, `bank_branch`, `bank_name`, `standard_labor_rate`, `tax_vat_number`, `business_bio`, `gallery_urls`, `team_size`, `sos_alerts_enabled`, `preferred_communication`.
 
 **Find a Provider directory:** The app lists profiles with `role` in `mechanic`, `towing`, `service_provider`, `seller` (Parts), `rental` (Rental Agency). It prefers `verification_status = 'approved'` and falls back to showing any provider with that role so the page is never empty. Ensure RLS on `profiles` allows authenticated (or public) **SELECT** for the directory (e.g. allow read for provider roles).
 
@@ -176,17 +187,21 @@ Used by: `PaymentService`.
 
 ## 8. **sos_requests**
 
-Used by: `SosService`.
+Used by: `SosService` (SOS / Services requested — mobile-only).
 
 | Column | Type | Notes |
 |--------|------|--------|
 | `id` | `uuid` (PK) | |
-| `user_id` | `uuid` | |
-| `type` | `text` | |
+| `user_id` | `uuid` | Customer who requested help |
+| `type` | `text` | e.g. `towing`, `mechanic` |
 | `status` | `text` | e.g. `pending`, `accepted`, `assigned`, `cancelled` |
 | `location` | `jsonb` | e.g. `{"lat": ..., "lng": ...}` |
 | `user_note` | `text` | |
 | `created_at` | `timestamptz` | |
+| **`assigned_provider_id`** | **`uuid`** (nullable) | Set when a provider accepts; enables “Provider X is on the way”. |
+| **`responded_at`** | **`timestamptz`** (nullable) | When the provider was assigned. |
+
+**If `assigned_provider_id` / `responded_at` are missing** (provider Accept fails or customer never sees “en route”): run the SQL in [HOW_SERVICES_AND_PROVIDERS_WORK.md](HOW_SERVICES_AND_PROVIDERS_WORK.md#database-requirement-for-accept-to-work) (add columns + RLS for UPDATE).
 
 ---
 
@@ -346,6 +361,7 @@ To fully support the [Service Provider Specification](SERVICE_PROVIDER_SPECIFICA
 | **`provider_parts_recommendations`** (new table) | Store “required parts list” from a provider for a user/vehicle/service, linked to product IDs on BoostDrive.shop. |
 | **`service_history.recommended_product_ids`** (optional) | JSONB array of `products.id` recommended for this service; alternative to a separate table for simple cases. |
 | **`service_history.order_id`** (optional) | Link installation jobs to an order (parts purchased on .shop). |
+| **`provider_services`** (optional, future) | For “Active Services” on the provider dashboard: e.g. `id`, `provider_id`, `name`, `price`, `duration`, `is_active`. Not required for the current empty-state UI. |
 
 **Existing tables** that already support providers: `profiles` (role, verification_status), `sos_requests` (status flow), `service_history` (provider_id, service_name), `delivery_orders` (driver_id, eta).
 

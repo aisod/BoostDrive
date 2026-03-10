@@ -21,6 +21,43 @@ class UserProfile {
   final String serviceAreaDescription;
   /// Provider: e.g. "Mon–Fri 8am–6pm, Sat 9am–1pm" or "24/7"
   final String workingHours;
+  /// Provider (mobile): service types they offer, e.g. ['mechanic', 'towing', 'parts']. Min 1 when role is provider.
+  final List<String> providerServiceTypes;
+
+  // --- Operational & Business Details ---
+  /// Business hours 24/7 toggle (Towing/SOS). Null-safe for DB rows missing the column.
+  final bool? businessHours24_7;
+  /// Max distance (km) willing to travel.
+  final int? serviceRadiusKm;
+  final String? workshopAddress;
+  final double? workshopLat;
+  final double? workshopLng;
+  final String? socialFacebook;
+  final String? socialInstagram;
+  final String? websiteUrl;
+
+  // --- Service Specializations (filters) ---
+  final List<String> brandExpertise;
+  final List<String> serviceTags;
+  final List<String> towingCapabilities;
+
+  // --- Financial & Payout ---
+  final String? bankAccountNumber;
+  final String? bankBranch;
+  final String? bankName;
+  final double? standardLaborRate;
+  final String? taxVatNumber;
+
+  // --- Trust & Experience ---
+  final String? businessBio;
+  final List<String> galleryUrls;
+  final int? teamSize;
+
+  // --- Notification & Alert ---
+  /// Null-safe for DB rows missing the column.
+  final bool? sosAlertsEnabled;
+  /// 'app_chat' | 'phone' | 'whatsapp'
+  final String? preferredCommunication;
 
   const UserProfile({
     required this.uid,
@@ -43,12 +80,41 @@ class UserProfile {
     this.emergencyContactPhone = '',
     this.serviceAreaDescription = '',
     this.workingHours = '',
+    this.providerServiceTypes = const [],
+    this.businessHours24_7 = false,
+    this.serviceRadiusKm,
+    this.workshopAddress = '',
+    this.workshopLat,
+    this.workshopLng,
+    this.socialFacebook = '',
+    this.socialInstagram = '',
+    this.websiteUrl = '',
+    this.brandExpertise = const [],
+    this.serviceTags = const [],
+    this.towingCapabilities = const [],
+    this.bankAccountNumber = '',
+    this.bankBranch = '',
+    this.bankName = '',
+    this.standardLaborRate,
+    this.taxVatNumber = '',
+    this.businessBio = '',
+    this.galleryUrls = const [],
+    this.teamSize,
+    this.sosAlertsEnabled = true,
+    this.preferredCommunication = 'app_chat',
   });
 
   /// Coerces any value to non-null String (avoids "null is not a subtype of String" from API).
   static String _str(dynamic v, [String fallback = '']) {
     if (v == null) return fallback;
     return v is String ? v : v.toString();
+  }
+
+  static bool _parseBool(dynamic v, [bool fallback = false]) {
+    if (v == null) return fallback;
+    if (v is bool) return v;
+    if (v == true || v == 'true') return true;
+    return fallback;
   }
 
   factory UserProfile.fromMap(Map<String, dynamic> data, {String? uid}) {
@@ -77,7 +143,59 @@ class UserProfile {
       emergencyContactPhone: _str(data['emergency_contact_phone'] ?? data['emergencyContactPhone']),
       serviceAreaDescription: _str(data['service_area_description'] ?? data['serviceAreaDescription']),
       workingHours: _str(data['working_hours'] ?? data['workingHours']),
+      providerServiceTypes: _parseServiceTypes(data['provider_service_types'] ?? data['providerServiceTypes']),
+      businessHours24_7: _parseBool(data['business_hours_24_7'], false),
+      serviceRadiusKm: _parseInt(data['service_radius_km'] ?? data['serviceRadiusKm']),
+      workshopAddress: _str(data['workshop_address'] ?? data['workshopAddress']),
+      workshopLat: _parseDouble(data['workshop_lat'] ?? data['workshopLat']),
+      workshopLng: _parseDouble(data['workshop_lng'] ?? data['workshopLng']),
+      socialFacebook: _str(data['social_facebook'] ?? data['socialFacebook']),
+      socialInstagram: _str(data['social_instagram'] ?? data['socialInstagram']),
+      websiteUrl: _str(data['website_url'] ?? data['websiteUrl']),
+      brandExpertise: _parseList(data['brand_expertise'] ?? data['brandExpertise']),
+      serviceTags: _parseList(data['service_tags'] ?? data['serviceTags']),
+      towingCapabilities: _parseList(data['towing_capabilities'] ?? data['towingCapabilities']),
+      bankAccountNumber: _str(data['bank_account_number'] ?? data['bankAccountNumber']),
+      bankBranch: _str(data['bank_branch'] ?? data['bankBranch']),
+      bankName: _str(data['bank_name'] ?? data['bankName']),
+      standardLaborRate: _parseDouble(data['standard_labor_rate'] ?? data['standardLaborRate']),
+      taxVatNumber: _str(data['tax_vat_number'] ?? data['taxVatNumber']),
+      businessBio: _str(data['business_bio'] ?? data['businessBio']),
+      galleryUrls: _parseList(data['gallery_urls'] ?? data['galleryUrls']),
+      teamSize: _parseInt(data['team_size'] ?? data['teamSize']),
+      sosAlertsEnabled: _parseBool(data['sos_alerts_enabled'], true),
+      preferredCommunication: _str(data['preferred_communication'] ?? data['preferredCommunication'], 'app_chat'),
     );
+  }
+
+  static int? _parseInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    final n = int.tryParse(v.toString());
+    return n;
+  }
+
+  static double? _parseDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is double) return v;
+    if (v is int) return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+
+  static List<String> _parseList(dynamic v) {
+    if (v == null) return [];
+    if (v is List) return v.map((e) => e?.toString().trim() ?? '').where((s) => s.isNotEmpty).toList();
+    final s = v.toString().trim();
+    if (s.isEmpty) return [];
+    return s.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+  }
+
+  static List<String> _parseServiceTypes(dynamic v) {
+    if (v == null) return [];
+    if (v is List) return v.map((e) => e?.toString().trim() ?? '').where((s) => s.isNotEmpty).toList();
+    final s = v.toString().trim();
+    if (s.isEmpty) return [];
+    return s.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
   }
 
   Map<String, dynamic> toMap() {
@@ -101,11 +219,34 @@ class UserProfile {
       'emergency_contact_phone': emergencyContactPhone,
       'service_area_description': serviceAreaDescription,
       'working_hours': workingHours,
+      'provider_service_types': providerServiceTypes.isEmpty ? '' : providerServiceTypes.join(','),
+      'business_hours_24_7': businessHours24_7 ?? false,
+      'service_radius_km': serviceRadiusKm,
+      'workshop_address': workshopAddress ?? '',
+      'workshop_lat': workshopLat,
+      'workshop_lng': workshopLng,
+      'social_facebook': socialFacebook ?? '',
+      'social_instagram': socialInstagram ?? '',
+      'website_url': websiteUrl ?? '',
+      'brand_expertise': brandExpertise.isEmpty ? '' : brandExpertise.join(','),
+      'service_tags': serviceTags.isEmpty ? '' : serviceTags.join(','),
+      'towing_capabilities': towingCapabilities.isEmpty ? '' : towingCapabilities.join(','),
+      'bank_account_number': bankAccountNumber ?? '',
+      'bank_branch': bankBranch ?? '',
+      'bank_name': bankName ?? '',
+      'standard_labor_rate': standardLaborRate,
+      'tax_vat_number': taxVatNumber ?? '',
+      'business_bio': businessBio ?? '',
+      'gallery_urls': galleryUrls.isEmpty ? '' : galleryUrls.join(','),
+      'team_size': teamSize,
+      'sos_alerts_enabled': sosAlertsEnabled ?? true,
+      'preferred_communication': preferredCommunication ?? 'app_chat',
     };
   }
 
   UserProfile copyWith({
     String? fullName,
+    String? phoneNumber,
     String? email,
     String? role,
     String? profileImg,
@@ -122,11 +263,33 @@ class UserProfile {
     String? emergencyContactPhone,
     String? serviceAreaDescription,
     String? workingHours,
+    List<String>? providerServiceTypes,
+    bool? businessHours24_7,
+    int? serviceRadiusKm,
+    String? workshopAddress,
+    double? workshopLat,
+    double? workshopLng,
+    String? socialFacebook,
+    String? socialInstagram,
+    String? websiteUrl,
+    List<String>? brandExpertise,
+    List<String>? serviceTags,
+    List<String>? towingCapabilities,
+    String? bankAccountNumber,
+    String? bankBranch,
+    String? bankName,
+    double? standardLaborRate,
+    String? taxVatNumber,
+    String? businessBio,
+    List<String>? galleryUrls,
+    int? teamSize,
+    bool? sosAlertsEnabled,
+    String? preferredCommunication,
   }) {
     return UserProfile(
       uid: uid,
       fullName: fullName ?? this.fullName,
-      phoneNumber: phoneNumber,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       email: email ?? this.email,
       role: role ?? this.role,
       profileImg: profileImg ?? this.profileImg,
@@ -144,6 +307,28 @@ class UserProfile {
       emergencyContactPhone: emergencyContactPhone ?? this.emergencyContactPhone,
       serviceAreaDescription: serviceAreaDescription ?? this.serviceAreaDescription,
       workingHours: workingHours ?? this.workingHours,
+      providerServiceTypes: providerServiceTypes ?? this.providerServiceTypes,
+      businessHours24_7: businessHours24_7 ?? this.businessHours24_7,
+      serviceRadiusKm: serviceRadiusKm ?? this.serviceRadiusKm,
+      workshopAddress: workshopAddress ?? this.workshopAddress,
+      workshopLat: workshopLat ?? this.workshopLat,
+      workshopLng: workshopLng ?? this.workshopLng,
+      socialFacebook: socialFacebook ?? this.socialFacebook,
+      socialInstagram: socialInstagram ?? this.socialInstagram,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
+      brandExpertise: brandExpertise ?? this.brandExpertise,
+      serviceTags: serviceTags ?? this.serviceTags,
+      towingCapabilities: towingCapabilities ?? this.towingCapabilities,
+      bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
+      bankBranch: bankBranch ?? this.bankBranch,
+      bankName: bankName ?? this.bankName,
+      standardLaborRate: standardLaborRate ?? this.standardLaborRate,
+      taxVatNumber: taxVatNumber ?? this.taxVatNumber,
+      businessBio: businessBio ?? this.businessBio,
+      galleryUrls: galleryUrls ?? this.galleryUrls,
+      teamSize: teamSize ?? this.teamSize,
+      sosAlertsEnabled: sosAlertsEnabled ?? this.sosAlertsEnabled,
+      preferredCommunication: preferredCommunication ?? this.preferredCommunication,
     );
   }
 }

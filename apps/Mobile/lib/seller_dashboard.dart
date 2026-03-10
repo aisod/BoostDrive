@@ -632,4 +632,3 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
     );
   }
 }
-}

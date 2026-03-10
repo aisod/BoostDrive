@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -69,6 +70,8 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
             _buildLiveRequests(ref),
             const SizedBox(height: 32),
             _buildInProgressJobs(),
+            const SizedBox(height: 32),
+            _buildActiveServicesSection(),
             const SizedBox(height: 32),
             _buildJobCardTool(),
             const SizedBox(height: 120),
@@ -518,61 +521,64 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
         ),
         const SizedBox(height: 16),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: Colors.white.withOpacity(0.05)),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.navigation, color: Colors.blueAccent, size: 18),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'EN ROUTE',
-                        style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                      ),
-                    ],
-                  ),
-                  const Text('ETA: 6 MIN', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Transmission Diagnostic',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                'Marcus Wright • Ford F-150',
-                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.directions),
-                      label: const Text('NAVIGATE'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 52),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildHeaderIcon(Icons.phone),
-                  const SizedBox(width: 12),
-                  _buildHeaderIcon(Icons.chat_bubble_outline),
-                ],
-              ),
-            ],
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.assignment_outlined, size: 48, color: BoostDriveTheme.textDim),
+                const SizedBox(height: 12),
+                Text(
+                  'No ongoing jobs',
+                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveServicesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'ACTIVE SERVICES',
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.settings_outlined, size: 48, color: BoostDriveTheme.textDim),
+                const SizedBox(height: 12),
+                Text(
+                  'No active services',
+                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Services you offer will appear here when added.',
+                  style: TextStyle(color: BoostDriveTheme.textDim.withOpacity(0.8), fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -791,5 +797,4 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 ]
 ''';
-}
 }

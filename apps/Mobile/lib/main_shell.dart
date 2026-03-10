@@ -11,6 +11,8 @@ import 'providers.dart';
 
 import 'provider_hub.dart';
 import 'find_providers_page.dart';
+import 'emergency_hub_page.dart';
+import 'garage_page.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -80,10 +82,11 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget _buildCustomerBody() {
     switch (_currentIndex) {
       case 0: return const CustomerDashboard();
-      case 1: return const Center(child: Text('Garage', style: TextStyle(color: Colors.white)));
-      case 2: return const MarketplacePage();
-      case 3: return const FindProvidersPage();
-      case 4: return const ProfileSettingsPage();
+      case 1: return const EmergencyHubPage();
+      case 2: return const GaragePage();
+      case 3: return const MarketplacePage();
+      case 4: return const FindProvidersPage();
+      case 5: return const ProfileSettingsPage();
       default: return const CustomerDashboard();
     }
   }
@@ -91,6 +94,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   List<BottomNavigationBarItem> _buildCustomerNav() {
     return const [
       BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'HOME'),
+      BottomNavigationBarItem(icon: Icon(Icons.sos_outlined), activeIcon: Icon(Icons.sos), label: 'SOS'),
       BottomNavigationBarItem(icon: Icon(Icons.directions_car_outlined), activeIcon: Icon(Icons.directions_car), label: 'GARAGE'),
       BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), activeIcon: Icon(Icons.shopping_bag), label: 'SHOP'),
       BottomNavigationBarItem(icon: Icon(Icons.person_search_outlined), activeIcon: Icon(Icons.person_search), label: 'PROVIDERS'),

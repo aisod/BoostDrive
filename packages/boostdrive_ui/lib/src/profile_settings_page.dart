@@ -32,7 +32,39 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   final _serviceAreaController = TextEditingController();
   final _workingHoursController = TextEditingController();
   bool _baTLorriHEnabled = false;
-  
+  /// Provider service types (mobile): selected values e.g. ['mechanic','towing']. Min 1 when provider.
+  List<String> _selectedServiceTypes = [];
+
+  // Operational & Business Details
+  bool _businessHours24_7 = false;
+  final _serviceRadiusKmController = TextEditingController();
+  final _workshopAddressController = TextEditingController();
+  final _socialFacebookController = TextEditingController();
+  final _socialInstagramController = TextEditingController();
+  final _websiteUrlController = TextEditingController();
+
+  // Service Specializations
+  List<String> _selectedBrandExpertise = [];
+  List<String> _selectedServiceTags = [];
+  List<String> _selectedTowingCapabilities = [];
+
+  // Financial & Payout
+  final _bankAccountNumberController = TextEditingController();
+  final _bankBranchController = TextEditingController();
+  final _bankNameController = TextEditingController();
+  final _standardLaborRateController = TextEditingController();
+  final _taxVatNumberController = TextEditingController();
+
+  // Trust & Experience
+  final _businessBioController = TextEditingController();
+  List<String> _galleryUrls = [];
+  final _teamSizeController = TextEditingController();
+  bool _isUploadingDocuments = false;
+
+  // Notification & Alert
+  bool _sosAlertsEnabled = true;
+  String _preferredCommunication = 'app_chat';
+
   // Optimistic UI state
   Uint8List? _optimisticImage;
   bool _isOptimisticDelete = false;
@@ -49,6 +81,18 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     _warehouseAddressController.dispose();
     _serviceAreaController.dispose();
     _workingHoursController.dispose();
+    _serviceRadiusKmController.dispose();
+    _workshopAddressController.dispose();
+    _socialFacebookController.dispose();
+    _socialInstagramController.dispose();
+    _websiteUrlController.dispose();
+    _bankAccountNumberController.dispose();
+    _bankBranchController.dispose();
+    _bankNameController.dispose();
+    _standardLaborRateController.dispose();
+    _taxVatNumberController.dispose();
+    _businessBioController.dispose();
+    _teamSizeController.dispose();
     super.dispose();
   }
 
@@ -182,12 +226,53 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   Future<void> _handleSaveProfile() async {
     final user = ref.read(currentUserProvider);
-    if (user != null) {
-      final profile = await ref.read(userProfileProvider(user.id).future);
-      final isProvider = profile != null && _isProviderRole(profile.role);
-      final fullName = isProvider && _shopDisplayNameController.text.isNotEmpty
-          ? _shopDisplayNameController.text
-          : _nameController.text;
+    if (user == null) return;
+    final profile = await ref.read(userProfileProvider(user.id).future);
+    final isProvider = profile != null && _isProviderRole(profile.role);
+    if (isProvider && !kIsWeb && _selectedServiceTypes.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select at least 1 service you provide')),
+        );
+      }
+      return;
+    }
+    final fullName = isProvider && _shopDisplayNameController.text.isNotEmpty
+        ? _shopDisplayNameController.text
+        : _nameController.text;
+
+    if (isProvider && profile != null) {
+      final workingHours = _businessHours24_7 ? '24/7' : _workingHoursController.text.trim();
+      final updated = profile.copyWith(
+        fullName: fullName,
+        phoneNumber: _phoneController.text,
+        emergencyContactName: _emergencyNameController.text,
+        emergencyContactPhone: _emergencyPhoneController.text,
+        serviceAreaDescription: _serviceAreaController.text.trim(),
+        workingHours: workingHours,
+        providerServiceTypes: _selectedServiceTypes,
+        businessHours24_7: _businessHours24_7,
+        serviceRadiusKm: int.tryParse(_serviceRadiusKmController.text.trim()),
+        workshopAddress: _workshopAddressController.text.trim(),
+        socialFacebook: _socialFacebookController.text.trim(),
+        socialInstagram: _socialInstagramController.text.trim(),
+        websiteUrl: _websiteUrlController.text.trim(),
+        brandExpertise: _selectedBrandExpertise,
+        serviceTags: _selectedServiceTags,
+        towingCapabilities: _selectedTowingCapabilities,
+        bankAccountNumber: _bankAccountNumberController.text.trim(),
+        bankBranch: _bankBranchController.text.trim(),
+        bankName: _bankNameController.text.trim(),
+        standardLaborRate: double.tryParse(_standardLaborRateController.text.trim()),
+        taxVatNumber: _taxVatNumberController.text.trim(),
+        businessBio: _businessBioController.text.trim(),
+        galleryUrls: _galleryUrls,
+        teamSize: int.tryParse(_teamSizeController.text.trim()),
+        sosAlertsEnabled: _sosAlertsEnabled,
+        preferredCommunication: _preferredCommunication,
+      );
+      await ref.read(userServiceProvider).updateProfile(updated);
+    } else {
       await ref.read(authServiceProvider).updateProfile(
         userId: user.id,
         fullName: fullName,
@@ -196,19 +281,27 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         emergencyContactPhone: _emergencyPhoneController.text,
         serviceAreaDescription: isProvider ? _serviceAreaController.text.trim() : null,
         workingHours: isProvider ? _workingHoursController.text.trim() : null,
+        providerServiceTypes: isProvider && !kIsWeb ? _selectedServiceTypes : null,
       );
-      setState(() => _isEditing = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
-        );
-      }
+    }
+    ref.invalidate(userProfileProvider(user.id));
+    setState(() => _isEditing = false);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully')),
+      );
     }
   }
 
   bool _isProviderRole(String role) {
     final r = role.toLowerCase();
     return r.contains('service') || r.contains('seller') || r == 'mechanic' || r == 'towing' || r == 'rental';
+  }
+
+  /// True when admin has approved this provider (verification_status = approved or verified).
+  bool _isProviderApproved(String verificationStatus) {
+    final s = verificationStatus.trim().toLowerCase();
+    return s == 'approved' || s == 'verified';
   }
 
   Future<void> _showProfilePhotoOptions() async {
@@ -605,30 +698,32 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                         _shopDisplayNameController.text.isEmpty ? profile.fullName : _shopDisplayNameController.text,
                         style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939)),
                       ),
-                      if (profile.verificationStatus == 'verified') ...[
+                      if (_isProviderApproved(profile.verificationStatus)) ...[
                         const SizedBox(width: 8),
                         Icon(Icons.verified, color: BoostDriveTheme.primaryColor, size: 24),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
+                  if (_isProviderApproved(profile.verificationStatus)) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Text('TOP RATED SELLER', style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w800, color: BoostDriveTheme.primaryColor, letterSpacing: 0.5)),
                         ),
-                        child: Text('TOP RATED SELLER', style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w800, color: BoostDriveTheme.primaryColor, letterSpacing: 0.5)),
-                      ),
-                      Text('Verified Salvage Yard', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
-                    ],
-                  ),
+                        Text('Verified Salvage Yard', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -638,17 +733,27 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 24),
-                  _buildProviderMetrics(),
-                  const SizedBox(height: 32),
                   _buildProviderServiceAreaAndHours(profile),
+                  if (!kIsWeb) ...[
+                    const SizedBox(height: 32),
+                    _buildProviderServiceTypes(profile),
+                  ],
+                  const SizedBox(height: 32),
+                  _buildOperationalBusinessDetails(profile),
+                  const SizedBox(height: 32),
+                  _buildServiceSpecializations(profile),
+                  const SizedBox(height: 32),
+                  _buildFinancialPayout(),
+                  const SizedBox(height: 32),
+                  _buildTrustExperience(),
+                  const SizedBox(height: 32),
+                  _buildNotificationAlertSettings(),
+                  if (!kIsWeb) ...[
+                    const SizedBox(height: 32),
+                    _buildDocumentsVault(profile),
+                  ],
                   const SizedBox(height: 32),
                   _buildProviderShopBranding(profile),
-                  const SizedBox(height: 32),
-                  _buildProviderShippingLogistics(),
-                  const SizedBox(height: 32),
-                  _buildProviderPaymentsPayouts(),
-                  const SizedBox(height: 32),
-                  _buildProviderBusinessRegistration(profile),
                   const SizedBox(height: 32),
                   _buildPersonalInformation(),
                   const SizedBox(height: 32),
@@ -694,15 +799,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ),
           ),
         ),
-        Positioned(
-          top: 16,
-          right: 24,
-          child: TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
-            label: Text('Edit Banner', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-          ),
-        ),
+        // Banner edit button removed (no explicit banner edit control for now).
         Positioned(
           left: 0,
           right: 0,
@@ -741,41 +838,88 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildProviderMetrics() {
-    return Row(
-      children: [
-        _providerMetricCard('RATING', '—', Icons.star, Colors.amber),
-        const SizedBox(width: 16),
-        _providerMetricCard('SHIP SPEED', '—', Icons.local_shipping_outlined, BoostDriveTheme.primaryColor),
-        const SizedBox(width: 16),
-        _providerMetricCard('RESPONSE', '—', Icons.schedule, BoostDriveTheme.primaryColor),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cards = [
+          _providerMetricCard('RATING', '—', Icons.star, Colors.amber),
+          _providerMetricCard('SHIP SPEED', '—', Icons.local_shipping_outlined, BoostDriveTheme.primaryColor),
+          _providerMetricCard('RESPONSE', '—', Icons.schedule, BoostDriveTheme.primaryColor),
+        ];
+
+        // On very narrow screens (mobile), allow cards to wrap to avoid overflow.
+        if (constraints.maxWidth < 380) {
+          final cardWidth = (constraints.maxWidth - 12) / 2; // two per row with spacing
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: cards
+                .map(
+                  (card) => SizedBox(
+                    width: cardWidth,
+                    child: card,
+                  ),
+                )
+                .toList(),
+          );
+        }
+
+        // Default: three cards in a row, each expanded equally.
+        return Row(
+          children: [
+            Expanded(child: cards[0]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[1]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[2]),
+          ],
+        );
+      },
     );
   }
 
   Widget _providerMetricCard(String label, String value, IconData icon, Color accent) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE4E7EC)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: accent, size: 28),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF667085), letterSpacing: 0.5)),
-                const SizedBox(height: 4),
-                Text(value, style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
-              ],
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E7EC)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: accent, size: 28),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.manrope(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF667085),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: GoogleFonts.manrope(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1D2939),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -813,6 +957,497 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
           decoration: _providerInputDecoration(hint: 'e.g. Mon–Fri 8am–6pm, Sat 9am–1pm or 24/7'),
         ),
+      ],
+    );
+  }
+
+  static const List<MapEntry<String, String>> _providerServiceTypeOptions = [
+    MapEntry('mechanic', 'Mechanics'),
+    MapEntry('towing', 'Towing'),
+    MapEntry('parts', 'Parts'),
+    MapEntry('rental', 'Rental'),
+    MapEntry('service_station', 'Service station'),
+  ];
+
+  /// Mobile only: multi-select for which services this provider offers. Min 1 required.
+  Widget _buildProviderServiceTypes(UserProfile profile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.build_circle_outlined, color: BoostDriveTheme.primaryColor, size: 22),
+            const SizedBox(width: 10),
+            Text('Services you provide', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Select at least 1 service. You can select multiple.',
+          style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085)),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: _providerServiceTypeOptions.map((e) {
+            final value = e.key;
+            final label = e.value;
+            final selected = _selectedServiceTypes.contains(value);
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (selected) {
+                    _selectedServiceTypes = List<String>.from(_selectedServiceTypes)..remove(value);
+                  } else {
+                    _selectedServiceTypes = List<String>.from(_selectedServiceTypes)..add(value);
+                  }
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: selected ? BoostDriveTheme.primaryColor.withOpacity(0.15) : const Color(0xFFF2F4F7),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC),
+                    width: selected ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                      size: 20,
+                      color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF98A2B3),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: GoogleFonts.manrope(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF475467),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: BoostDriveTheme.primaryColor, size: 22),
+        const SizedBox(width: 10),
+        Text(title, style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+      ],
+    );
+  }
+
+  void _toggleMultiSelect(List<String> list, String value) {
+    setState(() {
+      if (list.contains(value)) {
+        list.remove(value);
+      } else {
+        list.add(value);
+      }
+    });
+  }
+
+  Widget _buildMultiSelectChips(List<MapEntry<String, String>> options, List<String> selected, void Function(String) onToggle) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: options.map((e) {
+        final value = e.key;
+        final label = e.value;
+        final isSelected = selected.contains(value);
+        return GestureDetector(
+          onTap: () => onToggle(value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.15) : const Color(0xFFF2F4F7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC),
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, size: 20, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF98A2B3)),
+                const SizedBox(width: 8),
+                Text(label, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF475467))),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildOperationalBusinessDetails(UserProfile profile) {
+    final isTowingOrSos = profile.role.toLowerCase().contains('towing') || profile.role.toLowerCase().contains('service');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Operational & Business Details', Icons.business_center_outlined),
+        const SizedBox(height: 12),
+        Text('Powers "Open Now" filter and SOS matching.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        const SizedBox(height: 16),
+        if (isTowingOrSos) ...[
+          Row(
+            children: [
+              Expanded(child: Text('Open 24/7', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
+              Switch(value: _businessHours24_7, onChanged: (v) => setState(() => _businessHours24_7 = v), activeTrackColor: BoostDriveTheme.primaryColor),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('When on, your profile shows "24/7" for Open Now. When off, use Working hours above.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF98A2B3))),
+          const SizedBox(height: 16),
+        ],
+        _providerLabel('Service radius (km)'),
+        const SizedBox(height: 8),
+        TextField(controller: _serviceRadiusKmController, keyboardType: TextInputType.number, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Max distance you travel for jobs')),
+        const SizedBox(height: 16),
+        _providerLabel('Workshop address'),
+        const SizedBox(height: 8),
+        TextField(controller: _workshopAddressController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
+        const SizedBox(height: 16),
+        _providerLabel('Social & website'),
+        const SizedBox(height: 8),
+        TextField(controller: _socialFacebookController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Facebook URL')),
+        const SizedBox(height: 8),
+        TextField(controller: _socialInstagramController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Instagram URL')),
+        const SizedBox(height: 8),
+        TextField(controller: _websiteUrlController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Website URL')),
+      ],
+    );
+  }
+
+  static const List<MapEntry<String, String>> _brandOptions = [
+    MapEntry('toyota', 'Toyota'), MapEntry('bmw', 'BMW'), MapEntry('land_rover', 'Land Rover'), MapEntry('ford', 'Ford'),
+    MapEntry('mercedes', 'Mercedes'), MapEntry('nissan', 'Nissan'), MapEntry('volkswagen', 'Volkswagen'), MapEntry('other', 'Other'),
+  ];
+  static const List<MapEntry<String, String>> _serviceTagOptions = [
+    MapEntry('diagnostics', 'Diagnostics'), MapEntry('hybrid_electric', 'Hybrid/Electric'), MapEntry('panel_beating', 'Panel Beating'),
+    MapEntry('ac_repair', 'AC Repair'), MapEntry('gearbox', 'Gearbox Specialist'), MapEntry('brakes', 'Brakes'), MapEntry('engine', 'Engine'),
+  ];
+  static const List<MapEntry<String, String>> _towingOptions = [
+    MapEntry('flatbed', 'Flatbed'), MapEntry('wheel_lift', 'Wheel Lift'), MapEntry('heavy_duty', 'Heavy Duty (trucks)'),
+  ];
+
+  Widget _buildServiceSpecializations(UserProfile profile) {
+    final isTowing = profile.role.toLowerCase().contains('towing');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Service Specializations', Icons.build_circle_outlined),
+        const SizedBox(height: 12),
+        Text('Used for search filters and matching.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        const SizedBox(height: 16),
+        _providerLabel('Brand expertise'),
+        const SizedBox(height: 8),
+        _buildMultiSelectChips(_brandOptions, _selectedBrandExpertise, (v) => _toggleMultiSelect(_selectedBrandExpertise, v)),
+        const SizedBox(height: 16),
+        _providerLabel('Service tags'),
+        const SizedBox(height: 8),
+        _buildMultiSelectChips(_serviceTagOptions, _selectedServiceTags, (v) => _toggleMultiSelect(_selectedServiceTags, v)),
+        if (isTowing) ...[
+          const SizedBox(height: 16),
+          _providerLabel('Towing capabilities'),
+          const SizedBox(height: 8),
+          _buildMultiSelectChips(_towingOptions, _selectedTowingCapabilities, (v) => _toggleMultiSelect(_selectedTowingCapabilities, v)),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildFinancialPayout() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Financial & Payout', Icons.account_balance_wallet_outlined),
+        const SizedBox(height: 12),
+        Text('For automated payouts and customer price estimates.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        const SizedBox(height: 16),
+        _providerLabel('Bank name'),
+        const SizedBox(height: 8),
+        TextField(controller: _bankNameController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
+        const SizedBox(height: 12),
+        _providerLabel('Branch'),
+        const SizedBox(height: 8),
+        TextField(controller: _bankBranchController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Branch name or code')),
+        const SizedBox(height: 12),
+        _providerLabel('Account number'),
+        const SizedBox(height: 8),
+        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Bank account number')),
+        const SizedBox(height: 12),
+        _providerLabel(r'Estimated hourly rate (N$)'),
+        const SizedBox(height: 8),
+        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
+        const SizedBox(height: 12),
+        _providerLabel('Tax / VAT number'),
+        const SizedBox(height: 8),
+        TextField(controller: _taxVatNumberController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'For legal invoices')),
+      ],
+    );
+  }
+
+  Widget _buildTrustExperience() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Trust & Experience', Icons.verified_user_outlined),
+        const SizedBox(height: 12),
+        Text('Business bio and portfolio build customer trust.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        const SizedBox(height: 16),
+        _providerLabel('Business bio (About us)'),
+        const SizedBox(height: 8),
+        TextField(controller: _businessBioController, maxLines: 4, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Your history and passion')),
+        const SizedBox(height: 16),
+        _providerLabel('Team size (qualified technicians)'),
+        const SizedBox(height: 8),
+        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Number on-site')),
+        const SizedBox(height: 16),
+        Text('Gallery (up to 5 photos)', style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
+        const SizedBox(height: 8),
+        Text('Workshop, tow truck, or completed repairs. Upload coming soon.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF98A2B3))),
+      ],
+    );
+  }
+
+  Widget _buildNotificationAlertSettings() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Notification & Alert Settings', Icons.notifications_active_outlined),
+        const SizedBox(height: 12),
+        Text('Control how you receive emergency and customer requests.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(child: Text('Emergency (SOS) notifications', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
+            Switch(value: _sosAlertsEnabled, onChanged: (v) => setState(() => _sosAlertsEnabled = v), activeTrackColor: BoostDriveTheme.primaryColor),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _providerLabel('Preferred communication'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildCommChip('app_chat', 'App Chat'),
+            _buildCommChip('phone', 'Phone'),
+            _buildCommChip('whatsapp', 'WhatsApp'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommChip(String value, String label) {
+    final selected = _preferredCommunication == value;
+    return GestureDetector(
+      onTap: () => setState(() => _preferredCommunication = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? BoostDriveTheme.primaryColor.withOpacity(0.15) : const Color(0xFFF2F4F7),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC), width: selected ? 2 : 1),
+        ),
+        child: Text(label, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF475467))),
+      ),
+    );
+  }
+
+  Widget _buildDocumentsVault(UserProfile profile) {
+    final hasDocs = _galleryUrls.isNotEmpty;
+    final isApproved = _isProviderApproved(profile.verificationStatus);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Documents Vault', Icons.folder_outlined),
+        const SizedBox(height: 12),
+        Text('Upload your official business documents for verification (e.g. BIPA, tax certificate).', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE4E7EC))),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _documentStatusRow(
+                'Tax Certificate',
+                isApproved
+                    ? 'Approved'
+                    : hasDocs
+                        ? 'Submitted – pending review'
+                        : 'Pending upload',
+              ),
+              const SizedBox(height: 12),
+              _documentStatusRow(
+                'Trade Certificate',
+                isApproved
+                    ? 'On file'
+                    : hasDocs
+                        ? 'Submitted – pending review'
+                        : '—',
+              ),
+              const SizedBox(height: 12),
+              _documentStatusRow(
+                'BIPA / NTA',
+                isApproved
+                    ? 'On file'
+                    : hasDocs
+                        ? 'Submitted – pending review'
+                        : '—',
+              ),
+              const SizedBox(height: 16),
+              if (hasDocs) ...[
+                Text('Uploaded documents', style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _galleryUrls.map((url) {
+                    final fileName = url.split('/').last;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE4E7EC)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.description_outlined, size: 16, color: Color(0xFF667085)),
+                          const SizedBox(width: 6),
+                          Text(
+                            fileName,
+                            style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF344054)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ElevatedButton.icon(
+                  onPressed: _isUploadingDocuments ? null : () => _pickAndUploadProviderDocument(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BoostDriveTheme.primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: _isUploadingDocuments
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.upload_file, size: 18, color: Colors.white),
+                  label: Text(
+                    _isUploadingDocuments ? 'Uploading…' : 'Upload documents',
+                    style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickAndUploadProviderDocument() async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    final profile = await ref.read(userProfileProvider(user.id).future);
+    if (profile == null) return;
+
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (file == null) return;
+
+    try {
+      setState(() {
+        _isUploadingDocuments = true;
+      });
+
+      final bytes = await file.readAsBytes();
+      final publicUrl = await ref.read(authServiceProvider).uploadProviderDocument(bytes, file.name);
+
+      final updatedUrls = List<String>.from(_galleryUrls)..add(publicUrl);
+
+      // Update local state so the UI reflects the new document immediately.
+      setState(() {
+        _galleryUrls = updatedUrls;
+      });
+
+      // Persist to Supabase profile.
+      final updatedProfile = profile.copyWith(galleryUrls: updatedUrls);
+      await ref.read(userServiceProvider).updateProfile(updatedProfile);
+      ref.invalidate(userProfileProvider(user.id));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Document uploaded. Our team will review it for verification.',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: BoostDriveTheme.primaryColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error uploading document: $e',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingDocuments = false;
+        });
+      }
+    }
+  }
+
+  Widget _documentStatusRow(String name, String status) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(name, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
+        Text(status, style: GoogleFonts.manrope(fontSize: 13, color: const Color(0xFF667085))),
       ],
     );
   }
@@ -1117,6 +1752,25 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           _emergencyPhoneController.text = profile.emergencyContactPhone;
           _serviceAreaController.text = profile.serviceAreaDescription;
           _workingHoursController.text = profile.workingHours;
+          _businessHours24_7 = profile.businessHours24_7 ?? false;
+          _serviceRadiusKmController.text = profile.serviceRadiusKm != null ? profile.serviceRadiusKm.toString() : '';
+          _workshopAddressController.text = profile.workshopAddress ?? '';
+          _socialFacebookController.text = profile.socialFacebook ?? '';
+          _socialInstagramController.text = profile.socialInstagram ?? '';
+          _websiteUrlController.text = profile.websiteUrl ?? '';
+          _selectedBrandExpertise = List.from(profile.brandExpertise);
+          _selectedServiceTags = List.from(profile.serviceTags);
+          _selectedTowingCapabilities = List.from(profile.towingCapabilities);
+          _bankAccountNumberController.text = profile.bankAccountNumber ?? '';
+          _bankBranchController.text = profile.bankBranch ?? '';
+          _bankNameController.text = profile.bankName ?? '';
+          _standardLaborRateController.text = profile.standardLaborRate != null ? profile.standardLaborRate.toString() : '';
+          _taxVatNumberController.text = profile.taxVatNumber ?? '';
+          _businessBioController.text = profile.businessBio ?? '';
+          _galleryUrls = List.from(profile.galleryUrls);
+          _teamSizeController.text = profile.teamSize != null ? profile.teamSize.toString() : '';
+          _sosAlertsEnabled = profile.sosAlertsEnabled ?? true;
+          _preferredCommunication = profile.preferredCommunication ?? 'app_chat';
         }
 
         final isProvider = profile.role.toLowerCase().contains('service') || profile.role.toLowerCase().contains('seller') || profile.role == 'mechanic' || profile.role == 'towing' || profile.role == 'rental';
@@ -1129,6 +1783,16 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 _shopDisplayNameController.text = profile.fullName;
               }
             });
+          }
+          if (!kIsWeb) {
+            final fromProfile = profile.providerServiceTypes;
+            if (fromProfile.isNotEmpty && _selectedServiceTypes.isEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && _selectedServiceTypes.isEmpty) {
+                  setState(() => _selectedServiceTypes = List<String>.from(fromProfile));
+                }
+              });
+            }
           }
           return _buildProviderProfileScaffold(profile, isWide);
         }
@@ -1405,39 +2069,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   height: 1.6,
                 ),
               ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'ACTIVE SERVICES',
-                    style: GoogleFonts.manrope(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF98A2B3),
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  Text(
-                    'MANAGE',
-                    style: GoogleFonts.manrope(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: BoostDriveTheme.primaryColor,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (profile.role.toLowerCase().contains('service')) ...[
-                _buildServiceListItem('General Logistics', 'N\$ 45.00', '2-4 hours'),
-                _buildServiceListItem('Express Delivery', 'N\$ 85.00', '30-45 min'),
-                _buildServiceListItem('Scheduled Fleet', 'N\$ 120.00', '60-90 min', isLast: true),
-              ] else ...[
-                _buildServiceListItem('Standard Shipping', 'N\$ 150.00', '1-2 days'),
-                _buildServiceListItem('Local Pickup', 'FREE', 'Instant', isLast: true),
-              ],
             ],
           ),
         ),
@@ -1473,49 +2104,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildServiceListItem(String name, String price, String duration, {bool isLast = false}) {
-    return Container(
-      margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: BoostDriveTheme.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.settings_outlined, color: BoostDriveTheme.primaryColor, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939)),
-                ),
-                Text(
-                  duration,
-                  style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085)),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            price,
-            style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w800, color: BoostDriveTheme.primaryColor),
-          ),
-        ],
       ),
     );
   }

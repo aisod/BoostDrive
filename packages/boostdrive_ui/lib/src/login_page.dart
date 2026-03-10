@@ -59,6 +59,10 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
       }
       return 'Request was invalid. Please try again or sign in again.';
     }
+    // 404 from Supabase auth (e.g. "Received an empty response with status code 404")
+    if (message.contains('status code 404') || (message.contains(' 404') && message.contains('empty response'))) {
+      return 'We could not reach the BoostDrive server. Please try again in a few minutes.';
+    }
     if (message.contains('invalid login credentials')) {
       return 'Invalid email or password. Please try again.';
     }

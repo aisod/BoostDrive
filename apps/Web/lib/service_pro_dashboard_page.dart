@@ -38,8 +38,13 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
+  static String _navLabel(String section) {
+    if (section == 'REQUESTS') return 'SERVICES REQUESTED';
+    return section;
+  }
+
   Widget _buildTopNavBar() {
-    // SOS (REQUESTS) only on mobile; hide on web
+    // Services requested (REQUESTS/SOS) only on mobile; hidden on web
     final sections = kIsWeb
         ? ['HOME', 'ROUTES', 'FLEET', 'FINANCE']
         : ['HOME', 'REQUESTS', 'ROUTES', 'FLEET', 'FINANCE'];
@@ -80,7 +85,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                     Icon(icon, color: isActive ? BoostDriveTheme.primaryColor : Colors.white24, size: 20),
                     const SizedBox(width: 12),
                     Text(
-                      section,
+                      _navLabel(section),
                       style: TextStyle(
                         color: isActive ? Colors.white : Colors.white24,
                         fontWeight: FontWeight.w900,
@@ -600,7 +605,41 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
         _buildSectionHeader('Ongoing Jobs', Icons.assignment_ind),
         const SizedBox(height: 24),
         _buildOngoingJobsEmpty(),
+        const SizedBox(height: 40),
+        _buildSectionHeader('Active Services', Icons.settings_outlined),
+        const SizedBox(height: 24),
+        _buildActiveServicesEmpty(),
       ],
+    );
+  }
+
+  Widget _buildActiveServicesEmpty() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.settings_outlined, size: 48, color: BoostDriveTheme.textDim),
+            const SizedBox(height: 16),
+            Text(
+              'No active services',
+              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Services you offer will appear here when added.',
+              style: TextStyle(color: BoostDriveTheme.textDim.withOpacity(0.8), fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
