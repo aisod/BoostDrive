@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
-import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SuperAdminDashboardPage extends ConsumerWidget {

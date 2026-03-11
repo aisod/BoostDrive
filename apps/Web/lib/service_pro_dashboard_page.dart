@@ -484,6 +484,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
+  // ignore: unused_element
   Widget _buildStatusToggle(WidgetRef ref, String uid) {
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
@@ -876,6 +877,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
+  // ignore: unused_element
   Widget _buildOngoingJobCard(String title, String car, String status, double progress) {
     return Container(
       padding: const EdgeInsets.all(32),

@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:boostdrive_core/boostdrive_core.dart';
 
 class MessageService {
   final _supabase = Supabase.instance.client;
@@ -136,7 +135,7 @@ class MessageService {
         .select()
         .eq('conversation_id', conversationId)
         .order('created_at', ascending: true);
-    final list = response is List ? response as List : [response];
+    final list = response as List;
     return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
@@ -241,7 +240,7 @@ class MessageService {
           .eq('id', conversationId)
           .select();
 
-      final list = conversationDeleted is List ? conversationDeleted as List : [conversationDeleted];
+      final list = conversationDeleted as List;
       if (list.isEmpty) {
         throw Exception(
           'Conversation could not be deleted. You may not have permission, or it may already be deleted.',
@@ -297,7 +296,7 @@ class MessageService {
       final Set<String> ids = {};
       void addIds(dynamic response) {
         if (response == null) return;
-        final list = response is List ? response as List : [response];
+        final list = response as List;
         for (final c in list) {
           if (c is Map<String, dynamic>) {
             final id = c['id'];

@@ -88,9 +88,8 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
             context,
             MaterialPageRoute(builder: (context) => const AddListingPage()),
           );
-          // Refresh provider? (Assuming StreamProvider or FutureProvider handles it, 
-          // or we force refresh if it's a FutureProvider)
-           ref.refresh(featuredProductsProvider);
+          // Refresh provider after adding listing
+          final _ = ref.refresh(featuredProductsProvider);
         },
         backgroundColor: BoostDriveTheme.primaryColor,
         icon: const Icon(Icons.add, color: Colors.white),
@@ -172,7 +171,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
                           MaterialPageRoute(builder: (context) => ProductDetailPage(product: filteredProducts[index]))
                         );
                         if (result == true) {
-                          ref.refresh(featuredProductsProvider);
+                          final _ = ref.refresh(featuredProductsProvider);
                         }
                       },
                     );

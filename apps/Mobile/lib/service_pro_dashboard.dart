@@ -5,8 +5,6 @@ import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
-import 'providers.dart';
 
 class ServiceProDashboard extends ConsumerStatefulWidget {
   const ServiceProDashboard({super.key});
@@ -392,7 +390,8 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
           builder: (context, snapshot) {
             final requests = snapshot.data ?? [];
-            if (requests.isEmpty) return Container(
+            if (requests.isEmpty) {
+              return Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.02),
@@ -403,6 +402,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 child: Text('Scanning for nearby requests...', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, fontStyle: FontStyle.italic)),
               ),
             );
+            }
             final userId = ref.read(currentUserProvider)?.id;
             return Column(
               children: requests.map((req) => Padding(

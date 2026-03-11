@@ -4,8 +4,6 @@ import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
-import 'providers.dart';
-import 'chat_page.dart';
 import 'emergency_hub_page.dart';
 
 class CustomerDashboard extends ConsumerStatefulWidget {

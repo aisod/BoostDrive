@@ -834,6 +834,7 @@ class _StatItem extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _JobListing extends StatelessWidget {
   final String title;
   final String location;

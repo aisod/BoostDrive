@@ -44,7 +44,7 @@ class ProductService {
           .order('created_at', ascending: false)
           .limit(10);
 
-      final list = response is List ? response : (response != null ? [response] : <dynamic>[]);
+      final list = response as List;
       return list.map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map))).toList();
     } catch (e) {
       print('Error fetching featured products: $e');
@@ -62,7 +62,7 @@ class ProductService {
           .gte('created_at', yesterday.toIso8601String())
           .order('created_at', ascending: false);
 
-      final list = response is List ? response : (response != null ? [response] : <dynamic>[]);
+      final list = response as List;
       return list.map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map))).toList();
     } catch (e) {
       print('Error fetching new arrivals: $e');
@@ -117,7 +117,7 @@ class ProductService {
       if (condition != null) supabaseQuery = supabaseQuery.eq('condition', condition);
 
       final response = await supabaseQuery.order('created_at', ascending: false);
-      final list = response is List ? response : (response != null ? [response] : <dynamic>[]);
+      final list = response as List;
       return list.map((data) => Product.fromMap(Map<String, dynamic>.from(data as Map))).toList();
     } catch (e) {
       print('DEBUG: Error searching products: $e');
@@ -147,7 +147,7 @@ class ProductService {
       }
 
       final response = await supabaseQuery.order('created_at', ascending: false);
-      final list = response is List ? response : (response != null ? [response] : <dynamic>[]);
+      final list = response as List;
       return list.map((data) => Product.fromMap(Map<String, dynamic>.from(data as Map))).toList();
     } catch (e) {
       print('DEBUG: Error searching parts: $e');

@@ -4,7 +4,6 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
-import 'providers.dart';
 
 class SuperAdminDashboard extends ConsumerStatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -82,35 +81,6 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
       },
       loading: () => const CircularProgressIndicator(),
       error: (_, _) => const Text('Error loading header'),
-    );
-  }
-
-  Widget _buildHeaderIcon(IconData icon, {bool hasNotification = false}) {
-    return Stack(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
-        if (hasNotification)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: Container(
-              height: 10,
-              width: 10,
-              decoration: BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-                border: Border.all(color: BoostDriveTheme.backgroundDark, width: 2),
-              ),
-            ),
-          ),
-      ],
     );
   }
 

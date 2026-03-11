@@ -11,7 +11,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:record/record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:intl/intl.dart';
 
@@ -90,7 +89,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         _messagePollTimer?.cancel();
         return;
       }
-      ref.refresh(conversationMessagesProvider(conversationId));
+      final _ = ref.refresh(conversationMessagesProvider(conversationId));
     });
   }
 
@@ -134,7 +133,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         final user = Supabase.instance.client.auth.currentUser;
         if (user != null && mounted) {
           ref.invalidate(unreadConversationsProvider(user.id));
-          ref.refresh(unreadCountByConversationProvider(user.id));
+          final _ = ref.refresh(unreadCountByConversationProvider(user.id));
         }
         if (mounted) _startMessagePolling();
       });
@@ -409,7 +408,6 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     });
     _voiceRecordingTimer?.cancel();
     _voiceRecordingTimer = null;
-    final durationText = _voiceRecordingDurationText;
     _voiceRecordingStartTime = null;
     try {
       await _audioRecorder.stop();
@@ -528,7 +526,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         _pendingAttachments?.clear();
         _messageController.clear();
       });
-      ref.refresh(conversationMessagesProvider(conversationId));
+      final _ = ref.refresh(conversationMessagesProvider(conversationId));
       if (_scrollController.hasClients) {
         _scrollController.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
       }
@@ -555,7 +553,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         content: content,
       );
       if (!mounted) return;
-      ref.refresh(conversationMessagesProvider(conversationId));
+      final _ = ref.refresh(conversationMessagesProvider(conversationId));
       // Scroll to show the latest message (only if the list is mounted)
       if (_scrollController.hasClients) {
         _scrollController.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
@@ -1160,8 +1158,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         if (!mounted) return;
 
         // Force conversation list and related data to refresh immediately
+        // ignore: unused_result
         ref.refresh(userConversationsProvider(user.id));
         ref.invalidate(unreadConversationsProvider(user.id));
+        // ignore: unused_result
         ref.refresh(conversationMessagesProvider(conversationId));
 
         // Clear selection if we deleted the currently selected conversation
@@ -1370,7 +1370,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 await ref.read(messageServiceProvider).markConversationAsRead(conv['id']);
                 if (mounted) {
                   ref.invalidate(unreadConversationsProvider(userId));
-                  ref.refresh(unreadCountByConversationProvider(userId));
+                  final _ = ref.refresh(unreadCountByConversationProvider(userId));
                 }
               },
             );
@@ -1800,10 +1800,12 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
     });
     _completeSub = _player.onPlayerComplete.listen((_) {
       widget.currentPlayingUrlNotifier.value = null;
-      if (mounted) setState(() {
-        _playing = false;
-        _position = Duration.zero;
-      });
+      if (mounted) {
+        setState(() {
+          _playing = false;
+          _position = Duration.zero;
+        });
+      }
     });
 
     widget.currentPlayingUrlNotifier.addListener(_onCurrentPlayingUrlChanged);
@@ -1816,7 +1818,9 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
   @override
   void dispose() {
     widget.currentPlayingUrlNotifier.removeListener(_onCurrentPlayingUrlChanged);
-    if (_playing) widget.currentPlayingUrlNotifier.value = null;
+    if (_playing) {
+      widget.currentPlayingUrlNotifier.value = null;
+    }
     _durationSub?.cancel();
     _positionSub?.cancel();
     _completeSub?.cancel();

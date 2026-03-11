@@ -158,11 +158,11 @@ class UserService {
       );
     }
     final response = await query;
-    final rawList = response is List ? response as List : [response];
+    final rawList = response as List;
     final result = <UserProfile>[];
     for (final item in rawList) {
       try {
-        final map = item is Map ? Map<String, dynamic>.from(item as Map) : null;
+        final map = item is Map ? Map<String, dynamic>.from(item) : null;
         if (map != null) {
           result.add(UserProfile.fromMap(map));
         }

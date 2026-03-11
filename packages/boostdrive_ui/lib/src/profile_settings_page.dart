@@ -241,7 +241,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         ? _shopDisplayNameController.text
         : _nameController.text;
 
-    if (isProvider && profile != null) {
+    if (isProvider) {
       final workingHours = _businessHours24_7 ? '24/7' : _workingHoursController.text.trim();
       final updated = profile.copyWith(
         fullName: fullName,
@@ -837,6 +837,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildProviderMetrics() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1501,6 +1502,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildProviderShippingLogistics() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1560,6 +1562,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildProviderPaymentsPayouts() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1638,6 +1641,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildProviderBusinessRegistration(UserProfile profile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

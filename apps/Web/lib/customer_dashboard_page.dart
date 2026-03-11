@@ -7,7 +7,6 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:image_picker/image_picker.dart' as image_picker;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CustomerDashboardPage extends ConsumerWidget {
   const CustomerDashboardPage({super.key});
@@ -833,6 +832,7 @@ class CustomerDashboardPage extends ConsumerWidget {
     );
   }
 
+  // ignore: unused_element
   Widget _buildDetailSection(String title, Map<String, String> details) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
@@ -15,6 +14,7 @@ class EmergencyHubPage extends ConsumerStatefulWidget {
 
 class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> {
   bool _isRequesting = false;
+  // ignore: unused_field - tracks active SOS request for cancel/status
   String? _activeRequestId;
   Position? _currentPosition;
 

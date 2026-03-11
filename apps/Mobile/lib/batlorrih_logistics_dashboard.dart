@@ -5,7 +5,6 @@ import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'providers.dart';
 
 class BaTLorriHLogisticsDashboard extends ConsumerStatefulWidget {
   const BaTLorriHLogisticsDashboard({super.key});
@@ -16,6 +15,7 @@ class BaTLorriHLogisticsDashboard extends ConsumerStatefulWidget {
 
 class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogisticsDashboard> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  // ignore: unused_field - used by GoogleMap onMapCreated callback
   GoogleMapController? _mapController;
 
   @override
@@ -148,35 +148,6 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
       },
       loading: () => const CircularProgressIndicator(),
       error: (_, _) => const Text('Error loading header'),
-    );
-  }
-
-  Widget _buildHeaderIcon(IconData icon, {bool hasNotification = false}) {
-    return Stack(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
-        if (hasNotification)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: Container(
-              height: 10,
-              width: 10,
-              decoration: BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-                border: Border.all(color: BoostDriveTheme.backgroundDark, width: 2),
-              ),
-            ),
-          ),
-      ],
     );
   }
 

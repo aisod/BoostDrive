@@ -1,4 +1,8 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  errors:
+    invalid_dependency: ignore  # Monorepo uses path deps; fine for local development
+
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

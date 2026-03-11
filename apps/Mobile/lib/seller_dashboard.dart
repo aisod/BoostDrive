@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
-import 'providers.dart';
 
 class SellerDashboard extends ConsumerStatefulWidget {
   const SellerDashboard({super.key});

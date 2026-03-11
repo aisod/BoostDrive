@@ -14,11 +14,7 @@ import 'new_arrivals_page.dart';
 import 'company_pages.dart';
 import 'support_pages.dart';
 import 'customer_dashboard_page.dart';
-import 'service_pro_dashboard_page.dart';
-import 'seller_dashboard_page.dart';
 import 'super_admin_dashboard_page.dart';
-import 'logistics_dashboard_page.dart';
-// import 'role_selection_page.dart'; // Removing local import
 
 import 'provider_hub_page.dart';
 import 'find_providers_page.dart';
@@ -58,10 +54,6 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
 
   void _showLoginDialog() {
     _scaffoldKey.currentState?.openEndDrawer();
-  }
-
-  void _openAbout() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutPage()));
   }
 
   void _closeMegaMenu() {
@@ -400,14 +392,13 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                             child: const Text('PARTS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
                           ),
                         ),
-                        if (user != null)
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: TextButton(
-                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesPage())),
-                              child: const Text('MESSAGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-                            ),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: TextButton(
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesPage())),
+                            child: const Text('MESSAGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
                           ),
+                        ),
                         MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: TextButton(
@@ -415,13 +406,10 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                             child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
                           ),
                         ),
-                        if (user != null) ...[
-                          // Show "Find a Provider" only for customers; no "Services requested" on provider homepage
-                          if (!_isProviderRole(ref.watch(userProfileProvider(user.id)).valueOrNull?.role ?? ''))
-                            _buildFindProviderOrServicesRequestedNav(ref, context, user),
-                        ],
-                        if (user != null)
-                          MouseRegion(
+                        // Show "Find a Provider" only for customers; no "Services requested" on provider homepage
+                        if (!_isProviderRole(ref.watch(userProfileProvider(user.id)).valueOrNull?.role ?? ''))
+                          _buildFindProviderOrServicesRequestedNav(ref, context, user),
+                        MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: TextButton(
                               onPressed: () {
@@ -770,32 +758,6 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
   }
 
 
-  void _showContactDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Contact Us', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _ContactItem(icon: Icons.phone, title: 'Phone', content: '+264 61 123 4567'),
-            const SizedBox(height: 16),
-            _ContactItem(icon: Icons.email, title: 'Email', content: 'support@boostdrive.na'),
-            const SizedBox(height: 16),
-            _ContactItem(icon: Icons.location_on, title: 'Address', content: '123 Independence Ave, Windhoek'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(color: BoostDriveTheme.primaryColor)),
-          ),
-        ],
-      ),
-    );
-  }
   Widget _getDashboardForRole(String role) {
     switch (role.toLowerCase()) {
       case 'super_admin':
@@ -860,6 +822,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
   }
 }
 
+// ignore: unused_element
 class _ContactItem extends StatelessWidget {
   final IconData icon;
   final String title;
