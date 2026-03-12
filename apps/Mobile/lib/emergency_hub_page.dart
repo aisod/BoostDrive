@@ -177,9 +177,9 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Row(
           children: [
@@ -195,7 +195,7 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> {
                 children: [
                   Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text(description, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14)),
+                  Text(description, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14)),
                 ],
               ),
             ),
@@ -232,9 +232,9 @@ class _ActiveRequestCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.primaryColor.withOpacity(0.15),
+        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.4)),
+        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

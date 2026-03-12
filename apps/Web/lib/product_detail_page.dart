@@ -259,7 +259,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                             icon: const Icon(Icons.edit_outlined),
                             label: const Text('Edit Listing'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.05),
+                              backgroundColor: Colors.white.withValues(alpha: 0.05),
                               foregroundColor: Colors.white,
                               minimumSize: const Size(double.infinity, 56),
                               shape: RoundedRectangleBorder(
@@ -276,12 +276,12 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                             icon: const Icon(Icons.delete_outline),
                             label: const Text('Delete'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.withOpacity(0.1),
+                              backgroundColor: Colors.red.withValues(alpha: 0.1),
                               foregroundColor: Colors.redAccent,
                               minimumSize: const Size(double.infinity, 56),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: Colors.redAccent.withOpacity(0.2)),
+                                side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.2)),
                               ),
                             ),
                           ),
@@ -307,7 +307,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white.withOpacity(0.05),
+                                  backgroundColor: Colors.white.withValues(alpha: 0.05),
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -399,14 +399,18 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       ),
     );
 
+    if (!mounted) return;
     if (payOnline == null) return;
 
     if (payOnline) {
+      // ignore: use_build_context_synchronously
       _startOnlinePayment(context, ref, user);
     } else {
       if (_currentProduct.category == 'rental') {
+        // ignore: use_build_context_synchronously
         _handleRental(context, ref, user);
       } else {
+        // ignore: use_build_context_synchronously
         _handleMessaging(context, ref, user);
       }
     }
@@ -419,8 +423,10 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         amount: _currentProduct.price,
         productName: _currentProduct.title,
         onConfirm: (cardDetails) async {
-          Navigator.pop(context); // Close payment dialog
-          
+          final navigator = Navigator.of(context);
+          final messenger = ScaffoldMessenger.of(context);
+          navigator.pop(); // Close payment dialog
+
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -439,22 +445,23 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               cardDetails: cardDetails,
             );
 
-            if (mounted) Navigator.pop(context); // Remove loading
+            if (!mounted) return;
+            navigator.pop(); // Remove loading
 
-            if (success && mounted) {
+            if (success) {
+              // ignore: use_build_context_synchronously
               _showPaymentSuccess(context);
-            } else if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+            } else {
+              messenger.showSnackBar(
                 const SnackBar(content: Text('Payment failed. Please try again.'), backgroundColor: Colors.red),
               );
             }
           } catch (e) {
-            if (mounted) Navigator.pop(context); // Remove loading
-            if (mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-              );
-            }
+            if (!mounted) return;
+            navigator.pop(); // Remove loading
+            messenger.showSnackBar(
+              SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            );
           }
         },
       ),
@@ -535,7 +542,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                 hintText: 'Type your message...',
                 hintStyle: const TextStyle(color: Colors.white24),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.05),
+                fillColor: Colors.white.withValues(alpha: 0.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -706,7 +713,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

@@ -1,5 +1,7 @@
 // lib/web_utils.dart
+// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:js' as js;
 // ignore: camel_case_types
 import 'dart:ui_web' as ui_web;

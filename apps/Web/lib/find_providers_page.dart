@@ -123,7 +123,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
                   labelText: 'Location',
                   hintText: 'e.g. Windhoek, Walvis Bay',
                   filled: true,
-                  fillColor: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                  fillColor: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.location_on_outlined, color: BoostDriveTheme.primaryColor, size: 20),
                 ),
@@ -140,7 +140,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
                   labelText: 'Search',
                   hintText: 'e.g. Brake Pad Replacement, Flatbed Towing',
                   filled: true,
-                  fillColor: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                  fillColor: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor, size: 20),
                 ),
@@ -296,7 +296,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
     return Container(
       height: 400,
       decoration: BoxDecoration(
-        color: BoostDriveTheme.backgroundDark.withOpacity(0.6),
+        color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
       ),
@@ -304,7 +304,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.map_outlined, size: 64, color: BoostDriveTheme.primaryColor.withOpacity(0.5)),
+            Icon(Icons.map_outlined, size: 64, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text('Map view coming soon', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16)),
             const SizedBox(height: 8),
@@ -325,7 +325,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.person_search, size: 64, color: BoostDriveTheme.textDim.withOpacity(0.5)),
+          Icon(Icons.person_search, size: 64, color: BoostDriveTheme.textDim.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             isTowing ? 'No towing services here' : 'No providers found',
@@ -384,9 +384,9 @@ class _QuickLinkChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: BoostDriveTheme.primaryColor.withOpacity(0.2),
+          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.4)),
+          border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -416,7 +416,7 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.3) : Colors.transparent,
+          color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? BoostDriveTheme.primaryColor : Colors.white24,
@@ -452,7 +452,7 @@ class _SortChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? BoostDriveTheme.primaryColor.withOpacity(0.3) : Colors.transparent,
+          color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: selected ? BoostDriveTheme.primaryColor : Colors.white24,
@@ -483,7 +483,7 @@ class _ListMapToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: BoostDriveTheme.backgroundDark.withOpacity(0.6),
+        color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.white24),
       ),
@@ -528,7 +528,7 @@ class _ToggleSegment extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? BoostDriveTheme.primaryColor.withOpacity(0.3) : Colors.transparent,
+          color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
@@ -568,7 +568,7 @@ class _ProviderCard extends StatelessWidget {
         margin: EdgeInsets.zero,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: BoostDriveTheme.backgroundDark.withOpacity(0.6),
+          color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white10),
         ),
@@ -577,7 +577,7 @@ class _ProviderCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: BoostDriveTheme.primaryColor.withOpacity(0.2),
+                backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                 child: Text(
                   (profile.fullName.isNotEmpty ? profile.fullName[0] : '?').toUpperCase(),
                   style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 22, fontWeight: FontWeight.bold),
@@ -615,7 +615,7 @@ class _ProviderCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: BoostDriveTheme.primaryColor.withOpacity(0.2),
+                            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -799,7 +799,7 @@ class _ProviderDetailPage extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundColor: BoostDriveTheme.primaryColor.withOpacity(0.2),
+                      backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                       child: Text(
                         (profile.fullName.isNotEmpty ? profile.fullName[0] : '?').toUpperCase(),
                         style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 32, fontWeight: FontWeight.bold),
@@ -820,7 +820,7 @@ class _ProviderDetailPage extends ConsumerWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: BoostDriveTheme.primaryColor.withOpacity(0.2),
+                                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(roleLabel, style: const TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600)),

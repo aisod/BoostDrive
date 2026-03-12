@@ -121,7 +121,7 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+          color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
@@ -135,7 +135,7 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),

@@ -137,7 +137,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: BoostDriveTheme.primaryColor.withOpacity(0.15),
+                              color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -154,7 +154,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         ],
                       ),
                       loading: () => Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
-                      error: (_, __) => Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
+                      error: (_, _) => Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
                     )
                   : Text(productTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
                 backgroundColor: Colors.white,
@@ -207,7 +207,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.1),
+                                          color: Colors.white.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
@@ -221,7 +221,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                                   content: rawContent,
                                   isMe: isMe, 
                                   alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                                  color: isMe ? BoostDriveTheme.primaryColor : Colors.white.withOpacity(0.05),
+                                  color: isMe ? BoostDriveTheme.primaryColor : Colors.white.withValues(alpha: 0.05),
                                   time: _formatMessageTime(timestamp),
                                 ),
                               ],
@@ -246,7 +246,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       padding: EdgeInsets.fromLTRB(16, 8, 16, 8 + MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
         color: BoostDriveTheme.surfaceDark,
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
       ),
       child: Row(
         children: [
@@ -257,7 +257,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 hintText: 'Type a message...',
                 hintStyle: const TextStyle(color: Colors.white24),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.05),
+                fillColor: Colors.white.withValues(alpha: 0.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
@@ -322,7 +322,7 @@ class _MessageBubble extends StatelessWidget {
             Text(
               time,
               style: TextStyle(
-                color: isMe ? Colors.white.withOpacity(0.6) : Colors.black54,
+                color: isMe ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                 fontSize: 10,
               ),
             ),

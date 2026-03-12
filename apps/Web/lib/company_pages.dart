@@ -23,9 +23,9 @@ class AboutPage extends StatelessWidget {
                     final aboutText = Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                        color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,9 +446,9 @@ class _TrainingSection extends StatelessWidget {
         final text = Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+            color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: const Text(
             'Through BoostDrive E-hailing drivers can now benefit from fast and convenient follow-up and training services. This initiative aims to enhance their skills and improve their overall efficiency.\n\n'
@@ -560,9 +560,9 @@ class _ContactSectionBodyState extends State<_ContactSectionBody> {
         final form = Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+            color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -663,9 +663,9 @@ class CareersPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                    color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Column(
                     children: [
@@ -690,9 +690,9 @@ class CareersPage extends StatelessWidget {
                   padding: const EdgeInsets.all(48),
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                    color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Column(
                     children: const [
@@ -737,9 +737,9 @@ class PartnerProgramPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                    color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Column(
                     children: [

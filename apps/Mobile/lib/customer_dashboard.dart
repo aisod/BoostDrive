@@ -120,7 +120,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
                     );
                   },
                   loading: () => const SizedBox(),
-                  error: (_, __) => const SizedBox(),
+                  error: (_, _) => const SizedBox(),
                 ),
               ],
             ),
@@ -138,7 +138,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         shape: BoxShape.circle,
       ),
       child: Icon(icon, color: Colors.white, size: 22),
@@ -158,16 +158,16 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+          color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.3)),
+          border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryColor.withOpacity(0.2),
+                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(Icons.sos, color: BoostDriveTheme.primaryColor, size: 32),

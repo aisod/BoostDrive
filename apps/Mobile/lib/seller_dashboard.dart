@@ -16,7 +16,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
   late TabController _tabController;
   final Color _accentBlue = const Color(0xFF0095FF);
   final Color _cardBg = const Color(0xFF131D25);
-  final Color _borderCol = Colors.white.withOpacity(0.05);
+  final Color _borderCol = Colors.white.withValues(alpha: 0.05);
 
   @override
   void initState() {
@@ -110,7 +110,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
         );
       },
       loading: () => const SizedBox(height: 56),
-      error: (_, __) => const SizedBox(),
+      error: (_, _) => const SizedBox(),
     );
   }
 
@@ -249,7 +249,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
           indicatorSize: TabBarIndicatorSize.tab,
           labelColor: _accentBlue,
           unselectedLabelColor: BoostDriveTheme.textDim,
-          dividerColor: Colors.white.withOpacity(0.05),
+          dividerColor: Colors.white.withValues(alpha: 0.05),
           labelStyle: GoogleFonts.manrope(
             fontWeight: FontWeight.w800,
             fontSize: 13,
@@ -362,7 +362,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const SizedBox(),
+          error: (_, _) => const SizedBox(),
         ),
       ],
     );
@@ -393,7 +393,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                 height: 100,
                 width: 100,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
                   image: imageUrl != null && imageUrl.isNotEmpty 
                       ? DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover) 
@@ -468,8 +468,8 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: status.contains('In Stock') 
-                            ? const Color(0xFF00C853).withOpacity(0.1) 
-                            : (status == 'Draft' ? Colors.orange.withOpacity(0.1) : Colors.white10),
+                            ? const Color(0xFF00C853).withValues(alpha: 0.1) 
+                            : (status == 'Draft' ? Colors.orange.withValues(alpha: 0.1) : Colors.white10),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -552,7 +552,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: _accentBlue.withOpacity(0.1),
+                      color: _accentBlue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(Icons.build_rounded, color: _accentBlue, size: 24),
@@ -612,7 +612,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                       onPressed: () {},
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(0, 56),
-                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),

@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,7 +111,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             shape: BoxShape.circle,
           ),
           child: IconButton(
@@ -194,7 +195,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -237,7 +238,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
+                        color: Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.white10),
                       ),
@@ -281,7 +282,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: BoostDriveTheme.surfaceDark,
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
         ),
         child: SafeArea(
           child: isOwner 
@@ -293,7 +294,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                       icon: const Icon(Icons.edit),
                       label: const Text('Edit'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.05),
+                        backgroundColor: Colors.white.withValues(alpha: 0.05),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -307,7 +308,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                       icon: const Icon(Icons.delete_outline),
                       label: const Text('Delete'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.withOpacity(0.1),
+                        backgroundColor: Colors.red.withValues(alpha: 0.1),
                         foregroundColor: Colors.redAccent,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -320,7 +321,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: IconButton(
@@ -353,15 +354,17 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   void _openChat(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in to message the seller')));
+      messenger.showSnackBar(const SnackBar(content: Text('Please log in to message the seller')));
       return;
     }
 
     if (_currentProduct.sellerId == user.id) {
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You cannot message yourself')));
-       return;
+      messenger.showSnackBar(const SnackBar(content: Text('You cannot message yourself')));
+      return;
     }
 
     try {
@@ -372,21 +375,19 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         seller_id: _currentProduct.sellerId!,
       );
 
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatPage(
-              conversationId: conversationId,
-              productTitle: _currentProduct.title,
-              buyerId: user.id,
-              sellerId: _currentProduct.sellerId!,
-            ),
+      if (!mounted) return;
+      navigator.push(
+        MaterialPageRoute(
+          builder: (context) => ChatPage(
+            conversationId: conversationId,
+            productTitle: _currentProduct.title,
+            buyerId: user.id,
+            sellerId: _currentProduct.sellerId!,
           ),
-        );
-      }
+        ),
+      );
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error opening chat: $e')));
+      if (mounted) messenger.showSnackBar(SnackBar(content: Text('Error opening chat: $e')));
     }
   }
 
@@ -451,8 +452,11 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         amount: _currentProduct.price,
         productName: _currentProduct.title,
         onConfirm: (cardDetails) async {
-          Navigator.pop(context); // Close payment dialog
-          
+          if (!mounted) return;
+          final navigator = Navigator.of(context);
+          final messenger = ScaffoldMessenger.of(context);
+          navigator.pop(); // Close payment dialog
+
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -471,22 +475,22 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               cardDetails: cardDetails,
             );
 
-            if (mounted) Navigator.pop(context); // Remove loading
+            if (!mounted) return;
+            navigator.pop(); // Remove loading
 
-            if (success && mounted) {
-              _showPaymentSuccess(context);
-            } else if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+            if (success) {
+              if (mounted) _showPaymentSuccess(context);
+            } else {
+              messenger.showSnackBar(
                 const SnackBar(content: Text('Payment failed. Please try again.'), backgroundColor: Colors.red),
               );
             }
           } catch (e) {
-            if (mounted) Navigator.pop(context); // Remove loading
-            if (mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-              );
-            }
+            if (!mounted) return;
+            navigator.pop(); // Remove loading
+            messenger.showSnackBar(
+              SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            );
           }
         },
       ),

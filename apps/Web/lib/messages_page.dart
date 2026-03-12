@@ -1034,7 +1034,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             ),
           );
         },
-        errorBuilder: (_, __, ___) => Container(
+        errorBuilder: (_, _, _) => Container(
           width: radius * 2,
           height: radius * 2,
           decoration: BoxDecoration(
@@ -1090,8 +1090,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             width: 350,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
-                border: Border(right: BorderSide(color: Colors.white.withOpacity(0.1))),
+                color: Colors.black.withValues(alpha: 0.3),
+                border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1246,7 +1246,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
               leading: ref.watch(userProfileProvider(otherUserId)).when(
                 data: (profile) => _buildOtherUserAvatar(profile, radius: 20, darkBg: true),
                 loading: () => const CircleAvatar(backgroundColor: Colors.white10, child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (_, __) => const CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.white24)),
+                error: (_, _) => const CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.white24)),
               ),
               title: ref.watch(userProfileProvider(otherUserId)).when(
                 data: (profile) => Row(
@@ -1281,7 +1281,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   ],
                 ),
                 loading: () => Text('Loading...', style: TextStyle(color: fgDimmer, fontSize: 14)),
-                error: (_, __) => Text('User', style: TextStyle(color: fgColor, fontSize: 14)),
+                error: (_, _) => Text('User', style: TextStyle(color: fgColor, fontSize: 14)),
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1353,7 +1353,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         onTap: () => _showDeleteConfirmation(conv['id'], productTitle),
                         child: Icon(
                           Icons.delete_outline,
-                          color: isSelected ? Colors.black54 : Colors.red.withOpacity(0.5),
+                          color: isSelected ? Colors.black54 : Colors.red.withValues(alpha: 0.5),
                           size: 18,
                         ),
                       ),
@@ -1410,7 +1410,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   ref.watch(userProfileProvider(otherUserId)).when(
                     data: (profile) => _buildOtherUserAvatar(profile, radius: 20, darkBg: false),
                     loading: () => const CircleAvatar(radius: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                    error: (_, __) => const CircleAvatar(radius: 20, child: Icon(Icons.person, color: Colors.white)),
+                    error: (_, _) => const CircleAvatar(radius: 20, child: Icon(Icons.person, color: Colors.white)),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -1425,7 +1425,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               loading: () => const Text('Loading...', style: TextStyle(color: Colors.white70)),
-                              error: (_, __) => const Text('User', style: TextStyle(color: Colors.white)),
+                              error: (_, _) => const Text('User', style: TextStyle(color: Colors.white)),
                             ),
                             const SizedBox(width: 8),
                             Container(
@@ -1515,7 +1515,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -1540,13 +1540,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   color: isMe ? null : Colors.white,
                   boxShadow: isMe ? [
                     BoxShadow(
-                      color: BoostDriveTheme.primaryColor.withOpacity(0.3), 
+                      color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3), 
                       blurRadius: 8, 
                       offset: const Offset(0, 4)
                     )
                   ] : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     )
@@ -1586,7 +1586,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                           fit: BoxFit.cover,
                           loadingBuilder: (_, child, progress) =>
                               progress == null ? child : const SizedBox(width: 200, height: 150, child: Center(child: CircularProgressIndicator())),
-                          errorBuilder: (_, __, ___) => Text(
+                          errorBuilder: (_, _, _) => Text(
                             msg['content'] as String,
                             style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontSize: 14),
                           ),
@@ -1616,7 +1616,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         Text(
                           _formatMessageTime(msg['created_at']),
                           style: TextStyle(
-                            color: isMe ? Colors.white.withOpacity(0.6) : Colors.black54,
+                            color: isMe ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                             fontSize: 10,
                           ),
                         ),
@@ -1849,11 +1849,13 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
       if (mounted) setState(() { _playing = true; _loading = false; });
     } catch (e) {
       widget.currentPlayingUrlNotifier.value = null;
-      if (mounted) setState(() {
-        _loading = false;
-        _playing = false;
-        _error = e.toString();
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _playing = false;
+          _error = e.toString();
+        });
+      }
     }
   }
 

@@ -194,7 +194,7 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
                 hintStyle: const TextStyle(color: Colors.white24),
                 prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.05),
+                fillColor: Colors.white.withValues(alpha: 0.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -241,7 +241,7 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
                 label: const Text('Clear Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  backgroundColor: Colors.white.withOpacity(0.05),
+                  backgroundColor: Colors.white.withValues(alpha: 0.05),
                 ),
               ),
             ],

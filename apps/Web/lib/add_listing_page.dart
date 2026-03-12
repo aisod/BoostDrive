@@ -133,7 +133,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check_circle_outline, color: Colors.green, size: 64),
@@ -184,7 +184,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Card(
-              color: BoostDriveTheme.surfaceDark.withOpacity(0.9), // Slightly more transparent for glass effect
+              color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.9), // Slightly more transparent for glass effect
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(32),
                 side: const BorderSide(color: Colors.white10),
@@ -201,7 +201,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+                              color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.add_business, color: BoostDriveTheme.primaryColor),
@@ -353,7 +353,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                             backgroundColor: BoostDriveTheme.primaryColor,
                             foregroundColor: Colors.white,
                             elevation: 8,
-                            shadowColor: BoostDriveTheme.primaryColor.withOpacity(0.4),
+                            shadowColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.4),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           ),
                           child: _isLoading

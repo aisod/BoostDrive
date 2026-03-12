@@ -21,12 +21,12 @@ class BoostProductCard extends StatelessWidget {
           color: BoostDriveTheme.surfaceDark,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -37,8 +37,8 @@ class BoostProductCard extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            hoverColor: Colors.white.withOpacity(0.05),
-            splashColor: BoostDriveTheme.primaryColor.withOpacity(0.1),
+            hoverColor: Colors.white.withValues(alpha: 0.05),
+            splashColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
             highlightColor: Colors.transparent,
             borderRadius: BorderRadius.circular(20),
             child: Column(
@@ -49,7 +49,7 @@ class BoostProductCard extends StatelessWidget {
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.03),
+                      color: Colors.white.withValues(alpha: 0.03),
                     ),
                     child: product.imageUrl.isNotEmpty
                         ? Image.network(
@@ -69,7 +69,7 @@ class BoostProductCard extends StatelessWidget {
                                           loadingProgress.expectedTotalBytes!
                                       : null,
                                   strokeWidth: 2,
-                                  color: BoostDriveTheme.primaryColor.withOpacity(0.3),
+                                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3),
                                 ),
                               );
                             },
@@ -106,10 +106,10 @@ class BoostProductCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+                              color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: BoostDriveTheme.primaryColor.withOpacity(0.2),
+                                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                               ),
                             ),
                             child: Text(
@@ -168,7 +168,7 @@ class BoostProductCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: BoostDriveTheme.accentColor.withOpacity(0.1),
+                              color: BoostDriveTheme.accentColor.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(

@@ -94,7 +94,7 @@ class _MyGarageSection extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Text('Error loading garage', style: TextStyle(color: BoostDriveTheme.textDim)),
+          error: (_, _) => Text('Error loading garage', style: TextStyle(color: BoostDriveTheme.textDim)),
         );
   }
 }
@@ -121,9 +121,9 @@ class _VehicleCard extends StatelessWidget {
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,7 +133,7 @@ class _VehicleCard extends StatelessWidget {
             child: Container(
               height: 120,
               width: double.infinity,
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               child: const Center(child: Icon(Icons.directions_car_filled_outlined, size: 40, color: Colors.white10)),
             ),
           ),
@@ -151,7 +151,7 @@ class _VehicleCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text('HEALTHY', style: TextStyle(color: Colors.green, fontSize: 8, fontWeight: FontWeight.w900)),
@@ -225,7 +225,7 @@ class _ActiveOrdersSection extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Text('Error loading orders', style: TextStyle(color: BoostDriveTheme.textDim)),
+          error: (_, _) => Text('Error loading orders', style: TextStyle(color: BoostDriveTheme.textDim)),
         ),
       ],
     );
@@ -242,9 +242,9 @@ class _OrderCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,7 +284,7 @@ class _OrderCard extends StatelessWidget {
                       height: 6,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
+                        color: Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(100),
                       ),
                     ),
@@ -311,7 +311,7 @@ class _OrderCard extends StatelessWidget {
             children: [
               Expanded(child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.map_outlined), label: const Text('Track Live'))),
               const SizedBox(width: 12),
-              Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.phone_outlined, color: Colors.white)),
+              Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.phone_outlined, color: Colors.white)),
             ],
           ),
         ],
@@ -360,11 +360,11 @@ class _ServiceHistorySection extends ConsumerWidget {
                 );
               },
               loading: () => const SizedBox(),
-              error: (_, __) => const SizedBox(),
+              error: (_, _) => const SizedBox(),
             );
           },
           loading: () => const SizedBox(),
-          error: (_, __) => const SizedBox(),
+          error: (_, _) => const SizedBox(),
         ),
       ],
     );
@@ -388,9 +388,9 @@ class _HistoryItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: BoostDriveTheme.primaryColor.withOpacity(0.05),
+              color: BoostDriveTheme.primaryColor.withValues(alpha: 0.05),
               shape: BoxShape.circle,
-              border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.2)),
+              border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
             ),
             child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 22),
           ),
@@ -424,9 +424,9 @@ class _PromoBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -461,7 +461,7 @@ class _PromoBanner extends StatelessWidget {
             height: 100,
             width: 100,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.air, color: Colors.white24, size: 40),

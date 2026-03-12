@@ -55,9 +55,9 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
-                border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.3)),
+                border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
               ),
               child: const Icon(Icons.admin_panel_settings, color: BoostDriveTheme.primaryColor, size: 24),
             ),
@@ -98,7 +98,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text('LIVE', style: TextStyle(color: Colors.green, fontSize: 8, fontWeight: FontWeight.bold)),
@@ -137,9 +137,9 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,7 +162,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
                 height: 4,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -210,7 +210,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
               fit: BoxFit.cover,
             ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 10)),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 10)),
             ],
           ),
           child: Stack(
@@ -220,7 +220,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, BoostDriveTheme.backgroundDark.withOpacity(0.8)],
+                    colors: [Colors.transparent, BoostDriveTheme.backgroundDark.withValues(alpha: 0.8)],
                   ),
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -250,7 +250,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
+        color: color.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -271,7 +271,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -291,7 +291,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
         decoration: BoxDecoration(
           color: isActive ? BoostDriveTheme.surfaceDark : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: isActive ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)] : null,
+          boxShadow: isActive ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)] : null,
         ),
         child: Center(
           child: Text(
@@ -349,9 +349,9 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -359,7 +359,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
             height: 48,
             width: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.white24, size: 24),
@@ -394,7 +394,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
       height: 32,
       width: 32,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, color: color, size: 20),
@@ -405,9 +405,9 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.2)),
+        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [

@@ -46,7 +46,7 @@ class _BoostPaymentDialogState extends State<BoostPaymentDialog> {
           border: Border.all(color: Colors.white10),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               blurRadius: 40,
               offset: const Offset(0, 20),
             ),
@@ -86,9 +86,9 @@ class _BoostPaymentDialogState extends State<BoostPaymentDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.2)),
+                  border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
                 ),
                 child: Column(
                   children: [
@@ -195,7 +195,7 @@ class _BoostPaymentDialogState extends State<BoostPaymentDialog> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 8,
-                    shadowColor: BoostDriveTheme.primaryColor.withOpacity(0.5),
+                    shadowColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.5),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,

@@ -129,7 +129,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.person_search, size: 64, color: BoostDriveTheme.textDim.withOpacity(0.5)),
+            Icon(Icons.person_search, size: 64, color: BoostDriveTheme.textDim.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
               'No providers match this filter yet.',
@@ -172,7 +172,7 @@ class _FilterChip extends StatelessWidget {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      selectedColor: BoostDriveTheme.primaryColor.withOpacity(0.3),
+      selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.3),
       checkmarkColor: BoostDriveTheme.primaryColor,
     );
   }
@@ -190,7 +190,7 @@ class _ProviderCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      color: BoostDriveTheme.backgroundDark.withOpacity(0.6),
+      color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -198,7 +198,7 @@ class _ProviderCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: BoostDriveTheme.primaryColor.withOpacity(0.2),
+              backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
               child: Text(
                 (profile.fullName.isNotEmpty ? profile.fullName[0] : '?').toUpperCase(),
                 style: const TextStyle(
@@ -241,7 +241,7 @@ class _ProviderCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: BoostDriveTheme.primaryColor.withOpacity(0.2),
+                          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(

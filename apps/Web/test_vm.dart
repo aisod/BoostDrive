@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 void main() {
-  print("Dart VM is running successfully in this path.");
+  debugPrint("Dart VM is running successfully in this path.");
 }

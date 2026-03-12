@@ -118,7 +118,7 @@ class ConversationsPage extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 80, color: Colors.white.withOpacity(0.05)),
+          Icon(Icons.chat_bubble_outline, size: 80, color: Colors.white.withValues(alpha: 0.05)),
           const SizedBox(height: 24),
           const Text(
             'No conversations yet',

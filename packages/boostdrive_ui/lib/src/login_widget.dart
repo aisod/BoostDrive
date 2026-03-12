@@ -202,8 +202,8 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.2),
-                              Colors.black.withOpacity(0.7),
+                              Colors.black.withValues(alpha: 0.2),
+                              Colors.black.withValues(alpha: 0.7),
                             ],
                           ),
                         ),
@@ -370,7 +370,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.3),
+                              Colors.black.withValues(alpha: 0.3),
                               Colors.transparent,
                             ],
                           ),
@@ -424,7 +424,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 constraints: const BoxConstraints(maxWidth: 400),
                                 child: Card(
                                   elevation: 20,
-                                  shadowColor: Colors.black.withOpacity(0.3),
+                                  shadowColor: Colors.black.withValues(alpha: 0.3),
                                   color: Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(24),
@@ -551,7 +551,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                   child: TextButton(
                                     onPressed: () {}, // Dealer registration logic
                                     style: TextButton.styleFrom(
-                                      backgroundColor: Colors.white.withOpacity(0.2),
+                                      backgroundColor: Colors.white.withValues(alpha: 0.2),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                     child: const Row(
@@ -811,8 +811,8 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.1),
-                              Colors.black.withOpacity(0.5),
+                              Colors.black.withValues(alpha: 0.1),
+                              Colors.black.withValues(alpha: 0.5),
                             ],
                           ),
                         ),
@@ -852,7 +852,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                         left: 0,
                         right: 0,
                         child: Container(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -869,7 +869,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 onPressed: _handleClose,
                                 icon: const Icon(Icons.close, color: Colors.white, size: 24),
                                 style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withOpacity(0.1),
+                                  backgroundColor: Colors.white.withValues(alpha: 0.1),
                                   shape: const CircleBorder(),
                                 ),
                               ),
@@ -888,7 +888,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                               color: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
-                                side: BorderSide(color: Colors.black.withOpacity(0.05)),
+                                side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(40),
@@ -1096,7 +1096,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.15) : Colors.transparent,
+            color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isSelected ? BoostDriveTheme.primaryColor : Colors.white24,
@@ -1110,7 +1110,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
@@ -1140,7 +1140,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.05) : const Color(0xFFF1F5F9),
+          color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
@@ -1177,7 +1177,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? BoostDriveTheme.primaryColor : Colors.black.withOpacity(0.1),
+            color: isSelected ? BoostDriveTheme.primaryColor : Colors.black.withValues(alpha: 0.1),
             width: isSelected ? 3 : 1,
           ),
         ),
@@ -1262,7 +1262,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 8, color: Colors.white),
                       decoration: InputDecoration(
                         hintText: '000000',
-                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),
+                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.1)),
                         contentPadding: const EdgeInsets.symmetric(vertical: 24),
                       ),
                       validator: (v) => v == null || v.length != 6 ? 'Enter 6-digit code' : null,
@@ -1312,9 +1312,9 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.1),
+        color: Colors.redAccent.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,

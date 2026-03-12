@@ -125,7 +125,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Colors.white, size: 22),
@@ -164,9 +164,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+                color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 children: [
@@ -261,7 +261,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -298,9 +298,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                    color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Row(
                     children: [
@@ -344,9 +344,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,9 +394,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
               return Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.02),
+                color: Colors.white.withValues(alpha: 0.02),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Center(
                 child: Text('Scanning for nearby requests...', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, fontStyle: FontStyle.italic)),
@@ -438,9 +438,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: tagColor.withOpacity(0.2)),
+        border: Border.all(color: tagColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -451,7 +451,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: tagColor.withOpacity(0.1),
+                  color: tagColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(tag, style: TextStyle(color: tagColor, fontSize: 10, fontWeight: FontWeight.w900)),
@@ -498,9 +498,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 height: 56,
                 width: 56,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
                 child: const Center(child: Text('15s', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
               ),
@@ -523,9 +523,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+            color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Center(
             child: Column(
@@ -557,9 +557,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+            color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Center(
             child: Column(
@@ -574,7 +574,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 const SizedBox(height: 8),
                 Text(
                   'Services you offer will appear here when added.',
-                  style: TextStyle(color: BoostDriveTheme.textDim.withOpacity(0.8), fontSize: 13),
+                  style: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.8), fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -597,7 +597,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: BoostDriveTheme.primaryColor.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+          BoxShadow(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
         ],
       ),
       child: Column(

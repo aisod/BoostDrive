@@ -200,7 +200,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -259,7 +259,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     ),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      backgroundColor: BoostDriveTheme.primaryColor.withOpacity(0.05),
+                      backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.05),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
@@ -401,7 +401,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
               decoration: BoxDecoration(
                 color: notification['isRead'] 
                     ? const Color(0xFFF9FAFB) 
-                    : BoostDriveTheme.primaryColor.withOpacity(0.1),
+                    : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(

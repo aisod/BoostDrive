@@ -287,7 +287,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
       labelText: label,
       labelStyle: const TextStyle(color: BoostDriveTheme.textDim),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.05),
+      fillColor: Colors.white.withValues(alpha: 0.05),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor)),
     );

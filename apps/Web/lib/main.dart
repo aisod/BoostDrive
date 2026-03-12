@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'web_utils.dart';
+// ignore: deprecated_member_use, avoid_web_libraries_in_flutter — web-only app, dart:html used for window.reload
 import 'dart:html' as html;
 
 void main() async {
@@ -26,7 +27,7 @@ void main() async {
     await dotenv.load(fileName: ".env");
     isDotEnvInitialized = true;
   } catch (e) {
-    print("DEBUG: Error loading .env file: $e");
+    debugPrint("DEBUG: Error loading .env file: $e");
     // If .env fails to load, we continue as Supabase.initialize will use empty strings 
     // which might be overridden by platform environment variables if supported by the build
   }
@@ -45,7 +46,7 @@ void main() async {
       : WebUtils.getEnv('SUPABASE_ANON_KEY');
 
   if (supabaseUrl.isEmpty || supabaseUrl.contains('YOUR_SUPABASE_URL_HERE')) {
-    print("CRITICAL ERROR: Supabase URL is missing! Check your .env file or environment variables.");
+    debugPrint("CRITICAL ERROR: Supabase URL is missing! Check your .env file or environment variables.");
   }
 
   try {
@@ -54,7 +55,7 @@ void main() async {
       anonKey: supabaseAnonKey,
     );
   } catch (e) {
-    print("CRITICAL ERROR: Failed to initialize Supabase: $e");
+    debugPrint("CRITICAL ERROR: Failed to initialize Supabase: $e");
   }
 
   runApp(
@@ -88,7 +89,7 @@ class BoostDriveWebApp extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: Colors.white10,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
               ),
               constraints: const BoxConstraints(maxWidth: 500),
               child: Column(

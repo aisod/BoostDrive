@@ -54,9 +54,9 @@ class HeroSection extends StatelessWidget {
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    BoostDriveTheme.backgroundDark.withOpacity(0.95),
-                    BoostDriveTheme.backgroundDark.withOpacity(0.8),
-                    BoostDriveTheme.backgroundDark.withOpacity(0.4),
+                    BoostDriveTheme.backgroundDark.withValues(alpha: 0.95),
+                    BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
+                    BoostDriveTheme.backgroundDark.withValues(alpha: 0.4),
                   ],
                 ),
               ),
@@ -81,9 +81,9 @@ class HeroSection extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+                          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.5)),
+                          border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.5)),
                         ),
                         child: const Text(
                           'NAMIBIA\'S #1 AUTOMOTIVE HUB',

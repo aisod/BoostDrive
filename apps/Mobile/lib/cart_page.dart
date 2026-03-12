@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,8 +74,11 @@ class _CartPageState extends ConsumerState<CartPage> {
         amount: total,
         productName: 'Cart Total (${ref.read(cartProvider).length} items)',
         onConfirm: (cardDetails) async {
-          Navigator.pop(context); // Close payment dialog
-          
+          if (!mounted) return;
+          final navigator = Navigator.of(context);
+          final messenger = ScaffoldMessenger.of(context);
+          navigator.pop(); // Close payment dialog
+
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -93,26 +97,25 @@ class _CartPageState extends ConsumerState<CartPage> {
               cardDetails: cardDetails,
             );
 
-            if (mounted) Navigator.pop(context); // Remove loading
+            if (!mounted) return;
+            navigator.pop(); // Remove loading
 
-            if (success && mounted) {
-              // Clear cart after successful online payment
+            if (success) {
               ref.read(cartProvider.notifier).clearCart();
-              _showPaymentSuccess(context, total);
-            } else if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              if (mounted) _showPaymentSuccess(context, total);
+            } else {
+              messenger.showSnackBar(
                 const SnackBar(content: Text('Payment failed. Please try again.'), backgroundColor: Colors.red),
               );
               setState(() => _isLoading = false);
             }
           } catch (e) {
-            if (mounted) Navigator.pop(context); // Remove loading
-            if (mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-              );
-              setState(() => _isLoading = false);
-            }
+            if (!mounted) return;
+            navigator.pop(); // Remove loading
+            messenger.showSnackBar(
+              SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            );
+            setState(() => _isLoading = false);
           }
         },
       ),
@@ -165,39 +168,38 @@ class _CartPageState extends ConsumerState<CartPage> {
   }
 
   Future<void> _finishManualCheckout(BuildContext context, WidgetRef ref, User user, double total, List<CartItem> cartItems) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final checkoutService = ref.read(checkoutServiceProvider);
       await checkoutService.placeOrder(user.id, cartItems, total);
 
-      // Clear cart
       ref.read(cartProvider.notifier).clearCart();
 
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            backgroundColor: BoostDriveTheme.surfaceDark,
-            title: const Text('Order Placed!', style: TextStyle(color: Colors.white)),
-            content: const Text('Thank you for your order. We will contact you shortly regarding delivery/pickup.', style: TextStyle(color: Colors.white70)),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pop(); // Close cart
-                },
-                child: const Text('OK', style: TextStyle(color: BoostDriveTheme.primaryColor)),
-              ),
-            ],
-          ),
-        );
-      }
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: BoostDriveTheme.surfaceDark,
+          title: const Text('Order Placed!', style: TextStyle(color: Colors.white)),
+          content: const Text('Thank you for your order. We will contact you shortly regarding delivery/pickup.', style: TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(
+              onPressed: () {
+                navigator.pop(); // Close dialog
+                navigator.pop(); // Close cart
+              },
+              child: const Text('OK', style: TextStyle(color: BoostDriveTheme.primaryColor)),
+            ),
+          ],
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -292,7 +294,7 @@ class _CartPageState extends ConsumerState<CartPage> {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: BoostDriveTheme.surfaceDark,
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
         ),
         child: SafeArea(
           child: Column(

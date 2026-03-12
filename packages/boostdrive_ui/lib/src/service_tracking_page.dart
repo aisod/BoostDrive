@@ -143,13 +143,13 @@ class ServiceTrackingPage extends ConsumerWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF131D25),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16)),
             child: const Icon(Icons.directions_car, color: BoostDriveTheme.primaryColor, size: 32),
           ),
           const SizedBox(width: 20),
@@ -178,9 +178,9 @@ class ServiceTrackingPage extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF131D25).withOpacity(0.5),
+        color: const Color(0xFF131D25).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -264,7 +264,7 @@ class ServiceTrackingPage extends ConsumerWidget {
                   shape: BoxShape.circle,
                 ),
               ),
-              Container(width: 2, height: 40, color: Colors.white.withOpacity(0.05)),
+              Container(width: 2, height: 40, color: Colors.white.withValues(alpha: 0.05)),
             ],
           ),
           const SizedBox(width: 20),

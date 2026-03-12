@@ -417,7 +417,7 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
         backgroundColor: BoostDriveTheme.backgroundDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.green.withOpacity(0.5), width: 2),
+          side: BorderSide(color: Colors.green.withValues(alpha: 0.5), width: 2),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -470,8 +470,8 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.1),
-                      Colors.black.withOpacity(0.5),
+                      Colors.black.withValues(alpha: 0.1),
+                      Colors.black.withValues(alpha: 0.5),
                     ],
                   ),
                 ),
@@ -669,7 +669,7 @@ class _ForgotPasswordFlowState extends ConsumerState<_ForgotPasswordFlow> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.1),
+                    color: Colors.redAccent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(

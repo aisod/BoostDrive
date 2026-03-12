@@ -161,7 +161,7 @@ class CustomerDashboardPage extends ConsumerWidget {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           clipBehavior: Clip.antiAlias,
           child: ref.watch(activeDeliveriesProvider(uid)).when(
@@ -357,9 +357,9 @@ class CustomerDashboardPage extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,7 +370,7 @@ class CustomerDashboardPage extends ConsumerWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  color: Colors.black.withOpacity(0.05), // Darker background to handle transparent PNGs better
+                  color: Colors.black.withValues(alpha: 0.05), // Darker background to handle transparent PNGs better
                   child: Image.network(
                     vehicle.imageUrls.first,
                     height: 120,
@@ -379,8 +379,8 @@ class CustomerDashboardPage extends ConsumerWidget {
                     errorBuilder: (_, _, _) => Container(
                       height: 120,
                       width: double.infinity,
-                      color: Colors.black.withOpacity(0.02),
-                      child: Icon(Icons.directions_car, color: Colors.white.withOpacity(0.05), size: 40),
+                      color: Colors.black.withValues(alpha: 0.02),
+                      child: Icon(Icons.directions_car, color: Colors.white.withValues(alpha: 0.05), size: 40),
                     ),
                   ),
                 ),
@@ -401,7 +401,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (vehicle.healthStatus == 'Healthy' ? Colors.green : Colors.orange).withOpacity(0.1),
+                    color: (vehicle.healthStatus == 'Healthy' ? Colors.green : Colors.orange).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -440,7 +440,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                     icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
                     tooltip: 'Delete Vehicle',
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.red.withOpacity(0.05),
+                      backgroundColor: Colors.red.withValues(alpha: 0.05),
                       padding: const EdgeInsets.all(8),
                     ),
                   ),
@@ -450,7 +450,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                     icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blueAccent),
                     tooltip: 'Edit Vehicle',
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.blue.withOpacity(0.05),
+                      backgroundColor: Colors.blue.withValues(alpha: 0.05),
                       padding: const EdgeInsets.all(8),
                     ),
                   ),
@@ -465,7 +465,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                     foregroundColor: Colors.white70,
                     minimumSize: Size.zero,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    backgroundColor: Colors.white.withOpacity(0.05),
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
@@ -482,9 +482,9 @@ class CustomerDashboardPage extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.primaryColor.withOpacity(0.03),
+        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: BoostDriveTheme.primaryColor.withOpacity(0.1)),
+        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -509,7 +509,7 @@ class CustomerDashboardPage extends ConsumerWidget {
           const SizedBox(height: 32),
           LinearProgressIndicator(
             value: progress,
-            backgroundColor: Colors.white.withOpacity(0.05),
+            backgroundColor: Colors.white.withValues(alpha: 0.05),
             valueColor: const AlwaysStoppedAnimation(BoostDriveTheme.primaryColor),
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
@@ -526,9 +526,9 @@ class CustomerDashboardPage extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -536,7 +536,7 @@ class CustomerDashboardPage extends ConsumerWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: BoostDriveTheme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1), shape: BoxShape.circle),
                 child: const Icon(Icons.build_outlined, color: BoostDriveTheme.primaryColor, size: 16),
               ),
               const SizedBox(width: 12),
@@ -975,7 +975,7 @@ class CustomerDashboardPage extends ConsumerWidget {
       icon: const Icon(Icons.add, size: 18),
       label: Text(label),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white.withOpacity(0.05),
+        backgroundColor: Colors.white.withValues(alpha: 0.05),
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         shape: RoundedRectangleBorder(
@@ -1420,7 +1420,7 @@ class CustomerDashboardPage extends ConsumerWidget {
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: Colors.white24, size: 20),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.05),
+            fillColor: Colors.white.withValues(alpha: 0.05),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
@@ -1438,7 +1438,7 @@ class CustomerDashboardPage extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButtonHideUnderline(
@@ -1474,7 +1474,7 @@ class CustomerDashboardPage extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -1496,7 +1496,7 @@ class CustomerDashboardPage extends ConsumerWidget {
 
   ButtonStyle _dialogButtonStyle() {
     return ElevatedButton.styleFrom(
-      backgroundColor: Colors.white.withOpacity(0.05),
+      backgroundColor: Colors.white.withValues(alpha: 0.05),
       foregroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white10)),

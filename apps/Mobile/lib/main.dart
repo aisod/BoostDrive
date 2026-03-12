@@ -65,13 +65,13 @@ class BoostDriveMobileApp extends StatelessWidget {
                 // package: 'boostdrive_ui', // Removed: Loading from local assets now
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  print("DEBUG: Error loading background: $error");
+                  debugPrint("DEBUG: Error loading background: $error");
                   return Container(color: const Color(0xFF0D0D0D));
                 },
               ),
             ),
             // App Content
-            ?child,
+            child ?? const SizedBox.shrink(),
           ],
         );
       },

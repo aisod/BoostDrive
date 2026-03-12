@@ -62,7 +62,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
         decoration: BoxDecoration(
           color: const Color(0xFF101828),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -138,7 +138,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
         );
       },
       loading: () => const CircularProgressIndicator(),
-      error: (_, __) => const SizedBox(),
+      error: (_, _) => const SizedBox(),
     );
   }
 
@@ -149,7 +149,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
           padding: const EdgeInsets.all(80.0),
           child: Column(
             children: [
-              Icon(Icons.construction, size: 64, color: BoostDriveTheme.primaryColor.withOpacity(0.5)),
+              Icon(Icons.construction, size: 64, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.5)),
               const SizedBox(height: 18),
               Text(
                 '$_currentSection feature coming soon',
@@ -215,9 +215,9 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -322,11 +322,11 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
             );
           },
           loading: () => const SizedBox(height: 75, child: Center(child: CircularProgressIndicator())),
-          error: (_, __) => const SizedBox(),
+          error: (_, _) => const SizedBox(),
         );
       },
       loading: () => const SizedBox(height: 75, child: Center(child: CircularProgressIndicator())),
-      error: (_, __) => const SizedBox(),
+      error: (_, _) => const SizedBox(),
     );
   }
 
@@ -336,7 +336,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
       decoration: BoxDecoration(
         color: const Color(0xFF131D25),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +476,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -488,9 +488,9 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131D25).withOpacity(0.9),
+                    color: const Color(0xFF131D25).withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Row(
                     children: [
@@ -507,10 +507,10 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
       },
       loading: () => Container(
         height: 400, 
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(32)),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(32)),
         child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) => const SizedBox(),
+      error: (_, _) => const SizedBox(),
     );
   }
 
@@ -732,7 +732,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
               padding: const EdgeInsets.symmetric(vertical: 60),
               child: Column(
                 children: [
-                  Icon(Icons.inbox_outlined, size: 48, color: BoostDriveTheme.textDim.withOpacity(0.5)),
+                  Icon(Icons.inbox_outlined, size: 48, color: BoostDriveTheme.textDim.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
                   Text(
                     'No orders found for this category',
@@ -747,7 +747,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: orders.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 24),
+          separatorBuilder: (_, _) => const SizedBox(height: 24),
           itemBuilder: (context, index) {
             final o = orders[index];
             return _buildOrderCard(
@@ -764,7 +764,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Text('Error loading queue'),
+      error: (_, _) => const Text('Error loading queue'),
     );
   }
 
@@ -785,7 +785,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
       decoration: BoxDecoration(
         color: const Color(0xFF131D25),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -796,7 +796,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
+                  color: statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -843,7 +843,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: Colors.white.withOpacity(0.05),
+                      backgroundColor: Colors.white.withValues(alpha: 0.05),
                       child: const Icon(Icons.person, color: Colors.white54, size: 24),
                     ),
                     const SizedBox(width: 16),

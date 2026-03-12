@@ -211,9 +211,9 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
     // DEBUG: Log profile data to help troubleshoot role mismatch
     if (userProfile.value != null) {
       final profile = userProfile.value!;
-      print("DEBUG: Active User Profile: ID=${profile.uid}, Name=${profile.fullName}, Role='${profile.role}', isBuyer=${profile.isBuyer}, isSeller=${profile.isSeller}");
+      debugPrint("DEBUG: Active User Profile: ID=${profile.uid}, Name=${profile.fullName}, Role='${profile.role}', isBuyer=${profile.isBuyer}, isSeller=${profile.isSeller}");
     } else if (userProfile.hasError) {
-       print("DEBUG: User Profile Error: ${userProfile.error}");
+       debugPrint("DEBUG: User Profile Error: ${userProfile.error}");
     }
 
     userProfile.whenData((profile) {
@@ -221,7 +221,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           // AUTO-FIX: If user is John Doe and has customer role, upgrade them to service_provider
           // This covers accounts created before the signup fix.
           if (profile.fullName.toLowerCase().contains('john doe') && profile.role == 'customer') {
-            print("DEBUG: Auto-fixing John Doe role to service_provider...");
+            debugPrint("DEBUG: Auto-fixing John Doe role to service_provider...");
             ref.read(userServiceProvider).updateRoles(
               uid: profile.uid,
               isBuyer: false,
@@ -435,14 +435,14 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                       margin: const EdgeInsets.only(right: 8),
                       child: Chip(
                         label: Text(profile.role.replaceAll('_', ' ').toUpperCase()),
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
                         labelStyle: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
                           fontSize: 10,
                           letterSpacing: 0.5,
                         ),
-                        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
                       ),
                     );
                   }).value ?? const SizedBox(),
@@ -510,7 +510,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                           );
                         },
                         loading: () => const SizedBox(),
-                        error: (_, __) => const SizedBox(),
+                        error: (_, _) => const SizedBox(),
                       ),
                     ],
                   ),
@@ -529,7 +529,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                           cursor: SystemMouseCursors.click,
                           child: CircleAvatar(
                             radius: 18,
-                            backgroundColor: Colors.white.withOpacity(0.2),
+                            backgroundColor: Colors.white.withValues(alpha: 0.2),
                             backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
                             child: profile.profileImg.isEmpty
                                 ? Text(
@@ -649,16 +649,16 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                         icon: const Text('View All', style: TextStyle(fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
                         label: const Icon(Icons.arrow_forward, size: 16, color: BoostDriveTheme.primaryColor),
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.05),
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
                           side: const BorderSide(color: Colors.white24),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ).copyWith(
                           backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
                             if (states.contains(WidgetState.hovered)) {
-                              return Colors.white.withOpacity(0.1);
+                              return Colors.white.withValues(alpha: 0.1);
                             }
-                            return Colors.white.withOpacity(0.05);
+                            return Colors.white.withValues(alpha: 0.05);
                           }),
                         ),
                       ),
@@ -690,16 +690,16 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                         icon: const Text('View All', style: TextStyle(fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
                         label: const Icon(Icons.arrow_forward, size: 16, color: BoostDriveTheme.primaryColor),
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.05),
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
                           side: const BorderSide(color: Colors.white24),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ).copyWith(
                           backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
                             if (states.contains(WidgetState.hovered)) {
-                              return Colors.white.withOpacity(0.1);
+                              return Colors.white.withValues(alpha: 0.1);
                             }
-                            return Colors.white.withOpacity(0.05);
+                            return Colors.white.withValues(alpha: 0.05);
                           }),
                         ),
                       ),
@@ -837,7 +837,7 @@ class _ContactItem extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: BoostDriveTheme.primaryColor.withOpacity(0.1),
+            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 20),
@@ -920,7 +920,7 @@ class _MegaMenuPanel extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),

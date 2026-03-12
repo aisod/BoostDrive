@@ -16,7 +16,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
   late TabController _tabController;
   final Color _accentBlue = const Color(0xFF0095FF);
   final Color _cardBg = const Color(0xFF131D25);
-  final Color _borderCol = Colors.white.withOpacity(0.05);
+  final Color _borderCol = Colors.white.withValues(alpha: 0.05);
 
   @override
   void initState() {
@@ -113,7 +113,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
         );
       },
       loading: () => const SizedBox(height: 80),
-      error: (_, __) => const SizedBox(),
+      error: (_, _) => const SizedBox(),
     );
   }
 
@@ -390,7 +390,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const SizedBox(),
+          error: (_, _) => const SizedBox(),
         ),
       ],
     );
@@ -421,7 +421,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                 height: 120,
                 width: 120,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(20),
                   image: imageUrl != null && imageUrl.isNotEmpty 
                       ? DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover) 
@@ -497,8 +497,8 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: status.contains('In Stock') 
-                            ? const Color(0xFF00C853).withOpacity(0.1) 
-                            : (status == 'Draft' ? Colors.orange.withOpacity(0.1) : Colors.white10),
+                            ? const Color(0xFF00C853).withValues(alpha: 0.1) 
+                            : (status == 'Draft' ? Colors.orange.withValues(alpha: 0.1) : Colors.white10),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -578,7 +578,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _accentBlue.withOpacity(0.1),
+                  color: _accentBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(Icons.build_rounded, color: _accentBlue, size: 32),
@@ -625,7 +625,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(160, 64),
-                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),

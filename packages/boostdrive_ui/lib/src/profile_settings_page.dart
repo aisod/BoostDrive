@@ -390,7 +390,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               height: 48,
               decoration: BoxDecoration(
                 color: isDestructive 
-                    ? Colors.red.withOpacity(0.1) 
+                    ? Colors.red.withValues(alpha: 0.1) 
                     : const Color(0xFFF9FAFB),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1008,7 +1008,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: selected ? BoostDriveTheme.primaryColor.withOpacity(0.15) : const Color(0xFFF2F4F7),
+                  color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFF2F4F7),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC),
@@ -1075,7 +1075,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? BoostDriveTheme.primaryColor.withOpacity(0.15) : const Color(0xFFF2F4F7),
+              color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFF2F4F7),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC),
@@ -1264,7 +1264,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? BoostDriveTheme.primaryColor.withOpacity(0.15) : const Color(0xFFF2F4F7),
+          color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFF2F4F7),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC), width: selected ? 2 : 1),
         ),
@@ -1917,7 +1917,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     border: Border.all(color: Colors.white, width: 4),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -1946,7 +1946,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.4),
+                        color: Colors.black.withValues(alpha: 0.4),
                         shape: BoxShape.circle,
                       ),
                       child: const Center(
@@ -2299,7 +2299,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.chevron_right, size: 16, color: color?.withOpacity(0.5) ?? const Color(0xFFD0D5DD)),
+              Icon(Icons.chevron_right, size: 16, color: color?.withValues(alpha: 0.5) ?? const Color(0xFFD0D5DD)),
             ],
           ),
         ),

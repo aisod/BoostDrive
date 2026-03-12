@@ -207,7 +207,7 @@ class _CategoryChip extends StatelessWidget {
         label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        selectedColor: BoostDriveTheme.primaryColor.withOpacity(0.2),
+        selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
         checkmarkColor: BoostDriveTheme.primaryColor,
         labelStyle: TextStyle(
           color: isSelected ? BoostDriveTheme.primaryColor : BoostDriveTheme.textDim,

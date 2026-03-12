@@ -54,7 +54,7 @@ class _BoostSosButtonState extends State<BoostSosButton>
                   height: 160 * _animation.value,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.red.withOpacity(0.2),
+                    color: Colors.red.withValues(alpha: 0.2),
                   ),
                 );
               },
@@ -72,7 +72,7 @@ class _BoostSosButtonState extends State<BoostSosButton>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.red.withOpacity(0.5),
+                    color: Colors.red.withValues(alpha: 0.5),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),

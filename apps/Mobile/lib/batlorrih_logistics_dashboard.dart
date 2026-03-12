@@ -82,9 +82,9 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -171,7 +171,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
             );
           },
           loading: () => const SizedBox(),
-          error: (_, __) => const SizedBox(),
+          error: (_, _) => const SizedBox(),
         );
       },
       loading: () => const SizedBox(),
@@ -183,9 +183,9 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,7 +318,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
               width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               clipBehavior: Clip.antiAlias,
               child: Stack(
@@ -340,9 +340,9 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: BoostDriveTheme.backgroundDark.withOpacity(0.8),
+                        color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       ),
                       child: Row(
                         children: [
@@ -360,7 +360,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
         );
       },
       loading: () => const SizedBox(height: 220, child: Center(child: CircularProgressIndicator())),
-      error: (_, __) => const SizedBox(),
+      error: (_, _) => const SizedBox(),
     );
   }
 
@@ -432,9 +432,9 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,7 +445,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
+                  color: statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(status, style: TextStyle(color: statusColor, fontSize: 9, fontWeight: FontWeight.bold)),
@@ -492,7 +492,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                    );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: !isAwaiting ? Colors.white.withOpacity(0.05) : BoostDriveTheme.primaryColor,
+                  backgroundColor: !isAwaiting ? Colors.white.withValues(alpha: 0.05) : BoostDriveTheme.primaryColor,
                   foregroundColor: !isAwaiting ? BoostDriveTheme.primaryColor : Colors.white,
                   minimumSize: const Size(100, 48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

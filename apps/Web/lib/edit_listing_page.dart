@@ -128,7 +128,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check_circle_outline, color: Colors.green, size: 64),
@@ -179,7 +179,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Card(
-              color: BoostDriveTheme.surfaceDark.withOpacity(0.9),
+              color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.9),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(32),
                 side: const BorderSide(color: Colors.white10),
