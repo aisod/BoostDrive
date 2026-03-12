@@ -40,11 +40,11 @@
     referrerpolicy="no-referrer"></script>
   <script>
     (function() {
-      // Load environment variables from Netlify
-      // These are passed via --dart-define during the Flutter build
-      window.SUPABASE_URL = "https://jpkkielcwlssmictmjrl.supabase.co";
-      window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa2tpZWxjd2xzc21pY3RtanJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4ODUzMTcsImV4cCI6MjA4NTQ2MTMxN30.sKkXhWmx0O6ZdszDRdzCYcz9hZPgxXJuDumzHlkCy8c";
-      window.GOOGLE_MAPS_API_KEY = "AIzaSyBUd76zkS14RJaI6NKIEEoO0V2G_r7W_FQ";
+      // Load environment variables injected at runtime (e.g. via Netlify or --dart-define).
+      // IMPORTANT: Do NOT hardcode real secrets here; configure them via your hosting environment.
+      window.SUPABASE_URL = window.SUPABASE_URL || "";
+      window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "";
+      window.GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || "";
 
       var mapsKey = window.GOOGLE_MAPS_API_KEY;
       if (!mapsKey || mapsKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
