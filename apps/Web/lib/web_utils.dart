@@ -19,7 +19,6 @@ class WebUtils {
 
   static void injectGoogleMapsKey(String key) {
     js.context['GOOGLE_MAPS_API_KEY'] = key;
-    js.context['SUPABASE_URL'] = key; // Placeholder for logic if needed, but we use String.fromEnvironment
   }
 
   static String getEnv(String key, {String defaultValue = ''}) {
