@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
-import 'logistics_dashboard_page.dart';
-import 'service_pro_dashboard_page.dart';
-import 'seller_dashboard_page.dart';
+import 'package:boost_drive_web/logistics_dashboard_page.dart';
+import 'package:boost_drive_web/service_pro_dashboard_page.dart';
+import 'package:boost_drive_web/seller_dashboard_page.dart';
 
 class ProviderHubPage extends ConsumerStatefulWidget {
   const ProviderHubPage({super.key});

@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'theme.dart';
+import 'boostdrive_stepper.dart';
 
 class ProfileSettingsPage extends ConsumerStatefulWidget {
-  const ProfileSettingsPage({super.key});
+  /// When true, this page opens directly in provider edit mode (stepper only).
+  /// Used as the dedicated "Edit Profile Settings" screen; back / Exit Edit Mode pops the route.
+  const ProfileSettingsPage({super.key, this.initialProviderEditMode = false});
+
+  final bool initialProviderEditMode;
 
   @override
   ConsumerState<ProfileSettingsPage> createState() => _ProfileSettingsPageState();
@@ -22,12 +29,17 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   final _phoneController = TextEditingController();
   final _emergencyNameController = TextEditingController();
   final _emergencyPhoneController = TextEditingController();
+  final _phoneFocusNode = FocusNode();
+  
+  // Dynamic business phone fields for providers
+  final List<TextEditingController> _businessPhoneControllers = [];
+  final List<FocusNode> _businessPhoneFocusNodes = [];
+  
   bool _isEditing = false;
+  bool _isSaving = false;
   bool _isUploading = false;
   
   // Provider / shop profile (only used when role is service_provider or seller)
-  final _shopDisplayNameController = TextEditingController();
-  final _storeBioController = TextEditingController();
   final _warehouseAddressController = TextEditingController();
   final _serviceAreaController = TextEditingController();
   final _workingHoursController = TextEditingController();
@@ -47,6 +59,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   List<String> _selectedBrandExpertise = [];
   List<String> _selectedServiceTags = [];
   List<String> _selectedTowingCapabilities = [];
+  // Dynamic "other" chips
+  final List<MapEntry<String, String>> _dynamicBrandOptions = [];
+  final List<MapEntry<String, String>> _dynamicServiceTagOptions = [];
+  String? _otherBrandExpertiseLabel;
+  String? _otherServiceTagLabel;
 
   // Financial & Payout
   final _bankAccountNumberController = TextEditingController();
@@ -61,13 +78,58 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   final _teamSizeController = TextEditingController();
   bool _isUploadingDocuments = false;
 
+  // Core business identity (provider)
+  final _registeredBusinessNameController = TextEditingController();
+  final _tradingNameController = TextEditingController();
+  String _businessType = 'cc'; // cc | pty_ltd | sole_prop
+  final _registrationNumberController = TextEditingController();
+  final _yearsInOperationController = TextEditingController();
+  String _primaryServiceCategory = 'mechanic'; // mechanic | towing | parts
+  final _businessContactNumberController = TextEditingController();
+
   // Notification & Alert
   bool _sosAlertsEnabled = true;
-  String _preferredCommunication = 'app_chat';
+  List<String> _preferredCommunication = ['app_chat'];
 
   // Optimistic UI state
   Uint8List? _optimisticImage;
   bool _isOptimisticDelete = false;
+
+  // Provider edit flow (stepper)
+  bool _isProviderEditMode = false;
+  int _providerCurrentStep = 0;
+
+  // Guard so we only hydrate controllers/flags from profile once per session.
+  bool _didInitFromProfile = false;
+
+  bool _isProviderRole(String role) {
+    // DB values sometimes come in different formats (e.g. underscores, extra spaces,
+    // combined roles like "mechanic & towing"). Normalize before matching.
+    final cleaned = role
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s_-]+'), ' ');
+
+    if (cleaned.isEmpty) return false;
+
+    // Some accounts store the role as plain "provider".
+    if (cleaned == 'provider') return true;
+
+    return cleaned.contains('service provider') ||
+        cleaned.contains('service pro') ||
+        cleaned.contains('mechanic') ||
+        cleaned.contains('towing') ||
+        cleaned.contains('logistics') ||
+        cleaned.contains('rental');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialProviderEditMode) {
+      _isProviderEditMode = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -76,8 +138,14 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     _phoneController.dispose();
     _emergencyNameController.dispose();
     _emergencyPhoneController.dispose();
-    _shopDisplayNameController.dispose();
-    _storeBioController.dispose();
+    _phoneFocusNode.dispose();
+    for (var c in _businessPhoneControllers) {
+      c.dispose();
+    }
+    for (var f in _businessPhoneFocusNodes) {
+      f.dispose();
+    }
+
     _warehouseAddressController.dispose();
     _serviceAreaController.dispose();
     _workingHoursController.dispose();
@@ -92,9 +160,41 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     _standardLaborRateController.dispose();
     _taxVatNumberController.dispose();
     _businessBioController.dispose();
+
     _teamSizeController.dispose();
+    _registeredBusinessNameController.dispose();
+    _tradingNameController.dispose();
+    _registrationNumberController.dispose();
+    _yearsInOperationController.dispose();
+    _businessContactNumberController.dispose();
     super.dispose();
   }
+
+  void _addBusinessPhoneField() {
+    setState(() {
+      final controller = TextEditingController();
+      final focusNode = FocusNode();
+      _businessPhoneControllers.add(controller);
+      _businessPhoneFocusNodes.add(focusNode);
+      
+      // Focus the new field
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        focusNode.requestFocus();
+      });
+    });
+  }
+
+  void _removeBusinessPhoneField(int index) {
+    if (_businessPhoneControllers.length <= 1) return;
+    setState(() {
+      final controller = _businessPhoneControllers.removeAt(index);
+      final focusNode = _businessPhoneFocusNodes.removeAt(index);
+      controller.dispose();
+      focusNode.dispose();
+    });
+  }
+
+
 
   Future<void> _handleLogout() async {
     final confirmed = await showDialog<bool>(
@@ -225,77 +325,138 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Future<void> _handleSaveProfile() async {
+    if (_isSaving) return;
+
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     final profile = await ref.read(userProfileProvider(user.id).future);
-    final isProvider = profile != null && _isProviderRole(profile.role);
-    if (isProvider && !kIsWeb && _selectedServiceTypes.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select at least 1 service you provide')),
+    if (profile == null) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final fullName = _nameController.text.trim();
+      if (fullName.isEmpty) {
+        throw 'Full name is required';
+      }
+
+      // 1. Prepare base updates (common for both Customers & Providers)
+      var updated = profile.copyWith(
+        fullName: fullName,
+        phoneNumber: _phoneController.text.trim(),
+        emergencyContactName: _emergencyNameController.text.trim(),
+        emergencyContactPhone: _emergencyPhoneController.text.trim(),
+      );
+
+      // 2. Prepare role-specific updates (Providers/Sellers)
+      final isProviderOrSeller = _isProviderRole(profile.role) || profile.isSeller;
+      if (isProviderOrSeller) {
+        final workingHours = _businessHours24_7 ? '24/7' : _workingHoursController.text.trim();
+        updated = updated.copyWith(
+          businessContactNumber: _businessPhoneControllers
+              .map((c) => c.text.trim())
+              .where((s) => s.isNotEmpty)
+              .join(', '),
+          registeredBusinessName: _registeredBusinessNameController.text.trim(),
+          tradingName: _tradingNameController.text.trim(),
+          businessType: _businessType,
+          registrationNumber: _registrationNumberController.text.trim(),
+          yearsInOperation: int.tryParse(_yearsInOperationController.text.trim()),
+          primaryServiceCategory: _primaryServiceCategory,
+          serviceAreaDescription: _serviceAreaController.text.trim(),
+          workingHours: workingHours,
+          providerServiceTypes: _selectedServiceTypes,
+          businessHours24_7: _businessHours24_7,
+          serviceRadiusKm: int.tryParse(_serviceRadiusKmController.text.trim()),
+          workshopAddress: _workshopAddressController.text.trim(),
+          socialFacebook: _socialFacebookController.text.trim(),
+          socialInstagram: _socialInstagramController.text.trim(),
+          websiteUrl: _websiteUrlController.text.trim(),
+          brandExpertise: _selectedBrandExpertise,
+          serviceTags: _selectedServiceTags,
+          towingCapabilities: _selectedTowingCapabilities,
+          bankAccountNumber: _bankAccountNumberController.text.trim(),
+          bankBranch: _bankBranchController.text.trim(),
+          bankName: _bankNameController.text.trim(),
+          standardLaborRate: double.tryParse(_standardLaborRateController.text.trim()),
+          taxVatNumber: _taxVatNumberController.text.trim(),
+          businessBio: _businessBioController.text.trim(),
+          galleryUrls: _galleryUrls,
+          teamSize: int.tryParse(_teamSizeController.text.trim()),
+          sosAlertsEnabled: _sosAlertsEnabled,
+          preferredCommunication: _preferredCommunication.join(','),
         );
       }
-      return;
-    }
-    final fullName = isProvider && _shopDisplayNameController.text.isNotEmpty
-        ? _shopDisplayNameController.text
-        : _nameController.text;
 
-    if (isProvider) {
-      final workingHours = _businessHours24_7 ? '24/7' : _workingHoursController.text.trim();
-      final updated = profile.copyWith(
-        fullName: fullName,
-        phoneNumber: _phoneController.text,
-        emergencyContactName: _emergencyNameController.text,
-        emergencyContactPhone: _emergencyPhoneController.text,
-        serviceAreaDescription: _serviceAreaController.text.trim(),
-        workingHours: workingHours,
-        providerServiceTypes: _selectedServiceTypes,
-        businessHours24_7: _businessHours24_7,
-        serviceRadiusKm: int.tryParse(_serviceRadiusKmController.text.trim()),
-        workshopAddress: _workshopAddressController.text.trim(),
-        socialFacebook: _socialFacebookController.text.trim(),
-        socialInstagram: _socialInstagramController.text.trim(),
-        websiteUrl: _websiteUrlController.text.trim(),
-        brandExpertise: _selectedBrandExpertise,
-        serviceTags: _selectedServiceTags,
-        towingCapabilities: _selectedTowingCapabilities,
-        bankAccountNumber: _bankAccountNumberController.text.trim(),
-        bankBranch: _bankBranchController.text.trim(),
-        bankName: _bankNameController.text.trim(),
-        standardLaborRate: double.tryParse(_standardLaborRateController.text.trim()),
-        taxVatNumber: _taxVatNumberController.text.trim(),
-        businessBio: _businessBioController.text.trim(),
-        galleryUrls: _galleryUrls,
-        teamSize: int.tryParse(_teamSizeController.text.trim()),
-        sosAlertsEnabled: _sosAlertsEnabled,
-        preferredCommunication: _preferredCommunication,
-      );
+      // 3. Email change flow with verification.
+      final authClient = Supabase.instance.client.auth;
+      final authUser = authClient.currentUser;
+      final currentEmail = (authUser?.email?.isNotEmpty ?? false) ? authUser!.email! : profile.email;
+      final newEmail = _emailController.text.trim();
+      
+      if (newEmail.isNotEmpty && newEmail != currentEmail) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text('Confirm Email Change', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+            content: Text('Are you sure you want to change your email to $newEmail? A verification link will be sent to the new address.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm')),
+            ],
+          ),
+        );
+        
+        if (confirmed == true) {
+          await authClient.updateUser(UserAttributes(email: newEmail));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Verification link sent to $newEmail. Please confirm it.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      }
+
+      // 4. Save using userServiceProvider (robust .upsert() handles all fields correctly)
       await ref.read(userServiceProvider).updateProfile(updated);
-    } else {
-      await ref.read(authServiceProvider).updateProfile(
-        userId: user.id,
-        fullName: fullName,
-        phoneNumber: _phoneController.text,
-        emergencyContactName: _emergencyNameController.text,
-        emergencyContactPhone: _emergencyPhoneController.text,
-        serviceAreaDescription: isProvider ? _serviceAreaController.text.trim() : null,
-        workingHours: isProvider ? _workingHoursController.text.trim() : null,
-        providerServiceTypes: isProvider && !kIsWeb ? _selectedServiceTypes : null,
-      );
-    }
-    ref.invalidate(userProfileProvider(user.id));
-    setState(() => _isEditing = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully')),
-      );
-    }
-  }
+      
+      // Invalidate providers list if they are a provider/seller so search results update
+      if (isProviderOrSeller) {
+        ref.invalidate(verifiedProvidersProvider);
+      }
 
-  bool _isProviderRole(String role) {
-    final r = role.toLowerCase();
-    return r.contains('service') || r.contains('seller') || r == 'mechanic' || r == 'towing' || r == 'rental';
+      _didInitFromProfile = false; // Force re-hydration from new profile data
+      ref.invalidate(userProfileProvider(user.id));
+      
+      setState(() {
+        _isEditing = false;
+        _isSaving = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSaving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Save Failed: $e'), 
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   /// True when admin has approved this provider (verification_status = approved or verified).
@@ -305,67 +466,71 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Future<void> _showProfilePhotoOptions() async {
+    debugPrint('DEBUG: _showProfilePhotoOptions called');
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE4E7EC),
-                  borderRadius: BorderRadius.circular(2),
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE4E7EC),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Profile Photo',
-                style: GoogleFonts.manrope(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1D2939),
+                const SizedBox(height: 20),
+                Text(
+                  'Profile Photo',
+                  style: GoogleFonts.manrope(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1D2939),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              _buildPhotoOption(
-                icon: Icons.photo_library,
-                title: 'Choose Photo',
-                subtitle: 'Select from your device',
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickAndUploadImage();
-                },
-              ),
-              _buildPhotoOption(
-                icon: Icons.person_outline,
-                title: 'No Profile Photo',
-                subtitle: 'Display your initials',
-                onTap: () {
-                  Navigator.pop(context);
-                  _removeProfilePhoto(showInitials: true);
-                },
-              ),
-              _buildPhotoOption(
-                icon: Icons.delete_outline,
-                title: 'Delete Photo',
-                subtitle: 'Remove current photo',
-                onTap: () {
-                  Navigator.pop(context);
-                  _removeProfilePhoto(showInitials: false);
-                },
-                isDestructive: true,
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+                _buildPhotoOption(
+                  icon: Icons.photo_library,
+                  title: 'Choose Photo',
+                  subtitle: 'Select from your device',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndUploadImage();
+                  },
+                ),
+                _buildPhotoOption(
+                  icon: Icons.person_outline,
+                  title: 'No Profile Photo',
+                  subtitle: 'Display your initials',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeProfilePhoto(showInitials: true);
+                  },
+                ),
+                _buildPhotoOption(
+                  icon: Icons.delete_outline,
+                  title: 'Delete Photo',
+                  subtitle: 'Remove current photo',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeProfilePhoto(showInitials: false);
+                  },
+                  isDestructive: true,
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -667,6 +832,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   Scaffold _buildProviderProfileScaffold(UserProfile profile, bool isWide) {
     const bg = Color(0xFFF7F9FB);
+    final isEditOnlyPage = widget.initialProviderEditMode;
+
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
@@ -674,13 +841,49 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (isEditOnlyPage) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: Text(
-          'Provider Profile Settings',
+          isEditOnlyPage ? 'Edit Profile Settings' : 'Provider Profile',
           style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
         ),
         centerTitle: true,
+        actions: [
+          if (isEditOnlyPage)
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Exit Edit Mode',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+            else
+            TextButton(
+              onPressed: () async {
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfileSettingsPage(initialProviderEditMode: true),
+                  ),
+                );
+                if (mounted) {
+                  _didInitFromProfile = false;
+                  ref.invalidate(userProfileProvider(profile.uid));
+                  setState(() {});
+                }
+              },
+              child: const Text(
+                'Edit Profile',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -695,7 +898,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _shopDisplayNameController.text.isEmpty ? profile.fullName : _shopDisplayNameController.text,
+                        profile.fullName,
                         style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939)),
                       ),
                       if (_isProviderApproved(profile.verificationStatus)) ...[
@@ -727,58 +930,275 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 ],
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-                  _buildProviderServiceAreaAndHours(profile),
-                  if (!kIsWeb) ...[
-                    const SizedBox(height: 32),
-                    _buildProviderServiceTypes(profile),
-                  ],
-                  const SizedBox(height: 32),
-                  _buildOperationalBusinessDetails(profile),
-                  const SizedBox(height: 32),
-                  _buildServiceSpecializations(profile),
-                  const SizedBox(height: 32),
-                  _buildFinancialPayout(),
-                  const SizedBox(height: 32),
-                  _buildTrustExperience(),
-                  const SizedBox(height: 32),
-                  _buildNotificationAlertSettings(),
-                  if (!kIsWeb) ...[
-                    const SizedBox(height: 32),
-                    _buildDocumentsVault(profile),
-                  ],
-                  const SizedBox(height: 32),
-                  _buildProviderShopBranding(profile),
-                  const SizedBox(height: 32),
-                  _buildPersonalInformation(),
-                  const SizedBox(height: 32),
-                  _buildBusinessInformation(profile),
-                  if (!kIsWeb) ...[
-                    const SizedBox(height: 32),
-                    _buildSafetySection(),
-                  ],
-                  const SizedBox(height: 32),
-                  _buildActionsSection(profile),
-                  const SizedBox(height: 40),
-                  _buildProviderFooterButtons(),
-                  const SizedBox(height: 40),
-                  Text(
-                    'BoostDrive Version 2.4.1 (1209)',
-                    style: GoogleFonts.manrope(color: const Color(0xFF98A2B3), fontSize: 11, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
+            if (isEditOnlyPage || _isProviderEditMode)
+              _buildProviderStepperContent(profile, isWide)
+            else
+              _buildProviderViewContent(profile, isWide),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildProviderViewContent(UserProfile profile, bool isWide) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+
+          _buildBusinessInformation(profile),
+          if (!kIsWeb) ...[
+            const SizedBox(height: 32),
+            _buildSafetySection(),
+          ],
+          const SizedBox(height: 32),
+          _buildProviderServiceAreaAndHours(profile),
+          if (!kIsWeb) ...[
+            const SizedBox(height: 32),
+            _buildProviderServiceTypes(profile),
+          ],
+          const SizedBox(height: 32),
+          _buildOperationalBusinessDetails(profile),
+          const SizedBox(height: 32),
+          _buildServiceSpecializations(profile),
+          const SizedBox(height: 32),
+          _buildFinancialPayout(),
+          const SizedBox(height: 32),
+          _buildTrustExperience(),
+          const SizedBox(height: 32),
+          _buildNotificationAlertSettings(),
+          if (!kIsWeb) ...[
+            const SizedBox(height: 32),
+            _buildDocumentsVault(profile),
+        ],
+        const SizedBox(height: 40),
+          Text(
+            'BoostDrive Version 2.4.1 (1209)',
+            style: GoogleFonts.manrope(color: const Color(0xFF98A2B3), fontSize: 11, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProviderStepperContent(UserProfile profile, bool isWide) {
+    const steps = [
+      'Business Profile',
+      'Legal Docs & Certs',
+    ];
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BoostDriveStepper(
+            currentStep: _providerCurrentStep,
+            stepTitles: steps,
+          ),
+          const SizedBox(height: 16),
+          _buildProviderStepContent(profile),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              if (_providerCurrentStep > 0)
+                TextButton(
+                  onPressed: () {
+                    setState(() => _providerCurrentStep--);
+                  },
+                  child: const Text('Back'),
+                ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: () async {
+                  if (!_isProviderStepValid(_providerCurrentStep, profile)) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _providerCurrentStep == 1
+                                ? 'Please upload all required documents before continuing.'
+                                : 'Please complete all fields in this section before continuing.',
+                            style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  final isLastStep = _providerCurrentStep >= steps.length - 1;
+
+                  // Prevent final save if mandatory legal docs are missing.
+                  final hasDocs = _galleryUrls.isNotEmpty;
+                  if (isLastStep && !hasDocs) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please upload your required legal documents before saving your profile.'),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  if (!isLastStep) {
+                    setState(() => _providerCurrentStep++);
+                  } else {
+                    await _handleSaveProfile();
+                    if (mounted) {
+                      if (widget.initialProviderEditMode) {
+                        Navigator.pop(context);
+                      } else {
+                        setState(() {
+                          _isProviderEditMode = false;
+                          _providerCurrentStep = 0;
+                        });
+                      }
+                    }
+                  }
+                },
+                child: Text(
+                  _providerCurrentStep < steps.length - 1 ? 'Next' : 'Save Profile',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Global actions for the provider edit flow so Cancel / Save are
+          // available from every step, not only on the final summary.
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    final user = ref.read(currentUserProvider);
+                    if (user != null) {
+                      _didInitFromProfile = false;
+                      ref.invalidate(userProfileProvider(user.id));
+                    }
+                    if (widget.initialProviderEditMode) {
+                      Navigator.pop(context);
+                    } else {
+                      setState(() {
+                        _isProviderEditMode = false;
+                        _providerCurrentStep = 0;
+                      });
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                    side: const BorderSide(color: Color(0xFFD0D5DD)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: const Color(0xFF344054)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    // Reuse the same validation and legal-document checks as the
+                    // stepper validation, but allow saving from any step.
+                    if (!_isProviderStepValid(_providerCurrentStep, profile)) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              _providerCurrentStep == 1
+                                  ? 'Please upload all required documents before continuing.'
+                                  : 'Please complete all fields in this section before saving.',
+                              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+
+                    await _handleSaveProfile();
+                    // Stay on the Edit Profile Settings page after saving so
+                    // providers can continue refining other sections. The
+                    // global "Exit Edit Mode" action in the app bar still
+                    // closes this screen when they are done.
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                    backgroundColor: BoostDriveTheme.primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    'Save Changes',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProviderStepContent(UserProfile profile) {
+    switch (_providerCurrentStep) {
+      case 0: // Business Profile + Contact Info + Specializations + Location & Payouts
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildBusinessInformation(profile),
+            const SizedBox(height: 32),
+            _buildNotificationAlertSettings(),
+            const SizedBox(height: 32),
+            _buildTrustExperience(),
+            const SizedBox(height: 32),
+            _buildServiceSpecializations(profile),
+            const SizedBox(height: 32),
+            _buildOperationalBusinessDetails(profile),
+            const SizedBox(height: 24),
+            _buildProviderServiceAreaAndHours(profile),
+            const SizedBox(height: 24),
+            _buildFinancialPayout(),
+          ],
+        );
+      case 1: // Legal Docs & Certs (BIPA/ID + NTA/RA)
+        return _buildDocumentsVault(profile);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  bool _isProviderStepValid(int stepIndex, UserProfile profile) {
+    switch (stepIndex) {
+      case 0: // Business Profile (all combined)
+        return _tradingNameController.text.trim().isNotEmpty;
+      case 1: // Legal & Identity, professional permits, tax and social compliance
+        // All required legal and compliance documents must be uploaded before continuing.
+        final isTowingProvider =
+            (profile.role.toLowerCase() == 'towing') || (_primaryServiceCategory.toLowerCase() == 'towing');
+        final requiredSlots = <int>[0, 1, 2, 3, 5, 6]; // BIPA or CC1, Owner ID, Fitness, NTA, NamRA, Social Security
+        if (isTowingProvider) {
+          requiredSlots.add(4); // Road Carrier Permit
+        }
+        return requiredSlots.every(
+          (index) =>
+              index < _galleryUrls.length &&
+              _galleryUrls[index].trim().isNotEmpty,
+        );
+      default:
+        return true;
+    }
   }
 
   Widget _buildProviderBanner(UserProfile profile) {
@@ -805,9 +1225,15 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           right: 0,
           bottom: -44,
           child: Center(
-            child: GestureDetector(
-              onTap: _isUploading ? null : _showProfilePhotoOptions,
-              child: Stack(
+            child: MouseRegion(
+              cursor: _isProviderEditMode ? SystemMouseCursors.click : SystemMouseCursors.basic,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: (_isUploading || !_isProviderEditMode) ? null : () {
+                  debugPrint('DEBUG: Provider banner profile tap');
+                  _showProfilePhotoOptions();
+                },
+                child: Stack(
                 children: [
                   CircleAvatar(
                     radius: 52,
@@ -816,26 +1242,39 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                         ? MemoryImage(_optimisticImage!) as ImageProvider
                         : (profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null),
                     child: profile.profileImg.isEmpty && _optimisticImage == null
-                        ? Text(getInitials(profile.fullName), style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: BoostDriveTheme.primaryColor))
+                        ? Text(
+                            getInitials(profile.fullName),
+                            style: GoogleFonts.manrope(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: BoostDriveTheme.primaryColor,
+                            ),
+                          )
                         : null,
                   ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: BoostDriveTheme.primaryColor, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                      child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                  if (_isProviderEditMode)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: BoostDriveTheme.primaryColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
           ),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   // ignore: unused_element
   Widget _buildProviderMetrics() {
@@ -947,6 +1386,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _serviceAreaController,
+          readOnly: !_isProviderEditMode,
+          enabled: _isProviderEditMode,
           style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
           decoration: _providerInputDecoration(hint: 'e.g. Within 50 km of Windhoek, City centre'),
         ),
@@ -955,6 +1396,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _workingHoursController,
+          readOnly: !_isProviderEditMode,
+          enabled: _isProviderEditMode,
           style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
           decoration: _providerInputDecoration(hint: 'e.g. Mon–Fri 8am–6pm, Sat 9am–1pm or 24/7'),
         ),
@@ -997,6 +1440,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             final selected = _selectedServiceTypes.contains(value);
             return GestureDetector(
               onTap: () {
+                if (!_isProviderEditMode) return;
                 setState(() {
                   if (selected) {
                     _selectedServiceTypes = List<String>.from(_selectedServiceTypes)..remove(value);
@@ -1071,7 +1515,110 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         final label = e.value;
         final isSelected = selected.contains(value);
         return GestureDetector(
-          onTap: () => onToggle(value),
+          onTap: () async {
+            if (!_isProviderEditMode) return;
+            if (options.contains(const MapEntry('other', 'Other')) && value == 'other') {
+              final result = await showDialog<String>(
+                context: context,
+                builder: (context) {
+                  final controller = TextEditingController(text: _otherBrandExpertiseLabel);
+                  return AlertDialog(
+                    title: Text(
+                      'Other brand expertise',
+                      style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                    ),
+                    content: TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter one brand name',
+                        helperText: 'Example: Jeep',
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(null),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+                        child: Text(
+                          'Save',
+                          style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (result != null && result.isNotEmpty) {
+                setState(() {
+                  _otherBrandExpertiseLabel = result;
+                  final key = 'custom_brand_${result.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_')}';
+                  final exists = _dynamicBrandOptions.any((entry) => entry.key == key);
+                  if (!exists) {
+                    _dynamicBrandOptions.add(MapEntry(key, result));
+                  }
+                  if (!selected.contains(key)) {
+                    selected.add(key);
+                  }
+                });
+              } else {
+                // If dialog was cancelled, leave the "Other" chip as-is.
+              }
+            } else if (options.contains(const MapEntry('other_service', 'Other')) && value == 'other_service') {
+              final result = await showDialog<String>(
+                context: context,
+                builder: (context) {
+                  final controller = TextEditingController(text: _otherServiceTagLabel);
+                  return AlertDialog(
+                    title: Text(
+                      'Other service tag',
+                      style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                    ),
+                    content: TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        hintText: 'Describe the other service, you can add more than one separated by commas',
+                        helperText: 'Example: Auto electrical, Air suspension',
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(null),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+                        child: Text(
+                          'Save',
+                          style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (result != null && result.isNotEmpty) {
+                setState(() {
+                  _otherServiceTagLabel = result;
+                  final key = 'custom_service_${result.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_')}';
+                  final exists = _dynamicServiceTagOptions.any((entry) => entry.key == key);
+                  if (!exists) {
+                    _dynamicServiceTagOptions.add(MapEntry(key, result));
+                  }
+                  if (!selected.contains(key)) {
+                    selected.add(key);
+                  }
+                });
+              } else {
+                // Cancelled, leave the "Other" chip untouched.
+              }
+            } else {
+              onToggle(value);
+            }
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -1109,7 +1656,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           Row(
             children: [
               Expanded(child: Text('Open 24/7', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
-              Switch(value: _businessHours24_7, onChanged: (v) => setState(() => _businessHours24_7 = v), activeTrackColor: BoostDriveTheme.primaryColor),
+              Switch(
+                value: _businessHours24_7,
+                onChanged: _isProviderEditMode ? (v) => setState(() => _businessHours24_7 = v) : null,
+                activeTrackColor: BoostDriveTheme.primaryColor,
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -1118,19 +1669,19 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         ],
         _providerLabel('Service radius (km)'),
         const SizedBox(height: 8),
-        TextField(controller: _serviceRadiusKmController, keyboardType: TextInputType.number, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Max distance you travel for jobs')),
+        TextField(
+          controller: _serviceRadiusKmController,
+          keyboardType: TextInputType.number,
+          readOnly: !_isProviderEditMode,
+          enabled: _isProviderEditMode,
+          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          decoration: _providerInputDecoration(hint: 'Max distance you travel for jobs'),
+        ),
         const SizedBox(height: 16),
         _providerLabel('Workshop address'),
         const SizedBox(height: 8),
-        TextField(controller: _workshopAddressController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
+        TextField(controller: _workshopAddressController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
         const SizedBox(height: 16),
-        _providerLabel('Social & website'),
-        const SizedBox(height: 8),
-        TextField(controller: _socialFacebookController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Facebook URL')),
-        const SizedBox(height: 8),
-        TextField(controller: _socialInstagramController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Instagram URL')),
-        const SizedBox(height: 8),
-        TextField(controller: _websiteUrlController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Website URL')),
       ],
     );
   }
@@ -1142,6 +1693,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   static const List<MapEntry<String, String>> _serviceTagOptions = [
     MapEntry('diagnostics', 'Diagnostics'), MapEntry('hybrid_electric', 'Hybrid/Electric'), MapEntry('panel_beating', 'Panel Beating'),
     MapEntry('ac_repair', 'AC Repair'), MapEntry('gearbox', 'Gearbox Specialist'), MapEntry('brakes', 'Brakes'), MapEntry('engine', 'Engine'),
+    MapEntry('other_service', 'Other'),
   ];
   static const List<MapEntry<String, String>> _towingOptions = [
     MapEntry('flatbed', 'Flatbed'), MapEntry('wheel_lift', 'Wheel Lift'), MapEntry('heavy_duty', 'Heavy Duty (trucks)'),
@@ -1149,6 +1701,18 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   Widget _buildServiceSpecializations(UserProfile profile) {
     final isTowing = profile.role.toLowerCase().contains('towing');
+    final brandOptionsForView = _isProviderEditMode
+        ? [..._brandOptions, ..._dynamicBrandOptions]
+        : [
+            ..._brandOptions.where((o) => o.key != 'other'),
+            ..._dynamicBrandOptions,
+          ];
+    final serviceTagOptionsForView = _isProviderEditMode
+        ? [..._serviceTagOptions, ..._dynamicServiceTagOptions]
+        : [
+            ..._serviceTagOptions.where((o) => o.key != 'other_service'),
+            ..._dynamicServiceTagOptions,
+          ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1158,11 +1722,19 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 16),
         _providerLabel('Brand expertise'),
         const SizedBox(height: 8),
-        _buildMultiSelectChips(_brandOptions, _selectedBrandExpertise, (v) => _toggleMultiSelect(_selectedBrandExpertise, v)),
+        _buildMultiSelectChips(
+          brandOptionsForView,
+          _selectedBrandExpertise,
+          (v) => _toggleMultiSelect(_selectedBrandExpertise, v),
+        ),
         const SizedBox(height: 16),
         _providerLabel('Service tags'),
         const SizedBox(height: 8),
-        _buildMultiSelectChips(_serviceTagOptions, _selectedServiceTags, (v) => _toggleMultiSelect(_selectedServiceTags, v)),
+        _buildMultiSelectChips(
+          serviceTagOptionsForView,
+          _selectedServiceTags,
+          (v) => _toggleMultiSelect(_selectedServiceTags, v),
+        ),
         if (isTowing) ...[
           const SizedBox(height: 16),
           _providerLabel('Towing capabilities'),
@@ -1183,28 +1755,143 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 16),
         _providerLabel('Bank name'),
         const SizedBox(height: 8),
-        TextField(controller: _bankNameController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
+        TextField(controller: _bankNameController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
         const SizedBox(height: 12),
         _providerLabel('Branch'),
         const SizedBox(height: 8),
-        TextField(controller: _bankBranchController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Branch name or code')),
+        TextField(controller: _bankBranchController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Branch name or code')),
         const SizedBox(height: 12),
         _providerLabel('Account number'),
         const SizedBox(height: 8),
-        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Bank account number')),
+        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Bank account number')),
         const SizedBox(height: 12),
         _providerLabel(r'Estimated hourly rate (N$)'),
         const SizedBox(height: 8),
-        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
+        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
         const SizedBox(height: 12),
         _providerLabel('Tax / VAT number'),
         const SizedBox(height: 8),
-        TextField(controller: _taxVatNumberController, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'For legal invoices')),
+        TextField(controller: _taxVatNumberController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'For legal invoices')),
       ],
     );
   }
 
+  // Gallery images use slots 7-16 in _galleryUrls to avoid conflicts with
+  // legal document slots 0-6. Maximum 10 gallery images, minimum 1.
+  static const int _gallerySlotOffset = 7;
+  static const int _galleryMaxImages = 10;
+
+  List<String> get _galleryImageUrls {
+    final images = <String>[];
+    for (int i = _gallerySlotOffset; i < _gallerySlotOffset + _galleryMaxImages; i++) {
+      if (i < _galleryUrls.length && _galleryUrls[i].trim().isNotEmpty) {
+        images.add(_galleryUrls[i]);
+      }
+    }
+    return images;
+  }
+
+  Future<void> _pickAndUploadGalleryImage() async {
+    if (_galleryImageUrls.length >= _galleryMaxImages) return;
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+    final profile = await ref.read(userProfileProvider(user.id).future);
+    if (profile == null) return;
+
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 75);
+    if (image == null) return;
+
+    try {
+      setState(() => _isUploadingDocuments = true);
+
+      final bytes = await image.readAsBytes();
+      final publicUrl = await ref.read(authServiceProvider).uploadGalleryImage(bytes, image.name);
+
+      // Find first empty gallery slot (7-16)
+      final updatedUrls = List<String>.from(_galleryUrls);
+      while (updatedUrls.length < _gallerySlotOffset + _galleryMaxImages) {
+        updatedUrls.add('');
+      }
+      for (int i = _gallerySlotOffset; i < _gallerySlotOffset + _galleryMaxImages; i++) {
+        if (updatedUrls[i].trim().isEmpty) {
+          updatedUrls[i] = publicUrl;
+          break;
+        }
+      }
+
+      setState(() => _galleryUrls = updatedUrls);
+      final updatedProfile = profile.copyWith(galleryUrls: updatedUrls);
+      await ref.read(userServiceProvider).updateProfile(updatedProfile);
+      ref.invalidate(userProfileProvider(user.id));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Photo added to gallery.', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+          backgroundColor: BoostDriveTheme.primaryColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error uploading photo: $e', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingDocuments = false);
+    }
+  }
+
+  Future<void> _deleteGalleryImage(String url) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+    final profile = await ref.read(userProfileProvider(user.id).future);
+    if (profile == null) return;
+
+    try {
+      setState(() => _isUploadingDocuments = true);
+
+      await ref.read(authServiceProvider).deleteGalleryImage(url);
+
+      final updatedUrls = List<String>.from(_galleryUrls);
+      final idx = updatedUrls.indexOf(url);
+      if (idx != -1) updatedUrls[idx] = '';
+
+      setState(() => _galleryUrls = updatedUrls);
+      final updatedProfile = profile.copyWith(galleryUrls: updatedUrls);
+      await ref.read(userServiceProvider).updateProfile(updatedProfile);
+      ref.invalidate(userProfileProvider(user.id));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Photo removed.', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+          backgroundColor: Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error removing photo: $e', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingDocuments = false);
+    }
+  }
+
   Widget _buildTrustExperience() {
+    final galleryImages = _galleryImageUrls;
+    final canAddMore = galleryImages.length < _galleryMaxImages;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1214,18 +1901,127 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 16),
         _providerLabel('Business bio (About us)'),
         const SizedBox(height: 8),
-        TextField(controller: _businessBioController, maxLines: 4, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Your history and passion')),
+        TextField(
+          controller: _businessBioController,
+          maxLines: 4,
+          maxLength: 1300,
+          readOnly: !_isProviderEditMode,
+          enabled: _isProviderEditMode,
+          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          decoration: _providerInputDecoration(hint: 'Your history and passion'),
+        ),
         const SizedBox(height: 16),
         _providerLabel('Team size (qualified technicians)'),
         const SizedBox(height: 8),
-        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Number on-site')),
-        const SizedBox(height: 16),
-        Text('Gallery (up to 5 photos)', style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
-        const SizedBox(height: 8),
-        Text('Workshop, tow truck, or completed repairs. Upload coming soon.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF98A2B3))),
+        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Number on-site')),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Gallery (${galleryImages.length}/$_galleryMaxImages photos)',
+              style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085)),
+            ),
+            if (galleryImages.isEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Text('Min 1 required', style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.orange.shade700)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Workshop, tow truck, or completed repairs. Upload 1–10 photos.',
+          style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF98A2B3)),
+        ),
+        const SizedBox(height: 12),
+        if (_isUploadingDocuments)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              // Existing gallery thumbnails
+              ...galleryImages.map((url) => _buildGalleryThumbnail(url)),
+              // Add photo button (only if under max)
+              if (canAddMore && _isProviderEditMode)
+                GestureDetector(
+                  onTap: _pickAndUploadGalleryImage,
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFD0D5DD), style: BorderStyle.solid),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_photo_alternate_outlined, color: BoostDriveTheme.primaryColor, size: 28),
+                        const SizedBox(height: 4),
+                        Text('Add Photo', style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w600, color: BoostDriveTheme.primaryColor)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }
+
+  Widget _buildGalleryThumbnail(String url) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.network(
+            url,
+            width: 90,
+            height: 90,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F4F7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.broken_image_outlined, color: Color(0xFF98A2B3)),
+            ),
+          ),
+        ),
+        if (_isProviderEditMode)
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () => _deleteGalleryImage(url),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
+                ),
+                padding: const EdgeInsets.all(4),
+                child: const Icon(Icons.close, color: Colors.white, size: 12),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
 
   Widget _buildNotificationAlertSettings() {
     return Column(
@@ -1238,19 +2034,38 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         Row(
           children: [
             Expanded(child: Text('Emergency (SOS) notifications', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
-            Switch(value: _sosAlertsEnabled, onChanged: (v) => setState(() => _sosAlertsEnabled = v), activeTrackColor: BoostDriveTheme.primaryColor),
+            Switch(value: _sosAlertsEnabled, onChanged: _isProviderEditMode ? (v) => setState(() => _sosAlertsEnabled = v) : null, activeTrackColor: BoostDriveTheme.primaryColor),
           ],
         ),
         const SizedBox(height: 16),
         _providerLabel('Preferred communication'),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        Row(
           children: [
-            _buildCommChip('app_chat', 'App Chat'),
-            _buildCommChip('phone', 'Phone'),
-            _buildCommChip('whatsapp', 'WhatsApp'),
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildCommChip('app_chat', 'App Chat'),
+                  _buildCommChip('phone', 'Phone'),
+                  _buildCommChip('whatsapp', 'WhatsApp'),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: !_isProviderEditMode
+                  ? null
+                  : () {
+                      setState(() {
+                        _preferredCommunication.clear();
+                      });
+                    },
+              child: const Text(
+                'Clear',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
           ],
         ),
       ],
@@ -1258,9 +2073,18 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildCommChip(String value, String label) {
-    final selected = _preferredCommunication == value;
+    final selected = _preferredCommunication.contains(value);
     return GestureDetector(
-      onTap: () => setState(() => _preferredCommunication = value),
+      onTap: () {
+        if (!_isProviderEditMode) return;
+        setState(() {
+          if (_preferredCommunication.contains(value)) {
+            _preferredCommunication.remove(value);
+          } else {
+            _preferredCommunication.add(value);
+          }
+        });
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -1274,14 +2098,21 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildDocumentsVault(UserProfile profile) {
-    final hasDocs = _galleryUrls.isNotEmpty;
+    final hasDocs = _galleryUrls.any((url) => url.trim().isNotEmpty);
     final isApproved = _isProviderApproved(profile.verificationStatus);
+    final isTowingProvider =
+        (profile.role.toLowerCase() == 'towing') || (_primaryServiceCategory.toLowerCase() == 'towing');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('Documents Vault', Icons.folder_outlined),
-        const SizedBox(height: 12),
-        Text('Upload your official business documents for verification (e.g. BIPA, tax certificate).', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        const SizedBox(height: 10),
+        Text(
+          'Upload your official business documents for verification, for example BIPA and tax certificates. '
+          'Only upload one file per document type. If you have several versions or pages of the same document, '
+          'please merge them into a single file and upload that one file only for that row.',
+          style: GoogleFonts.manrope(fontSize: 16, color: const Color(0xFF667085)),
+        ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
@@ -1289,86 +2120,80 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Legal and identity documents
               _documentStatusRow(
-                'Tax Certificate',
+                'BIPA or CC1 business registration',
                 isApproved
                     ? 'Approved'
                     : hasDocs
                         ? 'Submitted – pending review'
                         : 'Pending upload',
               ),
+              _documentInputRow('BIPA or CC1 document', 0),
               const SizedBox(height: 12),
               _documentStatusRow(
-                'Trade Certificate',
+                'Certified copy of owner ID',
                 isApproved
                     ? 'On file'
                     : hasDocs
                         ? 'Submitted – pending review'
                         : '—',
               ),
+              _documentInputRow('Certified owner ID document', 1),
               const SizedBox(height: 12),
               _documentStatusRow(
-                'BIPA / NTA',
+                'Municipal fitness certificate',
                 isApproved
                     ? 'On file'
                     : hasDocs
                         ? 'Submitted – pending review'
                         : '—',
               ),
+              _documentInputRow('Municipal fitness certificate document', 2),
               const SizedBox(height: 16),
-              if (hasDocs) ...[
-                Text('Uploaded documents', style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _galleryUrls.map((url) {
-                    final fileName = url.split('/').last;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE4E7EC)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.description_outlined, size: 16, color: Color(0xFF667085)),
-                          const SizedBox(width: 6),
-                          Text(
-                            fileName,
-                            style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF344054)),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+
+              // Professional permits and compliance
+              _documentStatusRow(
+                'NTA trade certificate',
+                isApproved
+                    ? 'On file'
+                    : hasDocs
+                        ? 'Submitted – pending review'
+                        : '—',
+              ),
+              _documentInputRow('NTA trade certificate document', 3),
+              const SizedBox(height: 12),
+              if (isTowingProvider) ...[
+                _documentStatusRow(
+                  'Road Carrier Permit (towing)',
+                  isApproved
+                      ? 'On file'
+                      : hasDocs
+                          ? 'Submitted – pending review'
+                          : '—',
                 ),
+                _documentInputRow('Road Carrier Permit document', 4),
                 const SizedBox(height: 12),
               ],
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ElevatedButton.icon(
-                  onPressed: _isUploadingDocuments ? null : () => _pickAndUploadProviderDocument(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  icon: _isUploadingDocuments
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.upload_file, size: 18, color: Colors.white),
-                  label: Text(
-                    _isUploadingDocuments ? 'Uploading…' : 'Upload documents',
-                    style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
-                  ),
-                ),
+              _documentStatusRow(
+                'NamRA tax certificate',
+                isApproved
+                    ? 'On file'
+                    : hasDocs
+                        ? 'Submitted – pending review'
+                        : '—',
               ),
+              _documentInputRow('NamRA tax certificate document', 5),
+              const SizedBox(height: 12),
+              _documentStatusRow(
+                'Social Security good standing',
+                isApproved
+                    ? 'On file'
+                    : hasDocs
+                        ? 'Submitted – pending review'
+                        : '—',
+              ),
+              _documentInputRow('Social Security good standing document', 6),
             ],
           ),
         ),
@@ -1376,26 +2201,81 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
-  Future<void> _pickAndUploadProviderDocument() async {
+  Future<void> _pickAndUploadProviderDocumentForSlot(int slotIndex) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
 
     final profile = await ref.read(userProfileProvider(user.id).future);
     if (profile == null) return;
 
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (file == null) return;
+    // Use FilePicker so providers can upload PDFs, Word, Excel, PowerPoint, etc.
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowMultiple: false,
+      withData: true,
+      allowedExtensions: [
+        'pdf',
+        'doc',
+        'docx',
+        'csv',
+        'xls',
+        'xlsx',
+        'ppt',
+        'pptx',
+      ],
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final pickedFile = result.files.first;
+    final bytes = pickedFile.bytes;
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unable to read file contents. Please try again.',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Enforce a maximum file size of 10 MB per document.
+    const maxBytes = 10 * 1024 * 1024; // 10 MB
+    if (bytes.lengthInBytes > maxBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'File is too large. Please upload a document smaller than 10 MB.',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+      return;
+    }
 
     try {
       setState(() {
         _isUploadingDocuments = true;
       });
 
-      final bytes = await file.readAsBytes();
-      final publicUrl = await ref.read(authServiceProvider).uploadProviderDocument(bytes, file.name);
+      final publicUrl = await ref.read(authServiceProvider).uploadProviderDocument(bytes, pickedFile.name);
 
-      final updatedUrls = List<String>.from(_galleryUrls)..add(publicUrl);
+      final updatedUrls = List<String>.from(_galleryUrls);
+      while (updatedUrls.length <= slotIndex) {
+        updatedUrls.add('');
+      }
+      updatedUrls[slotIndex] = publicUrl;
 
       // Update local state so the UI reflects the new document immediately.
       setState(() {
@@ -1443,6 +2323,104 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     }
   }
 
+  Future<void> _confirmAndRemoveProviderDocument(String url) async {
+    final slotIndex = _galleryUrls.indexOf(url);
+    if (slotIndex == -1) return;
+    if (_isUploadingDocuments) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            'Remove document?',
+            style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+          ),
+          content: Text(
+            'This document will be removed from your profile. You can upload it again later if needed.',
+            style: GoogleFonts.manrope(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(
+                'Remove',
+                style: GoogleFonts.manrope(color: Colors.red, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true) return;
+
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    final profile = await ref.read(userProfileProvider(user.id).future);
+    if (profile == null) return;
+
+    try {
+      setState(() {
+        _isUploadingDocuments = true;
+      });
+
+      // Delete from storage via auth service helper.
+      await ref.read(authServiceProvider).deleteProviderDocument(url);
+
+      // Update profile gallery URLs.
+      final updatedUrls = List<String>.from(_galleryUrls);
+      if (slotIndex < updatedUrls.length) {
+        updatedUrls[slotIndex] = '';
+      }
+      final updatedProfile = profile.copyWith(galleryUrls: updatedUrls);
+      await ref.read(userServiceProvider).updateProfile(updatedProfile);
+      ref.invalidate(userProfileProvider(user.id));
+
+      if (mounted) {
+        setState(() {
+          _galleryUrls = updatedUrls;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Document removed from your profile.',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error removing document: $e',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingDocuments = false;
+        });
+      }
+    }
+  }
+
   Widget _documentStatusRow(String name, String status) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1453,35 +2431,80 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
-  Widget _buildProviderShopBranding(UserProfile profile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.store_outlined, color: BoostDriveTheme.primaryColor, size: 22),
-            const SizedBox(width: 10),
-            Text('Shop Branding', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _providerLabel('Shop Display Name'),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _shopDisplayNameController,
-          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
-          decoration: _providerInputDecoration(),
-        ),
-        const SizedBox(height: 16),
-        _providerLabel('Store Biography'),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _storeBioController,
-          maxLines: 3,
-          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
-          decoration: _providerInputDecoration(hint: 'Describe your shop'),
-        ),
-      ],
+  Widget _documentInputRow(String label, int slotIndex) {
+    String? url;
+    if (slotIndex < _galleryUrls.length) {
+      url = _galleryUrls[slotIndex];
+    }
+    final hasUrl = url != null && url.trim().isNotEmpty;
+    final fileName = hasUrl ? url!.split('/').last : 'No document uploaded';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.manrope(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF667085),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE4E7EC)),
+                  ),
+                  child: Text(
+                    fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      fontSize: 13,
+                      color: hasUrl ? const Color(0xFF344054) : const Color(0xFF98A2B3),
+                    ),
+                  ),
+                ),
+              ),
+              if (_isProviderEditMode) ...[
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _isUploadingDocuments ? null : () => _pickAndUploadProviderDocumentForSlot(slotIndex),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BoostDriveTheme.primaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    minimumSize: const Size(0, 40),
+                  ),
+                  child: Text(
+                    'Upload',
+                    style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: _isUploadingDocuments || !hasUrl ? null : () => _confirmAndRemoveProviderDocument(url!),
+                  child: Text(
+                    'Remove',
+                    style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: hasUrl ? const Color(0xFFB42318) : const Color(0xFF98A2B3),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1705,40 +2728,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
-  Widget _buildProviderFooterButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              foregroundColor: BoostDriveTheme.primaryColor,
-              side: const BorderSide(color: BoostDriveTheme.primaryColor),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text('Preview Store', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-              _handleSaveProfile();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: BoostDriveTheme.primaryColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text('Save All Changes', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
@@ -1747,17 +2736,56 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     return ref.watch(userProfileProvider(user.id)).when(
       data: (profile) {
         if (profile == null) return const Scaffold(body: Center(child: Text('Profile not found')));
-        
-        if (!_isEditing) {
+
+        // Hydrate controllers and flags from profile once so interactive
+        // widgets (switches, chips) are not reset on every rebuild.
+        if (!_didInitFromProfile) {
           _nameController.text = profile.fullName;
           _emailController.text = profile.email;
           _phoneController.text = profile.phoneNumber;
+
+          // Initialize business contact numbers
+          final bizContacts = (profile.businessContactNumber ?? '').split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+          
+          // Clear existing if any
+          for (var c in _businessPhoneControllers) {
+            c.dispose();
+          }
+          for (var f in _businessPhoneFocusNodes) {
+            f.dispose();
+          }
+          _businessPhoneControllers.clear();
+          _businessPhoneFocusNodes.clear();
+
+          if (bizContacts.isEmpty) {
+            _businessPhoneControllers.add(TextEditingController());
+            _businessPhoneFocusNodes.add(FocusNode());
+          } else {
+            for (final contact in bizContacts) {
+              _businessPhoneControllers.add(TextEditingController(text: contact));
+              _businessPhoneFocusNodes.add(FocusNode());
+            }
+          }
+          
+          _businessContactNumberController.text = profile.businessContactNumber ?? '';
           _emergencyNameController.text = profile.emergencyContactName;
           _emergencyPhoneController.text = profile.emergencyContactPhone;
           _serviceAreaController.text = profile.serviceAreaDescription;
           _workingHoursController.text = profile.workingHours;
+          _registeredBusinessNameController.text = profile.registeredBusinessName ?? '';
+          _tradingNameController.text = profile.tradingName ?? '';
+          _businessType = (profile.businessType?.isNotEmpty ?? false)
+              ? profile.businessType!
+              : 'cc';
+          _registrationNumberController.text = profile.registrationNumber ?? '';
+          _yearsInOperationController.text =
+              profile.yearsInOperation != null ? profile.yearsInOperation.toString() : '';
+          _primaryServiceCategory = (profile.primaryServiceCategory?.isNotEmpty ?? false)
+              ? profile.primaryServiceCategory!
+              : 'mechanic';
           _businessHours24_7 = profile.businessHours24_7 ?? false;
-          _serviceRadiusKmController.text = profile.serviceRadiusKm != null ? profile.serviceRadiusKm.toString() : '';
+          _serviceRadiusKmController.text =
+              profile.serviceRadiusKm != null ? profile.serviceRadiusKm.toString() : '';
           _workshopAddressController.text = profile.workshopAddress ?? '';
           _socialFacebookController.text = profile.socialFacebook ?? '';
           _socialInstagramController.text = profile.socialInstagram ?? '';
@@ -1765,29 +2793,76 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           _selectedBrandExpertise = List.from(profile.brandExpertise);
           _selectedServiceTags = List.from(profile.serviceTags);
           _selectedTowingCapabilities = List.from(profile.towingCapabilities);
+
+          // Re-populate dynamic "other" chips from profile data
+          _dynamicBrandOptions.clear();
+          for (final key in _selectedBrandExpertise) {
+            if (key.startsWith('custom_brand_')) {
+              final label = key.substring('custom_brand_'.length).replaceAll('_', ' ');
+              final capitalized = label.isNotEmpty ? (label[0].toUpperCase() + label.substring(1)) : label;
+              if (!_dynamicBrandOptions.any((e) => e.key == key)) {
+                _dynamicBrandOptions.add(MapEntry(key, capitalized));
+              }
+            }
+          }
+          _dynamicServiceTagOptions.clear();
+          for (final key in _selectedServiceTags) {
+            if (key.startsWith('custom_service_')) {
+              final label = key.substring('custom_service_'.length).replaceAll('_', ' ');
+              final capitalized = label.isNotEmpty ? (label[0].toUpperCase() + label.substring(1)) : label;
+              if (!_dynamicServiceTagOptions.any((e) => e.key == key)) {
+                _dynamicServiceTagOptions.add(MapEntry(key, capitalized));
+              }
+            }
+          }
           _bankAccountNumberController.text = profile.bankAccountNumber ?? '';
           _bankBranchController.text = profile.bankBranch ?? '';
           _bankNameController.text = profile.bankName ?? '';
-          _standardLaborRateController.text = profile.standardLaborRate != null ? profile.standardLaborRate.toString() : '';
+          _standardLaborRateController.text =
+              profile.standardLaborRate != null ? profile.standardLaborRate.toString() : '';
           _taxVatNumberController.text = profile.taxVatNumber ?? '';
           _businessBioController.text = profile.businessBio ?? '';
-          _galleryUrls = List.from(profile.galleryUrls);
-          _teamSizeController.text = profile.teamSize != null ? profile.teamSize.toString() : '';
+          // Restore 17-slot structure (0-6 docs, 7-16 gallery) from flattened profile list
+          _galleryUrls = List.generate(17, (_) => '');
+          for (final url in profile.galleryUrls) {
+            if (url.contains('/provider-galleries/')) {
+              // Populate gallery slots (7-16)
+              for (int i = 7; i < 17; i++) {
+                if (_galleryUrls[i].isEmpty) {
+                  _galleryUrls[i] = url;
+                  break;
+                }
+              }
+            } else if (url.contains('/provider-docs/')) {
+              // Populate document slots (0-6) — best effort to keep original slots.
+              // Note: Without index metadata, this fills from slot 0.
+              for (int i = 0; i < 7; i++) {
+                if (_galleryUrls[i].isEmpty) {
+                  _galleryUrls[i] = url;
+                  break;
+                }
+              }
+            }
+          }
+          _teamSizeController.text =
+              profile.teamSize != null ? profile.teamSize.toString() : '';
           _sosAlertsEnabled = profile.sosAlertsEnabled ?? true;
-          _preferredCommunication = profile.preferredCommunication ?? 'app_chat';
+          final comm = profile.preferredCommunication ?? 'app_chat';
+          _preferredCommunication = comm
+              .split(',')
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty)
+              .toList();
+          if (_preferredCommunication.isEmpty) {
+            _preferredCommunication = ['app_chat'];
+          }
+          _didInitFromProfile = true;
         }
 
-        final isProvider = profile.role.toLowerCase().contains('service') || profile.role.toLowerCase().contains('seller') || profile.role == 'mechanic' || profile.role == 'towing' || profile.role == 'rental';
+        final isProvider = _isProviderRole(profile.role);
         final isWide = MediaQuery.of(context).size.width > 900;
 
         if (isProvider) {
-          if (_shopDisplayNameController.text.isEmpty && profile.fullName.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && _shopDisplayNameController.text.isEmpty) {
-                _shopDisplayNameController.text = profile.fullName;
-              }
-            });
-          }
           if (!kIsWeb) {
             final fromProfile = profile.providerServiceTypes;
             if (fromProfile.isNotEmpty && _selectedServiceTypes.isEmpty) {
@@ -1824,11 +2899,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 IconButton(
                   icon: const Icon(Icons.check, color: Colors.white),
                   onPressed: _handleSaveProfile,
-                )
-              else
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                  onPressed: () => setState(() => _isEditing = true),
                 ),
             ],
           ),
@@ -1842,13 +2912,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
                   child: Column(
                     children: [
-                      _buildPersonalInformation(),
+                      _buildPersonalInformation(showInlineEdit: true),
                       if (!kIsWeb) ...[
                         const SizedBox(height: 32),
                         _buildSafetySection(),
                       ],
                       const SizedBox(height: 32),
-                      _buildActionsSection(profile),
                     ],
                   ),
                 ),
@@ -1899,14 +2968,18 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildProfileHeader(UserProfile profile) {
-    final isProvider = profile.role.toLowerCase().contains('service') || profile.role.toLowerCase().contains('seller');
+    final isProvider = _isProviderRole(profile.role);
     
     return Column(
       children: [
         MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
-            onTap: _isUploading ? null : _showProfilePhotoOptions,
+            behavior: HitTestBehavior.opaque,
+            onTap: _isUploading ? null : () {
+              debugPrint('DEBUG: Standard profile header tap');
+              _showProfilePhotoOptions();
+            },
             child: Stack(
               children: [
                 Container(
@@ -1954,20 +3027,20 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       ),
                     ),
                   ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: BoostDriveTheme.primaryColor,
-                      shape: BoxShape.circle,
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: BoostDriveTheme.primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: _isUploading 
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.camera_alt, color: Colors.white, size: 16),
                     ),
-                    child: _isUploading 
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.camera_alt, color: Colors.white, size: 16),
                   ),
-                ),
               ],
             ),
           ),
@@ -2010,7 +3083,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           ),
         ] else
           Text(
-            'BoostDrive Member since ${profile.createdAt.year}',
+            profile.isSeller
+                ? 'BoostDrive Seller since ${profile.createdAt.year}'
+                : 'BoostDrive Customer since ${profile.createdAt.year}',
             style: GoogleFonts.manrope(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -2045,33 +3120,229 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  _buildBusinessStat('AVG TIME', '45 mins'),
-                  _buildBusinessStat('COMPLETED', profile.totalEarnings > 0 ? (profile.totalEarnings / 50).toInt().toString() : '0'),
-                  _buildBusinessStat('SUCCESS', profile.verificationStatus == 'verified' ? '100%' : '99%', isLast: true),
-                ],
-              ),
-              const SizedBox(height: 32),
               Text(
-                'ABOUT',
-                style: GoogleFonts.manrope(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF98A2B3),
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                profile.role.toLowerCase().contains('service') 
-                  ? 'Professional service provider since ${profile.createdAt.year}. Dedicated to delivering high-quality logistic and maintenance solutions for the BoostDrive community.'
-                  : 'Verified seller since ${profile.createdAt.year}. Committed to providing quality automotive parts and vehicles to the BoostDrive marketplace.',
+                'Core Business Identity',
                 style: GoogleFonts.manrope(
                   fontSize: 14,
-                  color: const Color(0xFF475467),
-                  height: 1.6,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1D2939),
                 ),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Registered business name'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _registeredBusinessNameController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(
+                  hint: 'Official BIPA name e.g. Mubiana Mechanical Services CC',
+                ),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Trading name (DBA)'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _tradingNameController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(
+                  hint: 'Name customers see, e.g. The Turbo Doc',
+                ),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Business contact number'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _businessContactNumberController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                keyboardType: TextInputType.phone,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(
+                  hint: 'Office WhatsApp or landline',
+                ),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Business type'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _businessType,
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  color: const Color(0xFF1D2939),
+                ),
+                dropdownColor: Colors.white,
+                items: const [
+                  DropdownMenuItem(
+                    value: 'cc',
+                    child: Text(
+                      'Close Corporation (CC)',
+                      style: TextStyle(color: Color(0xFF1D2939)),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'pty_ltd',
+                    child: Text(
+                      'Private Company (Pty Ltd)',
+                      style: TextStyle(color: Color(0xFF1D2939)),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'sole_prop',
+                    child: Text(
+                      'Sole Proprietor',
+                      style: TextStyle(color: Color(0xFF1D2939)),
+                    ),
+                  ),
+                ],
+                onChanged: _isProviderEditMode ? (val) {
+                  if (val == null) return;
+                  setState(() => _businessType = val);
+                } : null,
+                decoration: _providerInputDecoration(),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Registration number'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _registrationNumberController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(
+                  hint: 'e.g. CC/2026/0123',
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Operational Details',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1D2939),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Years in operation'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _yearsInOperationController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                keyboardType: TextInputType.number,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(hint: 'e.g. 5'),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Primary service category'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _primaryServiceCategory,
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  color: const Color(0xFF1D2939),
+                ),
+                dropdownColor: Colors.white,
+                items: const [
+                  DropdownMenuItem(
+                    value: 'mechanic',
+                    child: Text(
+                      'Mechanics',
+                      style: TextStyle(color: Color(0xFF1D2939)),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'towing',
+                    child: Text(
+                      'Towing',
+                      style: TextStyle(color: Color(0xFF1D2939)),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'electrical',
+                    child: Text(
+                      'Electrical',
+                      style: TextStyle(color: Color(0xFF1D2939)),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'tires',
+                    child: Text(
+                      'Tires',
+                      style: TextStyle(color: Color(0xFF1D2939)),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'parts',
+                    child: Text(
+                      'Parts Supply',
+                      style: TextStyle(color: Color(0xFF1D2939)),
+                    ),
+                  ),
+                ],
+                onChanged: _isProviderEditMode ? (val) {
+                  if (val == null) return;
+                  setState(() => _primaryServiceCategory = val);
+                } : null,
+                decoration: _providerInputDecoration(),
+              ),
+              _providerLabel('Team size (technicians/drivers)'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _teamSizeController,
+                keyboardType: TextInputType.number,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(hint: 'Number of staff on your team'),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Physical & Digital Presence',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1D2939),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Workshop physical address'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _workshopAddressController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(hint: 'Registered base of operations'),
+              ),
+              const SizedBox(height: 16),
+              _providerLabel('Website & social links'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _socialFacebookController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(hint: 'Facebook business page URL'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _socialInstagramController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(hint: 'Instagram handle / URL'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _websiteUrlController,
+                readOnly: !_isProviderEditMode,
+                enabled: _isProviderEditMode,
+                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                decoration: _providerInputDecoration(hint: 'Website URL (optional)'),
               ),
             ],
           ),
@@ -2112,7 +3383,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
-  Widget _buildPersonalInformation() {
+  Widget _buildPersonalInformation({bool showInlineEdit = true, bool isProviderProfile = false}) {
+    // In stepper edit mode (showInlineEdit = false) for providers, it should only be editable if _isProviderEditMode is true.
+    // Otherwise, respect _isEditing for normal user settings.
+    final isSectionEditable = isProviderProfile ? _isProviderEditMode : (showInlineEdit ? _isEditing : true);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2120,7 +3394,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'PERSONAL INFORMATION',
+              isProviderProfile ? 'PRIMARY ACCOUNT DETAILS' : 'PERSONAL INFORMATION',
               style: GoogleFonts.manrope(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
@@ -2128,19 +3402,20 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 letterSpacing: 0.5,
               ),
             ),
-            IconButton(
-              onPressed: () {
-                setState(() {
-                  _isEditing = !_isEditing;
-                });
-              },
-              icon: Icon(
-                _isEditing ? Icons.close : Icons.edit,
-                size: 20,
-                color: BoostDriveTheme.primaryColor,
+            if (showInlineEdit)
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isEditing = !_isEditing;
+                  });
+                },
+                icon: Icon(
+                  _isEditing ? Icons.close : Icons.edit,
+                  size: 20,
+                  color: BoostDriveTheme.primaryColor,
+                ),
+                tooltip: _isEditing ? 'Cancel' : 'Edit',
               ),
-              tooltip: _isEditing ? 'Cancel' : 'Edit',
-            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -2154,10 +3429,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             children: [
               _buildInfoTile(
                 icon: Icons.person_outline,
-                title: 'Full Name',
+                title: isProviderProfile ? 'Business Trading Name' : 'Full Name',
                 value: _nameController.text,
                 controller: _nameController,
-                isEditable: _isEditing,
+                isEditable: isSectionEditable,
               ),
               const Divider(height: 1, indent: 64),
               _buildInfoTile(
@@ -2165,21 +3440,74 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 title: 'Email Address',
                 value: _emailController.text,
                 controller: _emailController,
-                isEditable: false,
+                isEditable: isSectionEditable,
               ),
               const Divider(height: 1, indent: 64),
-              _buildInfoTile(
-                icon: Icons.phone_android_outlined,
-                title: 'Phone Number',
-                value: _phoneController.text,
-                controller: _phoneController,
-                isEditable: _isEditing,
-                isLast: true,
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.contact_phone_outlined, size: 16, color: const Color(0xFF667085)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'CONTACT DETAILS',
+                      style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF667085),
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const Divider(height: 1, indent: 64),
+              if (isProviderProfile) ...[
+                // For providers, render multiple business contact numbers
+                for (int i = 0; i < _businessPhoneControllers.length; i++) ...[
+                  _buildInfoTile(
+                    icon: Icons.phone_android_outlined,
+                    title: 'Business Contact Number${_businessPhoneControllers.length > 1 ? " ${i + 1}" : ""}',
+                    value: _businessPhoneControllers[i].text,
+                    controller: _businessPhoneControllers[i],
+                    isEditable: isSectionEditable,
+                    isLast: i == _businessPhoneControllers.length - 1,
+                    focusNode: _businessPhoneFocusNodes[i],
+                    trailingAction: _isProviderEditMode ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_businessPhoneControllers.length > 1)
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline, color: Color(0xFFD92D20), size: 20),
+                            onPressed: () => _removeBusinessPhoneField(i),
+                          ),
+                        if (i == _businessPhoneControllers.length - 1)
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline, color: BoostDriveTheme.primaryColor, size: 20),
+                            onPressed: _addBusinessPhoneField,
+                          ),
+                      ],
+                    ) : null,
+                  ),
+                  if (i < _businessPhoneControllers.length - 1)
+                    const Divider(height: 1, indent: 64),
+                ],
+              ] else ...[
+                // For customers, render single personal contact number
+                _buildInfoTile(
+                  icon: Icons.phone_android_outlined,
+                  title: 'Personal Contact Number',
+                  value: _phoneController.text,
+                  controller: _phoneController,
+                  isEditable: isSectionEditable,
+                  isLast: true,
+                ),
+              ],
             ],
           ),
         ),
-        if (_isEditing) ...[
+        if (showInlineEdit && _isEditing) ...[
           const SizedBox(height: 16),
           Row(
             children: [
@@ -2208,102 +3536,24 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _handleSaveProfile,
+                  onPressed: _isSaving ? null : _handleSaveProfile,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(0, 48),
                     backgroundColor: BoostDriveTheme.primaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text(
-                    'Save Changes',
-                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: Colors.white),
-                  ),
+                  child: _isSaving 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        'Save Changes',
+                        style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: Colors.white),
+                      ),
                 ),
               ),
             ],
           ),
         ],
       ],
-    );
-  }
-
-  Widget _buildActionsSection(UserProfile profile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'ACTIONS',
-          style: GoogleFonts.manrope(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF667085),
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Column(
-          children: [
-            _buildActionButton(
-              icon: Icons.lock_outline,
-              label: 'Change Password',
-              onTap: _showChangePasswordDialog,
-            ),
-            const SizedBox(height: 12),
-            _buildActionButton(
-              icon: Icons.logout,
-              label: 'Log Out',
-              onTap: _handleLogout,
-              color: const Color(0xFFD92D20),
-            ),
-            const SizedBox(height: 12),
-            _buildActionButton(
-              icon: Icons.delete_outline,
-              label: 'Delete Account',
-              onTap: _handleDeleteAccount,
-              color: const Color(0xFF98A2B3),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFF2F4F7)),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: color ?? const Color(0xFF1D2939), size: 20),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: color ?? const Color(0xFF1D2939),
-                ),
-              ),
-              const Spacer(),
-              Icon(Icons.chevron_right, size: 16, color: color?.withValues(alpha: 0.5) ?? const Color(0xFFD0D5DD)),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -2314,6 +3564,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     TextEditingController? controller,
     bool isEditable = false,
     bool isLast = false,
+    Widget? trailingAction,
+    FocusNode? focusNode,
   }) {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -2343,6 +3595,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 if (isEditable)
                   TextField(
                     controller: controller,
+                    focusNode: focusNode,
                     style: GoogleFonts.manrope(fontSize: 13, color: const Color(0xFF667085)),
                     decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                   )
@@ -2358,7 +3611,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFD0D5DD)),
+          if (trailingAction != null) trailingAction,
+          if (trailingAction == null && isEditable)
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFD0D5DD)),
         ],
       ),
     );

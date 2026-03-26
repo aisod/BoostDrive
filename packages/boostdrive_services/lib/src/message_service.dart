@@ -66,6 +66,53 @@ class MessageService {
     }
   }
 
+
+  /// Gets or creates a **direct** conversation between two users (no product).
+  /// Used when a customer taps "Send Message" on a provider's profile page.
+  Future<String> getOrCreateDirectConversation({
+    required String userId,
+    required String providerId,
+  }) async {
+    try {
+      // Check user-initiated direction
+      final asInitiator = await _supabase
+          .from('conversations')
+          .select('id')
+          .eq('buyer_id', userId)
+          .eq('seller_id', providerId)
+          .filter('product_id', 'is', null)
+          .maybeSingle();
+
+      if (asInitiator != null) return asInitiator['id'] as String;
+
+      // Check provider-initiated direction
+      final asProvider = await _supabase
+          .from('conversations')
+          .select('id')
+          .eq('buyer_id', providerId)
+          .eq('seller_id', userId)
+          .filter('product_id', 'is', null)
+          .maybeSingle();
+
+      if (asProvider != null) return asProvider['id'] as String;
+
+      // No existing conversation -- create one
+      final response = await _supabase
+          .from('conversations')
+          .insert({
+            'buyer_id': userId,
+            'seller_id': providerId,
+            // product_id intentionally omitted -- direct provider contact
+          })
+          .select('id')
+          .single();
+
+      return response['id'] as String;
+    } catch (e) {
+      print('Error getting/creating direct conversation: $e');
+      rethrow;
+    }
+  }
   /// Sanitizes a filename for use in storage keys (removes emojis and other invalid characters).
   static String _sanitizeStorageFileName(String fileName) {
     final ext = fileName.contains('.') ? fileName.substring(fileName.lastIndexOf('.')) : '.jpg';

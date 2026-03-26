@@ -4,20 +4,21 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
-import 'parts_marketplace_page.dart';
-import 'rental_marketplace_page.dart';
-import 'all_listings_page.dart';
-import 'messages_page.dart';
-import 'product_detail_page.dart';
-import 'add_listing_page.dart';
-import 'new_arrivals_page.dart';
-import 'company_pages.dart';
-import 'support_pages.dart';
-import 'customer_dashboard_page.dart';
-import 'super_admin_dashboard_page.dart';
+import 'package:boost_drive_web/parts_marketplace_page.dart';
+import 'package:boost_drive_web/rental_marketplace_page.dart';
+import 'package:boost_drive_web/all_listings_page.dart';
+import 'package:boost_drive_web/messages_page.dart';
+import 'package:boost_drive_web/product_detail_page.dart';
+import 'package:boost_drive_web/add_listing_page.dart';
+import 'package:boost_drive_web/new_arrivals_page.dart';
+import 'package:boost_drive_web/company_pages.dart';
+import 'package:boost_drive_web/support_pages.dart';
+import 'package:boost_drive_web/customer_dashboard_page.dart';
+import 'package:boost_drive_web/super_admin_dashboard_page.dart';
+import 'package:boost_drive_web/seller_dashboard_page.dart';
 
-import 'provider_hub_page.dart';
-import 'find_providers_page.dart';
+import 'package:boost_drive_web/provider_hub_page.dart';
+import 'package:boost_drive_web/find_providers_page.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
   const ShopHomePage({super.key});
@@ -182,7 +183,14 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
         page = const SafetyCenterPage();
         break;
       case 'Find a Provider':
-        page = const FindProvidersPage();
+        final u = ref.read(currentUserProvider);
+        if (u == null) {
+          page = const FindProvidersPage();
+        } else {
+          final profile = ref.read(userProfileProvider(u.id)).valueOrNull;
+          final isProvider = profile != null && _isProviderRole(profile.role);
+          page = isProvider ? const ProviderHubPage() : const FindProvidersPage();
+        }
         break;
       case 'Terms of Service':
         page = const TermsPage();
@@ -218,21 +226,25 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
 
     userProfile.whenData((profile) {
         if (profile != null) {
-          // AUTO-FIX: If user is John Doe and has customer role, upgrade them to service_provider
-          // This covers accounts created before the signup fix.
-          if (profile.fullName.toLowerCase().contains('john doe') && profile.role == 'customer') {
-            debugPrint("DEBUG: Auto-fixing John Doe role to service_provider...");
-            ref.read(userServiceProvider).updateRoles(
-              uid: profile.uid,
-              isBuyer: false,
-              isSeller: true,
-              role: 'service_provider',
-            );
+          // ADMIN GATE: Automatically route admins to the Admin Dashboard
+          if (profile.isAdmin || profile.role == 'admin' || profile.role == 'super_admin') {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const SuperAdminDashboardPage()),
+              );
+            });
+            return;
           }
 
-          // Check if user has no role set and isn't marked as buyer/seller
-          // Note: profile.role defaults to 'customer' in the model if missing in data
-          if (!profile.isBuyer && !profile.isSeller) {
+
+
+          // Check if user has no role set and isn't marked as buyer/seller.
+          // Don't force role selection for providers even if isBuyer/isSeller flags are inconsistent.
+          final role = profile.role.trim().toLowerCase();
+          final isCustomerOrSeller = role == 'customer' || role == 'seller';
+          final isProviderRole = _isProviderRole(profile.role);
+          if (!profile.isBuyer && !profile.isSeller && !isCustomerOrSeller && !isProviderRole) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               Navigator.push(
                 context,
@@ -406,9 +418,18 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                             child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
                           ),
                         ),
-                        // Show "Find a Provider" only for customers; no "Services requested" on provider homepage
-                        if (!_isProviderRole(ref.watch(userProfileProvider(user.id)).valueOrNull?.role ?? ''))
-                          _buildFindProviderOrServicesRequestedNav(ref, context, user),
+                        // Show "Find a Provider" only for customers.
+                        // If the profile is still loading, hide it to prevent provider/account mismatch flicker.
+                        ref.watch(userProfileProvider(user.id)).when(
+                          data: (profile) {
+                            final role = profile?.role ?? '';
+                            final isProvider = profile != null && _isProviderRole(role);
+                            if (isProvider) return const SizedBox.shrink();
+                            return _buildFindProviderOrServicesRequestedNav(ref, context, user);
+                          },
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
                         MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: TextButton(
@@ -428,24 +449,6 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                       ],
                     ),
                 ],
-                if (user != null && !isMobile)
-                  ref.watch(userProfileProvider(user.id)).whenData((profile) {
-                    if (profile == null) return const SizedBox();
-                    return Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      child: Chip(
-                        label: Text(profile.role.replaceAll('_', ' ').toUpperCase()),
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        labelStyle: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10,
-                          letterSpacing: 0.5,
-                        ),
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
-                      ),
-                    );
-                  }).value ?? const SizedBox(),
                 const SizedBox(width: 8),
                 if (user != null) ...[
                   Stack(
@@ -759,44 +762,56 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
 
 
   Widget _getDashboardForRole(String role) {
-    switch (role.toLowerCase()) {
-      case 'super_admin':
-      case 'super admin':
-        return const SuperAdminDashboardPage();
-      case 'service_pro':
-      case 'service pro':
-      case 'service_provider':
-      case 'service provider':
-      case 'mechanic':
-      case 'towing':
-      case 'mechanic & towing':
-      case 'seller':
-      case 'parts & salvage seller':
-      case 'logistics':
-      case 'batlorrih logistics':
-      case 'rental':
-        return const ProviderHubPage();
-      case 'customer':
-      default:
-        return const CustomerDashboardPage();
+    // Make role matching resilient to inconsistent formatting in DB
+    // (spaces vs underscores vs hyphens, extra whitespace, etc).
+    final cleaned = role.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
+
+    if (cleaned == 'admin' || cleaned == 'super_admin' || cleaned == 'super admin') {
+      return SuperAdminDashboardPage();
     }
+
+    // Seller/shop roles.
+    if (cleaned == 'seller' || cleaned.contains('seller')) {
+      return SellerDashboardPage();
+    }
+
+    // Service provider / mechanic / towing / logistics / rental roles.
+    // Some accounts store role as just "provider".
+    if (cleaned == 'provider') return ProviderHubPage();
+
+    final isServiceProviderRole =
+        cleaned.contains('service provider') ||
+        cleaned.contains('service pro');
+
+    final isProvider =
+        isServiceProviderRole ||
+        cleaned.contains('mechanic') ||
+        cleaned.contains('towing') ||
+        cleaned.contains('logistics') ||
+        cleaned.contains('rental');
+
+    if (isProvider) {
+      return ProviderHubPage();
+    }
+
+  // Fallback: customer dashboard.
+    return CustomerDashboardPage();
   }
 
   /// True if the role is a service provider (mechanic, towing, seller, etc.) who sees "Services requested" in nav.
   bool _isProviderRole(String role) {
-    switch (role.toLowerCase()) {
-      case 'service_provider':
-      case 'service_pro':
-      case 'mechanic':
-      case 'towing':
-      case 'seller':
-      case 'logistics':
-      case 'batlorrih logistics':
-      case 'rental':
-        return true;
-      default:
-        return false;
-    }
+    final cleaned = role.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
+    if (cleaned.isEmpty) return false;
+
+    // Role can be stored as plain "provider".
+    if (cleaned == 'provider') return true;
+
+    return cleaned.contains('service provider') ||
+        cleaned.contains('service pro') ||
+        cleaned.contains('mechanic') ||
+        cleaned.contains('towing') ||
+        cleaned.contains('logistics') ||
+        cleaned.contains('rental');
   }
 
   /// Customer nav: "Find a Provider" → FindProvidersPage. Provider nav: "Services requested" → ProviderHubPage.

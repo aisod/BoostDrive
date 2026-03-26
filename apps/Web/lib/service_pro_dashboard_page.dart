@@ -288,15 +288,14 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
-  Widget _buildSosRequestCard(Map<String, dynamic> r, {required bool pending, required String userId}) {
-    final id = r['id'] as String?;
-    final type = (r['type'] as String?) ?? 'assistance';
-    final status = (r['status'] as String?) ?? '';
-    final userNote = (r['user_note'] as String?) ?? '';
-    final loc = r['location'] is Map ? r['location'] as Map<String, dynamic>? : null;
-    final lat = loc?['lat'];
-    final lng = loc?['lng'];
-    final createdAt = r['created_at']?.toString();
+  Widget _buildSosRequestCard(SosRequest r, {required bool pending, required String userId}) {
+    final id = r.id;
+    final type = r.type;
+    final status = r.status;
+    final userNote = r.userNote;
+    final lat = r.lat;
+    final lng = r.lng;
+    final createdAt = r.createdAt.toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -315,7 +314,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
               const SizedBox(width: 8),
               Text(type.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
               const Spacer(),
-              if (pending && id != null)
+              if (pending)
                 TextButton.icon(
                   onPressed: () async {
                     try {
@@ -351,16 +350,15 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             const SizedBox(height: 8),
             Text(userNote, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
-          if (lat != null && lng != null)
+          if (lat != 0.0 && lng != 0.0)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text('Location: $lat, $lng', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11)),
             ),
-          if (createdAt != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(createdAt.length > 16 ? createdAt.substring(0, 16) : createdAt, style: TextStyle(color: Colors.white54, fontSize: 11)),
-            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(createdAt.length > 16 ? createdAt.substring(0, 16) : createdAt, style: TextStyle(color: Colors.white54, fontSize: 11)),
+          ),
         ],
       ),
     );

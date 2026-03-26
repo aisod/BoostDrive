@@ -89,7 +89,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     List<Map<String, dynamic>> conversations,
     Set<String> unreadConversationIds,
     List<DeliveryOrder> deliveries,
-    List<Map<String, dynamic>> sosRequests,
+    List<SosRequest> sosRequests,
   ) {
     final List<Map<String, dynamic>> all = [];
 
@@ -132,14 +132,14 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     if (!isWeb) {
       for (var sos in sosRequests) {
         all.add({
-          'id': 'sos_${sos['id']}',
-          'title': 'SOS ${sos['status'].toUpperCase()}',
-          'message': 'Your emergency request for ${sos['type']} is ${sos['status']}.',
-          'time': _formatTime(sos['created_at']),
+          'id': 'sos_${sos.id}',
+          'title': 'SOS ${sos.status.toUpperCase()}',
+          'message': 'Your emergency request for ${sos.type} is ${sos.status}.',
+          'time': _formatTime(sos.createdAt),
           'isRead': true,
           'icon': Icons.warning_amber_rounded,
           'type': 'sos',
-          'timestamp': DateTime.parse(sos['created_at']),
+          'timestamp': sos.createdAt,
         });
       }
     }

@@ -65,6 +65,57 @@ class UserService {
     }
   }
 
+  /// Updates the provider's verification status and logs the action
+  Future<void> updateVerificationStatus({
+    required String uid,
+    required String status,
+    required String adminUid,
+  }) async {
+    try {
+      await _supabase.from('profiles').update({'verification_status': status}).eq('id', uid);
+      // Soft-fail audit logging in case table isn't set up yet
+      try {
+        await _supabase.from('admin_audit_logs').insert({
+          'admin_id': adminUid,
+          'target_id': uid,
+          'action_type': status == 'approved' ? 'APPROVE_PROVIDER' : 'REJECT_PROVIDER',
+          'notes': 'Verification status changed to $status'
+        });
+      } catch (e) {
+        print('Warning: Failed to insert audit log (table might be missing): $e');
+      }
+    } catch (e) {
+      print('Error updating verification status: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates the user's account status (active, banned, frozen) and logs it.
+  Future<void> updateUserStatus({
+    required String uid,
+    required String status,
+    required String adminUid,
+    String? notes,
+  }) async {
+    try {
+      await _supabase.from('profiles').update({'status': status}).eq('id', uid);
+      try {
+        await _supabase.from('admin_audit_logs').insert({
+          'admin_id': adminUid,
+          'target_id': uid,
+          'action_type': 'UPDATE_USER_STATUS',
+          'notes': 'Account status changed to ${status.toUpperCase()}. Notes: ${notes ?? "No notes provided"}'
+        });
+      } catch (e) {
+        print('Warning: Failed to insert audit log for status change: $e');
+      }
+    } catch (e) {
+      print('Error updating user status: $e');
+      rethrow;
+    }
+  }
+
+
   /// Specifically updates the roles for a user
   Future<void> updateRoles({
     required String uid,
@@ -98,12 +149,41 @@ class UserService {
   Stream<int> getUserCount() {
     return _supabase.from('profiles').stream(primaryKey: ['id']).map((data) => data.length);
   }
-
   Stream<List<UserProfile>> getPendingVerifications() {
+    // We stream profiles and filter client-side because the Supabase stream builder
+    // does not support `.or(...)` on the stream query.
+    return _supabase.from('profiles').stream(primaryKey: ['id']).map((data) {
+      final profiles = data.map((json) => UserProfile.fromMap(json)).toList();
+
+      return profiles.where((p) {
+        // Verification status values used across the app:
+        // 'pending' | 'approved' | 'rejected' | 'unverified'
+        final status = p.verificationStatus.trim().toLowerCase();
+        final isNotApproved =
+            status == 'pending' || status == 'unverified';
+        if (!isNotApproved) return false;
+
+        final r = p.role.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
+        if (r.isEmpty) return false;
+
+        // provider accounts may be stored as plain "provider"
+        if (r == 'provider') return true;
+
+        return r.contains('service provider') ||
+            r.contains('service pro') ||
+            r.contains('mechanic') ||
+            r.contains('towing') ||
+            r.contains('logistics') ||
+            r.contains('rental');
+      }).toList();
+    });
+  }
+
+  Stream<List<UserProfile>> getAllProfiles() {
     return _supabase
         .from('profiles')
         .stream(primaryKey: ['id'])
-        .eq('verification_status', 'pending')
+        .order('created_at', ascending: false)
         .map((data) => data.map((json) => UserProfile.fromMap(json)).toList());
   }
 
@@ -111,32 +191,12 @@ class UserService {
   /// Types: mechanic, towing, parts (seller), rental, or null for all.
   /// Tries verified first; if none, returns providers by role so the page is never empty.
   Future<List<UserProfile>> getVerifiedProviders({String? serviceType}) async {
-    String? roleFilter;
-    if (serviceType != null && serviceType.isNotEmpty) {
-      switch (serviceType.toLowerCase()) {
-        case 'mechanic':
-          roleFilter = 'mechanic';
-          break;
-        case 'towing':
-          roleFilter = 'towing';
-          break;
-        case 'parts':
-          roleFilter = 'seller';
-          break;
-        case 'rental':
-          roleFilter = 'rental';
-          break;
-        default:
-          break;
-      }
-    }
-
     try {
       // 1) Try verified providers first (verification_status = 'approved')
-      var list = await _fetchProvidersByRole(roleFilter: roleFilter, verifiedOnly: true);
+      var list = await _fetchProviders(serviceType: serviceType, verifiedOnly: true);
       // 2) If none, show any provider with that role so the directory isn't blank
       if (list.isEmpty) {
-        list = await _fetchProvidersByRole(roleFilter: roleFilter, verifiedOnly: false);
+        list = await _fetchProviders(serviceType: serviceType, verifiedOnly: false);
       }
       return list;
     } catch (e) {
@@ -145,20 +205,34 @@ class UserService {
     }
   }
 
-  Future<List<UserProfile>> _fetchProvidersByRole({String? roleFilter, required bool verifiedOnly}) async {
+  Future<List<UserProfile>> _fetchProviders({String? serviceType, required bool verifiedOnly}) async {
     var query = _supabase.from('profiles').select();
     if (verifiedOnly) {
       query = query.eq('verification_status', 'approved');
     }
-    if (roleFilter != null && roleFilter.isNotEmpty) {
-      query = query.eq('role', roleFilter);
+    
+    if (serviceType != null && serviceType.isNotEmpty) {
+      final t = serviceType.toLowerCase();
+      if (t == 'mechanic') {
+        query = query.or('role.eq.mechanic,and(role.eq.provider,primary_service_category.eq.mechanic)');
+      } else if (t == 'towing') {
+        query = query.or('role.eq.towing,and(role.eq.provider,primary_service_category.eq.towing)');
+      } else if (t == 'parts' || t == 'seller') {
+        query = query.or('role.eq.seller,is_seller.eq.true,and(role.eq.provider,primary_service_category.eq.parts)');
+      } else if (t == 'rental') {
+        query = query.or('role.eq.rental,and(role.eq.provider,primary_service_category.eq.rental)');
+      } else {
+        query = query.or('role.eq.$t,and(role.eq.provider,primary_service_category.eq.$t)');
+      }
     } else {
       query = query.or(
-        'role.eq.mechanic,role.eq.towing,role.eq.service_provider,role.eq.seller,role.eq.rental',
+        'role.eq.mechanic,role.eq.towing,role.eq.service_provider,role.eq.service_pro,role.eq.provider,role.eq.seller,role.eq.rental,is_seller.eq.true',
       );
     }
+    
     final response = await query;
     final rawList = response as List;
+    print('DEBUG: _fetchProviders returned ${rawList.length} rows for serviceType=$serviceType verifiedOnly=$verifiedOnly');
     final result = <UserProfile>[];
     for (final item in rawList) {
       try {
@@ -194,4 +268,8 @@ final pendingVerificationsProvider = StreamProvider<List<UserProfile>>((ref) {
 /// Pass [serviceType] 'mechanic' or 'towing' to filter, or null for all.
 final verifiedProvidersProvider = FutureProvider.family<List<UserProfile>, String?>((ref, serviceType) {
   return ref.watch(userServiceProvider).getVerifiedProviders(serviceType: serviceType);
+});
+
+final allProfilesProvider = StreamProvider<List<UserProfile>>((ref) {
+  return ref.watch(userServiceProvider).getAllProfiles();
 });
