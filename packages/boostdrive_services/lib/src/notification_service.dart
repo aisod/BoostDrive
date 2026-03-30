@@ -1,0 +1,112 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class NotificationService {
+  final _supabase = Supabase.instance.client;
+
+  /// Sends a notification to a specific user
+  Future<void> sendNotification({
+    required String userId,
+    required String title,
+    required String message,
+    String type = 'system',
+  }) async {
+    try {
+      await _supabase.from('notifications').insert({
+        'user_id': userId,
+        'title': title,
+        'message': message,
+        'type': type,
+        'is_read': false,
+      });
+    } catch (e) {
+      print('Error sending notification: $e');
+      // Don't rethrow — a notification failure should never block the main action.
+    }
+  }
+
+  /// Sends a document status notification, replacing any previous one for the same document.
+  /// This prevents stale "Approved" notifications lingering after a "Rejected" status (or vice versa).
+  Future<void> sendDocumentStatusNotification({
+    required String userId,
+    required String documentType,
+    required String status, // 'approved' or 'rejected'
+    String? rejectionReason,
+  }) async {
+    final isApproved = status.toLowerCase() == 'approved';
+    final title = isApproved ? 'Document Approved' : 'Document Rejected';
+    final message = isApproved
+        ? 'Your document "$documentType" has been approved.'
+        : 'Your document "$documentType" was rejected. Reason: ${rejectionReason ?? "No reason provided"}';
+
+    try {
+      // Delete any existing notification for this exact document to avoid duplicates
+      await _supabase
+          .from('notifications')
+          .delete()
+          .eq('user_id', userId)
+          .ilike('message', '%"$documentType"%');
+    } catch (e) {
+      // RLS might prevent deleting notifications for other users, so we gracefully ignore
+      print('Warning: could not delete old notification: $e');
+    }
+
+    // Insert the fresh (latest) notification
+    await _supabase.from('notifications').insert({
+      'user_id': userId,
+      'title': title,
+      'message': message,
+      'type': 'verification',
+      'is_read': false,
+    });
+  }
+
+
+  /// Fetches notifications for a specific user (no Realtime required)
+  Future<List<Map<String, dynamic>>> getNotifications(String userId) async {
+    try {
+      final response = await _supabase
+          .from('notifications')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      final list = response as List;
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    } catch (e) {
+      print('Error fetching notifications: $e');
+      return [];
+    }
+  }
+
+  /// Marks a specific notification as read
+  Future<void> markAsRead(String notificationId) async {
+    try {
+      await _supabase
+          .from('notifications')
+          .update({'is_read': true})
+          .eq('id', notificationId);
+    } catch (e) {
+      print('Error marking notification as read: $e');
+    }
+  }
+
+  /// Marks all notifications for a user as read
+  Future<void> markAllAsRead(String userId) async {
+    try {
+      await _supabase
+          .from('notifications')
+          .update({'is_read': true})
+          .eq('user_id', userId);
+    } catch (e) {
+      print('Error marking all notifications as read: $e');
+    }
+  }
+}
+
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService();
+});
+
+final userNotificationsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
+  return ref.watch(notificationServiceProvider).getNotifications(userId);
+});

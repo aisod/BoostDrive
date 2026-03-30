@@ -77,6 +77,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   List<String> _galleryUrls = [];
   final _teamSizeController = TextEditingController();
   bool _isUploadingDocuments = false;
+  Map<String, String> _documentStatuses = {};
+  Map<String, String> _documentRejectionReasons = {};
 
   // Core business identity (provider)
   final _registeredBusinessNameController = TextEditingController();
@@ -192,6 +194,29 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       controller.dispose();
       focusNode.dispose();
     });
+  }
+
+  Future<void> _loadDocumentStatuses(String providerId) async {
+    try {
+      final docs = await ref.read(userServiceProvider).getProviderDocuments(providerId);
+      if (mounted) {
+        setState(() {
+          _documentStatuses = {};
+          _documentRejectionReasons = {};
+          for (final doc in docs) {
+             final type = (doc['document_type'] ?? doc['Document_type'] ?? '').toString().trim();
+             final status = (doc['status'] ?? doc['Status'] ?? '').toString().trim();
+             final reason = (doc['rejection_reason'] ?? doc['Rejection_reason'] ?? '').toString().trim();
+             if (type.isNotEmpty) {
+               _documentStatuses[type] = status;
+               _documentRejectionReasons[type] = reason;
+             }
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading document statuses: $e');
+    }
   }
 
 
@@ -1230,7 +1255,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: (_isUploading || !_isProviderEditMode) ? null : () {
-                  debugPrint('DEBUG: Provider banner profile tap');
                   _showProfilePhotoOptions();
                 },
                 child: Stack(
@@ -1275,6 +1299,78 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     ],
   );
 }
+
+  Widget _buildAdminBanner(UserProfile profile) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 160,
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: BoostDriveTheme.primaryColor,
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -50,
+          child: Center(
+            child: GestureDetector(
+              onTap: _isUploading ? null : _showProfilePhotoOptions,
+              child: Stack(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      backgroundColor: const Color(0xFFF2F4F7),
+                      backgroundImage: _optimisticImage != null
+                          ? MemoryImage(_optimisticImage!) as ImageProvider
+                          : (profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null),
+                      child: (profile.profileImg.isEmpty && _optimisticImage == null)
+                          ? Text(
+                              getInitials(profile.fullName),
+                              style: GoogleFonts.manrope(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w800,
+                                color: BoostDriveTheme.primaryColor,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: BoostDriveTheme.primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   // ignore: unused_element
   Widget _buildProviderMetrics() {
@@ -2421,12 +2517,87 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     }
   }
 
-  Widget _documentStatusRow(String name, String status) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _documentStatusRow(String name, String fallbackStatus) {
+    final backendStatus = _documentStatuses[name];
+    final rejectionReason = _documentRejectionReasons[name];
+    
+    Color statusColor = const Color(0xFF667085);
+    String displayStatus = fallbackStatus;
+    IconData? statusIcon;
+
+    if (backendStatus == 'approved') {
+      statusColor = Colors.green;
+      displayStatus = 'Approved';
+      statusIcon = Icons.check_circle;
+    } else if (backendStatus == 'rejected') {
+      statusColor = Colors.red;
+      displayStatus = 'Rejected';
+      statusIcon = Icons.cancel;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(name, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
-        Text(status, style: GoogleFonts.manrope(fontSize: 13, color: const Color(0xFF667085))),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(name, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (statusIcon != null) ...[
+                    Icon(statusIcon, size: 14, color: statusColor),
+                    const SizedBox(width: 4),
+                  ],
+                  Text(
+                    displayStatus.toUpperCase(),
+                    style: GoogleFonts.manrope(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: statusColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (backendStatus == 'rejected' && rejectionReason != null && rejectionReason.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, size: 16, color: Colors.red),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'REASON: $rejectionReason',
+                    style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -2737,9 +2908,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       data: (profile) {
         if (profile == null) return const Scaffold(body: Center(child: Text('Profile not found')));
 
-        // Hydrate controllers and flags from profile once so interactive
         // widgets (switches, chips) are not reset on every rebuild.
         if (!_didInitFromProfile) {
+          _loadDocumentStatuses(profile.uid);
           _nameController.text = profile.fullName;
           _emailController.text = profile.email;
           _phoneController.text = profile.phoneNumber;
@@ -2822,27 +2993,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               profile.standardLaborRate != null ? profile.standardLaborRate.toString() : '';
           _taxVatNumberController.text = profile.taxVatNumber ?? '';
           _businessBioController.text = profile.businessBio ?? '';
-          // Restore 17-slot structure (0-6 docs, 7-16 gallery) from flattened profile list
+          // Restore 17-slot structure (0-6 docs, 7-16 gallery) strictly preserving indices.
           _galleryUrls = List.generate(17, (_) => '');
-          for (final url in profile.galleryUrls) {
-            if (url.contains('/provider-galleries/')) {
-              // Populate gallery slots (7-16)
-              for (int i = 7; i < 17; i++) {
-                if (_galleryUrls[i].isEmpty) {
-                  _galleryUrls[i] = url;
-                  break;
-                }
-              }
-            } else if (url.contains('/provider-docs/')) {
-              // Populate document slots (0-6) — best effort to keep original slots.
-              // Note: Without index metadata, this fills from slot 0.
-              for (int i = 0; i < 7; i++) {
-                if (_galleryUrls[i].isEmpty) {
-                  _galleryUrls[i] = url;
-                  break;
-                }
-              }
-            }
+          for (int i = 0; i < profile.galleryUrls.length && i < 17; i++) {
+            _galleryUrls[i] = profile.galleryUrls[i];
           }
           _teamSizeController.text =
               profile.teamSize != null ? profile.teamSize.toString() : '';
@@ -2905,9 +3059,16 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           body: SingleChildScrollView(
             child: Column(
               children: [
-                const SizedBox(height: 32),
-                _buildProfileHeader(profile),
-                const SizedBox(height: 32),
+                if (profile.role.toLowerCase() == 'admin') ...[
+                  _buildAdminBanner(profile),
+                  const SizedBox(height: 60),
+                ] else ...[
+                  const SizedBox(height: 32),
+                  _buildProfileHeader(profile),
+                ],
+                const SizedBox(height: 16),
+                if (profile.role.toLowerCase() == 'admin') _buildAdminIdentity(profile),
+                const SizedBox(height: 16),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
                   child: Column(
@@ -2976,10 +3137,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: _isUploading ? null : () {
-              debugPrint('DEBUG: Standard profile header tap');
-              _showProfilePhotoOptions();
-            },
+            onTap: _isUploading ? null : _showProfilePhotoOptions,
             child: Stack(
               children: [
                 Container(
@@ -2990,7 +3148,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     border: Border.all(color: Colors.white, width: 4),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withOpacity(0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -3752,6 +3910,45 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAdminIdentity(UserProfile profile) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              profile.fullName.isEmpty ? 'Set Name' : profile.fullName,
+              style: GoogleFonts.manrope(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF1D2939),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.shield, color: BoostDriveTheme.primaryColor, size: 24),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            'SYSTEM ADMINISTRATOR',
+            style: GoogleFonts.manrope(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: BoostDriveTheme.primaryColor,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

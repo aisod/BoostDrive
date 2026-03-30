@@ -12,6 +12,7 @@ import 'package:boost_drive_web/shop_home_page.dart';
 import 'package:boost_drive_web/verification_queue_view.dart';
 import 'package:boost_drive_web/service_monitoring_view.dart';
 import 'package:boost_drive_web/user_management_view.dart';
+import 'package:boost_drive_web/admin_profile_view.dart';
 
 class SuperAdminDashboardPage extends ConsumerStatefulWidget {
   const SuperAdminDashboardPage({super.key});
@@ -82,16 +83,21 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Clean White/Light Grey space
-      body: Row(
-        children: [
-          // Sidebar
-          _buildSidebar(context),
-          // Main Content
-          Expanded(
-            child: _buildMainContent(ref, user.id),
-          ),
-        ],
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 800;
+          return Row(
+            children: [
+              // Sidebar (only if not too narrow)
+              if (!isNarrow) _buildSidebar(context),
+              // Main Content
+              Expanded(
+                child: _buildMainContent(ref, user.id),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -123,6 +129,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
           _buildNavItem(2, Icons.map_outlined, 'Service Monitoring'),
           _buildNavItem(3, Icons.people_outline, 'User Management'),
           _buildNavItem(4, Icons.attach_money_outlined, 'Financials'),
+          _buildNavItem(5, Icons.account_circle_outlined, 'Admin Profile'),
           const Spacer(),
           const Divider(height: 1, color: Colors.black12),
           _buildLogoutItem(context),
@@ -212,6 +219,9 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
       case 4:
         content = _buildFinancials(ref);
         break;
+      case 5:
+        content = AdminProfileView(uid: uid);
+        break;
       default:
         content = const Center(child: Text('Select a module'));
     }
@@ -252,8 +262,12 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
       case 1: return 'Verification Queue (Priority #1)';
       case 2: return 'Service Monitoring';
       case 3: return 'User Management';
-      case 4: return 'Financial Overview';
-      default: return 'Admin Command Center';
+      case 4:
+        return 'Financials';
+      case 5:
+        return 'Admin Profile';
+      default:
+        return 'Admin';
     }
   }
 
@@ -308,28 +322,39 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
-        return Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
+        return InkWell(
+          onTap: () {
+            setState(() {
+              _selectedIndex = 5;
+            });
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
               children: [
-                Text(
-                  profile.fullName,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      profile.fullName,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    Text(
+                      'Staff ID: ${profile.uid.substring(0, 8).toUpperCase()}',
+                      style: const TextStyle(color: Colors.black54, fontSize: 12),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Staff ID: ${profile.uid.substring(0, 8).toUpperCase()}',
-                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                const SizedBox(width: 16),
+                CircleAvatar(
+                  backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
+                  child: const Icon(Icons.person, color: BoostDriveTheme.primaryColor),
                 ),
               ],
             ),
-            const SizedBox(width: 16),
-            CircleAvatar(
-              backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-              child: const Icon(Icons.person, color: BoostDriveTheme.primaryColor),
-            ),
-          ],
+          ),
         );
       },
       loading: () => const CircularProgressIndicator(),

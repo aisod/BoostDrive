@@ -451,71 +451,84 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                 ],
                 const SizedBox(width: 8),
                 if (user != null) ...[
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: IconButton(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => NotificationsOverlay(
-                                onNotificationTap: (type, id) {
-                                  if (type == 'message') {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => MessagesPage(initialConversationId: id),
-                                      ),
-                                    );
-                                  } else if (type == 'delivery') {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ServiceTrackingPage(orderId: id),
-                                      ),
-                                    );
-                                  }
-                                },
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: IconButton(
+                            onPressed: () {
+                              ref.invalidate(userNotificationsProvider(user.id));
+                              showDialog(
+                                context: context,
+                                builder: (context) => NotificationsOverlay(
+                                  onNotificationTap: (type, id) {
+                                    if (type == 'message') {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => MessagesPage(initialConversationId: id),
+                                        ),
+                                      );
+                                    } else if (type == 'delivery') {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ServiceTrackingPage(orderId: id),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ).then((_) {
+                                ref.invalidate(userNotificationsProvider(user.id));
+                              });
+                            },
+                            icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
+                          ),
+                        ),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final unreadMsgs = ref.watch(unreadConversationsProvider(user.id)).maybeWhen(
+                              data: (ids) => ids.length,
+                              orElse: () => 0,
+                            );
+                            final unreadSys = ref.watch(userNotificationsProvider(user.id)).maybeWhen(
+                              data: (notifs) => notifs.where((n) => n['is_read'] == false).length,
+                              orElse: () => 0,
+                            );
+                            final total = unreadMsgs + unreadSys;
+                            if (total == 0) return const SizedBox.shrink();
+                            return Positioned(
+                              right: 4,
+                              top: 4,
+                              child: IgnorePointer(
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                                  child: Text(
+                                    total > 99 ? '99+' : '$total',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               ),
                             );
                           },
-                          icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
                         ),
-                      ),
-                      ref.watch(unreadConversationsProvider(user.id)).when(
-                        data: (unreadIds) {
-                          if (unreadIds.isEmpty) return const SizedBox();
-                          return Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: BoostDriveTheme.surfaceDark,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                '${unreadIds.length}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          );
-                        },
-                        loading: () => const SizedBox(),
-                        error: (_, _) => const SizedBox(),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                 ],

@@ -1,9 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
+import 'notification_service.dart';
 
 class UserService {
   final _supabase = Supabase.instance.client;
+  final NotificationService _notificationService;
+
+  UserService([NotificationService? notificationService])
+      : _notificationService = notificationService ?? NotificationService();
 
   /// Checks if an account with the same email or phone and role already exists
   Future<String?> checkDuplicateAccount({
@@ -87,6 +92,74 @@ class UserService {
     } catch (e) {
       print('Error updating verification status: $e');
       rethrow;
+    }
+  }
+
+  /// Updates status of a specific document for a provider
+  Future<void> updateDocumentStatus({
+    required String providerId,
+    required String documentType,
+    required String status,
+    required String adminUid,
+    String? reason,
+  }) async {
+    try {
+      final data = {
+        'provider_id': providerId,
+        'document_type': documentType,
+        'status': status,
+        'rejection_reason': reason,
+        'reviewer_id': adminUid,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      
+      await _supabase
+          .from('provider_document_status')
+          .upsert(data, onConflict: 'provider_id,document_type');
+          
+      // Send notification — replaces any existing one for this document
+      await _notificationService.sendDocumentStatusNotification(
+        userId: providerId,
+        documentType: documentType,
+        status: status,
+        rejectionReason: reason,
+      );
+          
+    } catch (e) {
+      print('DEBUG: updateDocumentStatus ERROR: $e');
+      rethrow;
+    }
+  }
+
+  /// Removes a document verification status record
+  Future<void> deleteDocumentStatus({
+    required String providerId,
+    required String documentType,
+  }) async {
+    try {
+      await _supabase
+          .from('provider_document_status')
+          .delete()
+          .eq('provider_id', providerId)
+          .eq('document_type', documentType);
+    } catch (e) {
+      print('Error deleting document status: $e');
+      rethrow;
+    }
+  }
+
+  /// Fetches all document statuses for a provider
+  Future<List<Map<String, dynamic>>> getProviderDocuments(String providerId) async {
+    try {
+      final response = await _supabase
+          .from('provider_document_status')
+          .select()
+          .eq('provider_id', providerId)
+          .order('updated_at', ascending: true);
+      return (response as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      print('Error fetching provider documents: $e');
+      return [];
     }
   }
 
@@ -210,29 +283,38 @@ class UserService {
     if (verifiedOnly) {
       query = query.eq('verification_status', 'approved');
     }
+
+    // Explicitly exclude non-provider roles
+    query = query.neq('role', 'customer').neq('role', 'admin').neq('role', 'seller');
     
     if (serviceType != null && serviceType.isNotEmpty) {
       final t = serviceType.toLowerCase();
       if (t == 'mechanic') {
-        query = query.or('role.eq.mechanic,and(role.eq.provider,primary_service_category.eq.mechanic)');
+        query = query.or('role.eq.mechanic,primary_service_category.eq.mechanic');
       } else if (t == 'towing') {
-        query = query.or('role.eq.towing,and(role.eq.provider,primary_service_category.eq.towing)');
+        query = query.or('role.eq.towing,primary_service_category.eq.towing');
       } else if (t == 'parts' || t == 'seller') {
-        query = query.or('role.eq.seller,is_seller.eq.true,and(role.eq.provider,primary_service_category.eq.parts)');
+        query = query.or('role.eq.parts_supplier,primary_service_category.eq.parts'); // Removed broad seller/is_seller
       } else if (t == 'rental') {
-        query = query.or('role.eq.rental,and(role.eq.provider,primary_service_category.eq.rental)');
+        query = query.or('role.eq.rental,primary_service_category.eq.rental');
       } else {
-        query = query.or('role.eq.$t,and(role.eq.provider,primary_service_category.eq.$t)');
+        query = query.or('role.eq.$t,primary_service_category.eq.$t');
       }
     } else {
-      query = query.or(
-        'role.eq.mechanic,role.eq.towing,role.eq.service_provider,role.eq.service_pro,role.eq.provider,role.eq.seller,role.eq.rental,is_seller.eq.true',
-      );
+      query = query.or('role.in.(mechanic,towing,service_provider,service_pro,provider,rental)');
     }
     
     final response = await query;
-    final rawList = response as List;
-    print('DEBUG: _fetchProviders returned ${rawList.length} rows for serviceType=$serviceType verifiedOnly=$verifiedOnly');
+    final List<dynamic> rawList = response is List ? response : [];
+    print('-----------------------------------------');
+    print('DEBUG: _fetchProviders (serviceType=$serviceType, verifiedOnly=$verifiedOnly) returned ${rawList.length} rows.');
+    for (var row in rawList) {
+      final name = row['full_name'] ?? 'NO NAME';
+      final role = row['role'] ?? 'NO ROLE';
+      final category = row['primary_service_category'] ?? 'NO CATEGORY';
+      print('DEBUG: ROW -> NAME: $name, ROLE: $role, CATEGORY: $category');
+    }
+    print('-----------------------------------------');
     final result = <UserProfile>[];
     for (final item in rawList) {
       try {
@@ -249,7 +331,8 @@ class UserService {
 }
 
 final userServiceProvider = Provider<UserService>((ref) {
-  return UserService();
+  final notificationService = ref.watch(notificationServiceProvider);
+  return UserService(notificationService);
 });
 
 final userProfileProvider = FutureProvider.family<UserProfile?, String>((ref, uid) {

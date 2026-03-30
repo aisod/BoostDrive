@@ -232,7 +232,7 @@ class UserProfile {
       taxVatNumber: _str(data['tax_vat_number'] ?? data['taxVatNumber']),
       businessBio: _str(data['business_bio'] ?? data['businessBio']),
       storeBiography: _str(data['store_biography'] ?? data['storeBiography']),
-      galleryUrls: _parseList(data['gallery_urls'] ?? data['galleryUrls']),
+      galleryUrls: _parseList(data['gallery_urls'] ?? data['galleryUrls'], preserveEmpty: true),
       teamSize: _parseInt(data['team_size'] ?? data['teamSize']),
       sosAlertsEnabled: _parseBool(data['sos_alerts_enabled'], true),
       preferredCommunication: _str(data['preferred_communication'] ?? data['preferredCommunication'], 'app_chat'),
@@ -253,12 +253,14 @@ class UserProfile {
     return double.tryParse(v.toString());
   }
 
-  static List<String> _parseList(dynamic v) {
+  static List<String> _parseList(dynamic v, {bool preserveEmpty = false}) {
     if (v == null) return [];
-    if (v is List) return v.map((e) => e?.toString().trim() ?? '').where((s) => s.isNotEmpty).toList();
+    if (v is List) {
+      return v.map((e) => e?.toString().trim() ?? '').where((s) => preserveEmpty || s.isNotEmpty).toList();
+    }
     final s = v.toString().trim();
     if (s.isEmpty) return [];
-    return s.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    return s.split(',').map((e) => e.trim()).where((e) => preserveEmpty || e.isNotEmpty).toList();
   }
 
   static List<String> _parseServiceTypes(dynamic v) {
