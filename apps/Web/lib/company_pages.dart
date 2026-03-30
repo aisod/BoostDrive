@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
-import 'all_listings_page.dart';
+import 'package:boost_drive_web/all_listings_page.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});

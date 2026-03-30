@@ -12,4 +12,4 @@ export 'src/payment_service.dart';
 export 'src/vehicle_service.dart';
 export 'src/service_record_service.dart';
 export 'src/delivery_service.dart';
-
+export 'src/notification_service.dart';

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
-import 'product_detail_page.dart';
+import 'package:boost_drive_web/product_detail_page.dart';
 
 class PartsMarketplacePage extends ConsumerStatefulWidget {
   const PartsMarketplacePage({super.key});

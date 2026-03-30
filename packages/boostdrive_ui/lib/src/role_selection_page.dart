@@ -30,8 +30,10 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
       if (user != null) {
         // Map selected role to boolean values and string role
         String roleStr = _selectedRole!.toLowerCase().replaceAll(' ', '_');
-        bool isBuyer = roleStr == 'customer';
-        bool isSeller = roleStr == 'customer' || roleStr == 'service_provider';
+        final bool isBuyer = roleStr == 'customer';
+        // Providers (mobile mechanics, towing, etc.) should NOT be treated as sellers.
+        // Only the "Seller" role sets `is_seller=true`.
+        final bool isSeller = roleStr == 'seller';
         
         await ref.read(userServiceProvider).updateRoles(
           uid: user.id,
@@ -90,8 +92,9 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
                   crossAxisSpacing: 16,
                   childAspectRatio: 1.2,
                   children: [
-                    _buildRoleCard('Customer', 'Owner, Seller or Driver', Icons.directions_car),
-                    _buildRoleCard('Service Provider', 'Professional Services', Icons.build),
+                    _buildRoleCard('Customer', 'Individuals looking to buy', Icons.person),
+                    _buildRoleCard('Seller', 'Parts sellers & shops', Icons.store),
+                    _buildRoleCard('Service Provider', 'Registered Businesses', Icons.build),
                   ],
                 ),
                 

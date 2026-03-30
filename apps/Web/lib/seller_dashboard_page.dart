@@ -71,7 +71,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'BoostDrive Seller',
+                    'Seller Marketplace',
                     style: GoogleFonts.manrope(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,

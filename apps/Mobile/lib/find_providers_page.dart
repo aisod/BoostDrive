@@ -187,6 +187,11 @@ class _ProviderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final roleLabel = _roleDisplayName(profile.role);
     final isVerified = profile.verificationStatus.toLowerCase() == 'approved';
+    final businessContactNumber = (profile.businessContactNumber ?? '').trim();
+    final personalContactNumber = profile.phoneNumber.trim();
+    final hasBusinessContact = businessContactNumber.isNotEmpty;
+    final hasPersonalContact = personalContactNumber.isNotEmpty;
+    final primaryContactNumber = hasBusinessContact ? businessContactNumber : personalContactNumber;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -275,33 +280,52 @@ class _ProviderCard extends StatelessWidget {
                       ],
                     ],
                   ),
-                  if (profile.phoneNumber.isNotEmpty) ...[
+                  if (hasBusinessContact || hasPersonalContact) ...[
                     const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () => _launchTel(profile.phoneNumber),
-                      child: Row(
-                        children: [
-                          Icon(Icons.phone_outlined, size: 14, color: BoostDriveTheme.primaryColor),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              profile.phoneNumber,
-                              style: TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600),
-                              overflow: TextOverflow.ellipsis,
+                    if (hasBusinessContact)
+                      GestureDetector(
+                        onTap: () => _launchTel(businessContactNumber),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.business_outlined, size: 14, color: BoostDriveTheme.primaryColor),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Business: $businessContactNumber',
+                                style: const TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    if (hasBusinessContact && hasPersonalContact) const SizedBox(height: 4),
+                    if (hasPersonalContact)
+                      GestureDetector(
+                        onTap: () => _launchTel(personalContactNumber),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.phone_android_outlined, size: 14, color: BoostDriveTheme.primaryColor),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Personal: $personalContactNumber',
+                                style: const TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ],
               ),
             ),
-            if (profile.phoneNumber.isNotEmpty)
+            if (primaryContactNumber.isNotEmpty)
               IconButton(
                 icon: const Icon(Icons.phone_outlined, color: BoostDriveTheme.primaryColor),
-                onPressed: () => _launchTel(profile.phoneNumber),
-                tooltip: 'Call ${profile.phoneNumber}',
+                onPressed: () => _launchTel(primaryContactNumber),
+                tooltip: 'Call $primaryContactNumber',
               ),
           ],
         ),

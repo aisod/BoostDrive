@@ -38,31 +38,6 @@
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" crossorigin="anonymous"
     referrerpolicy="no-referrer"></script>
-  <script>
-    (function() {
-      // Load environment variables injected at runtime (e.g. via Netlify or --dart-define).
-      // IMPORTANT: Do NOT hardcode real secrets here; configure them via your hosting environment.
-      window.SUPABASE_URL = window.SUPABASE_URL || "";
-      window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "";
-      window.GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || "";
-
-      var mapsKey = window.GOOGLE_MAPS_API_KEY;
-      if (!mapsKey || mapsKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
-        console.warn("Google Maps API key is missing or invalid.");
-        return;
-      }
-      
-      // Load Google Maps API
-      var script = document.createElement('script');
-      script.src = "https://maps.googleapis.com/maps/api/js?key=" + mapsKey + "&libraries=places&loading=async";
-      script.async = true;
-      script.defer = true;
-      script.onerror = function() {
-        console.error("Failed to load Google Maps API. Check your API key.");
-      };
-      document.head.appendChild(script);
-    })();
-  </script>
 </head>
 
 <body>

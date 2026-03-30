@@ -13,6 +13,7 @@ class BoostLoginWidget extends StatefulWidget {
     required String password,
     required String role,
     String? username,
+    String? primaryServiceCategory,
   }) onSignUp;
   final Function(String otp) onVerifyOtp;
   final VoidCallback? onResendOtp;
@@ -51,7 +52,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
   final _otpController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _usernameController = TextEditingController();
+  final _businessPhoneController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _loginFormKey = GlobalKey<FormState>();
   final _signUpFormKey = GlobalKey<FormState>();
@@ -64,6 +65,16 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
 
   /// Input text color: black on web (light fields), white on mobile (dark theme).
   Color get _inputTextColor => kIsWeb ? Colors.black87 : Colors.white;
+
+  final List<Map<String, String>> _primaryServiceOptions = const [
+    {'key': 'mechanic', 'label': 'Mechanics'},
+    {'key': 'towing', 'label': 'Towing'},
+    {'key': 'electrical', 'label': 'Electrical'},
+    {'key': 'tires', 'label': 'Tires'},
+  ];
+
+  String? _primaryServiceCategoryKey = 'mechanic';
+
 
   @override
   void didUpdateWidget(covariant BoostLoginWidget oldWidget) {
@@ -112,9 +123,26 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
     _otpController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
-    _usernameController.dispose();
+    _businessPhoneController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  bool get _isServiceProviderSignUp => _selectedRole == 'Service Provider';
+
+  String _formatNamibiaBusinessPhone(String raw) {
+    // Keep digits only.
+    String digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return '';
+    // If user entered a leading country prefix without + (e.g. 264...), keep it.
+    if (digits.startsWith('264')) {
+      digits = digits.substring(3);
+    }
+    // If user entered a local '0...' number, drop the leading 0.
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    return '+264$digits';
   }
 
   void _submit() {
@@ -135,13 +163,16 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
           );
           return;
         }
+        final isProvider = _isServiceProviderSignUp;
+        final formattedBusinessPhone =
+            isProvider ? _formatNamibiaBusinessPhone(_businessPhoneController.text) : '';
         widget.onSignUp(
           fullName: _nameController.text,
           email: _emailController.text,
-          phone: '', // Phone number removed from UI
+          phone: formattedBusinessPhone,
           password: _passwordController.text,
           role: _selectedRole!,
-          username: _usernameController.text,
+          primaryServiceCategory: isProvider ? (_primaryServiceCategoryKey ?? 'mechanic') : null,
         );
       } else {
         widget.onLogin(
@@ -194,9 +225,13 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       height: headerHeight,
                       width: double.infinity,
                       decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: NetworkImage("https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=2070&auto=format&fit=crop"),
-                          fit: BoxFit.cover,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF2C3E50),
+                            Color(0xFF000000),
+                          ],
                         ),
                       ),
                       child: Container(
@@ -345,270 +380,94 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
           );
         }
 
-        // Web-specific side panel layout (Full Split Screen)
-        return Material(
-          child: Container(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            color: const Color(0xFFF56A1B), // Vibrant orange background
-            child: Row(
-              children: [
-                // Left Side: Dynamic Visuals
-                Expanded(
-                  flex: 1,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                          image: DecorationImage(
-                            image: NetworkImage("https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=2070&auto=format&fit=crop"), // High-res Land Rover/Luxury vehicle style
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+        // Web-specific layout (Full Screen Gradient with Centered Card)
+        return _buildWebLayout(
+          constraints: constraints,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1D1E).withValues(alpha: 0.94),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white10),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 40, offset: const Offset(0, 20)),
+                ],
+              ),
+              padding: const EdgeInsets.all(40),
+              child: Form(
+                key: _loginFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome Back',
+                      style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                    const SizedBox(height: 32),
+                    _buildLabel('EMAIL'),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: _inputDecoration('Enter your email', Icons.mail_outline),
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildLabel('PASSWORD'),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: _inputDecoration('Enter your password', Icons.lock_outline, isPassword: true),
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: widget.onForgotPassword,
+                        child: const Text('Forgot Password?', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.3),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 60,
-                        left: 40,
-                        right: 20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Your Complete\nAutomotive Ecosystem.',
-                              style: GoogleFonts.manrope(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                height: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Drive Smarter.',
-                              style: GoogleFonts.manrope(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    ),
+                    if (widget.errorText != null) ...[
+                      const SizedBox(height: 16),
+                      _buildErrorDisplay(widget.errorText!),
                     ],
-                  ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: BoostDriveTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        onPressed: widget.isLoading ? null : _submit,
+                        child: widget.isLoading 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
+                          : const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Text("Don't have an account?", style: TextStyle(color: Colors.white60)),
+                          TextButton(
+                            onPressed: () => setState(() => _isSignUp = true),
+                            child: const Text('Sign Up', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                
-                // Right Side: Actionable Modal Card
-                Expanded(
-                  flex: 1,
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // The Modal Card
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 400),
-                                child: Card(
-                                  elevation: 20,
-                                  shadowColor: Colors.black.withValues(alpha: 0.3),
-                                  color: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(32),
-                                    child: Form(
-                                      key: _loginFormKey,
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // Logo
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(Icons.speed, color: Color(0xFFF56A1B), size: 32),
-                                              const SizedBox(width: 12),
-                                              Text(
-                                                'BoostDrive',
-                                                style: GoogleFonts.manrope(
-                                                  color: const Color(0xFF1A1D1E),
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 32),
-                                          Text(
-                                            'Welcome Back',
-                                            style: GoogleFonts.manrope(
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFF1A1D1E),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          const Text(
-                                            'Sign in to your BoostDrive account',
-                                            style: TextStyle(color: Colors.black54, fontSize: 14),
-                                          ),
-                                          const SizedBox(height: 32),
-                                          
-                                          _buildLabel('Email'),
-                                          TextFormField(
-                                            controller: _emailController,
-                                            decoration: _inputDecoration('you@boostdrive.co', Icons.mail_outline),
-                                            style: const TextStyle(color: Colors.black87),
-                                            validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
-                                          ),
-                                          const SizedBox(height: 20),
-                                          
-                                          _buildLabel('Password'),
-                                          TextFormField(
-                                            controller: _passwordController,
-                                            obscureText: _obscurePassword,
-                                            decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
-                                            style: const TextStyle(color: Colors.black87),
-                                            validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
-                                          ),
-                                          
-                                          Align(
-                                            alignment: Alignment.centerRight,
-                                            child: TextButton(
-                                              onPressed: widget.onForgotPassword,
-                                              child: const Text('Forgot password?', style: TextStyle(color: Color(0xFF0066FF), fontWeight: FontWeight.w600)),
-                                            ),
-                                          ),
-                                          
-                                          if (widget.errorText != null) ...[
-                                            const SizedBox(height: 16),
-                                            _buildErrorDisplay(widget.errorText!),
-                                          ],
-                                          
-                                          const SizedBox(height: 24),
-                                          SizedBox(
-                                            width: double.infinity,
-                                            height: 56,
-                                            child: ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF0066FF), // Vibrant blue
-                                                foregroundColor: Colors.white,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                elevation: 0,
-                                              ),
-                                              onPressed: widget.isLoading ? null : _submit,
-                                              child: widget.isLoading 
-                                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
-                                                : const Row(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    children: [
-                                                      Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                                      const SizedBox(width: 12),
-                                                      const Icon(Icons.check, size: 18),
-                                                    ],
-                                                  ),
-                                            ),
-                                          ),
-                                          
-                                          const SizedBox(height: 24),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              const Text("Don't have an account?", style: TextStyle(color: Colors.black54)),
-                                              TextButton(
-                                                onPressed: () => setState(() => _isSignUp = true),
-                                                child: const Text('Sign Up', style: TextStyle(color: Color(0xFF0066FF), fontWeight: FontWeight.bold)),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              // Dealer Registration
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 400),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  height: 50,
-                                  child: TextButton(
-                                    onPressed: () {}, // Dealer registration logic
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                    child: const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.person_outline, color: Colors.white, size: 18),
-                                        SizedBox(width: 12),
-                                        Text('Register as a Dealer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Admin Login
-                              TextButton(
-                                onPressed: () {},
-                                child: const Text('Admin Login', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      // Close Button
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: IconButton(
-                          onPressed: _handleClose,
-                          icon: const Icon(Icons.close, color: Colors.white, size: 24),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.black12,
-                            shape: const CircleBorder(),
-                          ),
-                        ),
-                      ),
-                      
-                      // Copyright Info
-                      const Positioned(
-                        bottom: 16,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Text(
-                            '© 2026 BoostDrive, all rights reserved.',
-                            style: TextStyle(color: Colors.white, fontSize: 11),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -679,22 +538,17 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                             crossAxisSpacing: 16,
                             childAspectRatio: 1.2,
                             children: [
-                              _buildRoleCard('Customer', 'Owner, Seller or Driver', Icons.directions_car),
-                              _buildRoleCard('Service Provider', 'Professional Services', Icons.build),
+                              _buildRoleCard('Customer / Seller', 'Buy & sell vehicle parts', Icons.person),
+                              _buildRoleCard('Service Provider', 'Registered Businesses', Icons.build),
                             ],
                           ),
                           
                           const SizedBox(height: 40),
                           
-                          _buildLabel('USERNAME (OPTIONAL)'),
-                          TextFormField(
-                            controller: _usernameController,
-                            decoration: _inputDecoration('username123', Icons.alternate_email),
-                            style: TextStyle(color: _inputTextColor),
-                          ),
-                          const SizedBox(height: 20),
+
+
                           
-                          _buildLabel('FULL NAME'),
+                          _buildLabel(_isServiceProviderSignUp ? 'Business Trading Name' : 'Full Name'),
                           TextFormField(
                             controller: _nameController,
                             decoration: _inputDecoration('John Doe', Icons.person_outline),
@@ -702,6 +556,61 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                             validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
                           ),
                           const SizedBox(height: 20),
+
+                          if (_isServiceProviderSignUp) ...[
+                            _buildLabel('BUSINESS PHONE NUMBER'),
+                            TextFormField(
+                              controller: _businessPhoneController,
+                              keyboardType: TextInputType.phone,
+                              decoration: _inputDecoration('61 555 0036', Icons.phone_outlined).copyWith(
+                                prefixText: '+264 ',
+                              ),
+                              style: TextStyle(color: _inputTextColor),
+                              validator: (v) {
+                                final digits = (v ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+                                if (digits.isEmpty) return 'Business phone number is required';
+                                if (digits.length < 9) return 'Enter a valid phone number';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 20),
+
+                            _buildLabel('PRIMARY SERVICE'),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: _primaryServiceOptions.map((opt) {
+                                  final key = opt['key']!;
+                                  final label = opt['label']!;
+                                  final selected = (_primaryServiceCategoryKey ?? 'mechanic') == key;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 10),
+                                    child: ChoiceChip(
+                                      label: Text(label),
+                                      selected: selected,
+                                      onSelected: (_) {
+                                        setState(() => _primaryServiceCategoryKey = key);
+                                      },
+                                      selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
+                                      backgroundColor: Colors.white.withValues(alpha: 0.05),
+                                      labelStyle: TextStyle(
+                                        color: selected ? BoostDriveTheme.primaryColor : Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: BorderSide(
+                                          color: selected ? BoostDriveTheme.primaryColor : Colors.white24,
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                           
                           _buildLabel('EMAIL ADDRESS'),
                           TextFormField(
@@ -789,219 +698,183 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
           );
         }
 
-        // Web-specific side panel layout
-        return Container(
-          color: Colors.white,
-          child: Row(
-            children: [
-              // Left Side: Hero Image
-              if (constraints.maxWidth > 800)
-                Expanded(
-                  flex: 1,
-                  child: Stack(
-                    children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                          image: DecorationImage(
-                            image: NetworkImage("https://lh3.googleusercontent.com/aida-public/AB6AXuCuAfnKgvQTFU8mdXJOK2OJrSdpcF6QMKvI6MtCv2T_PuowUTuBUYTxnovRCWOeMgWX20Fdpa6ngazsCa0_-jipGQq37sUi9ZbskUd73-uZkY2403hVqKMhDUMbsBkd0ziAG9ADrjcCgutXcPUyzcwP7yp9jbq_dO_Jma3E8CGlLryK-nu_xr2gv3rVZxLZj3aEas8jNt4q2C2SP0dCSVuSaqeNQnM_AVkU5VYP5KnqN10-3azckFoWgiw7Jkar42nxdR9aCLkX6Ps"),
-                            fit: BoxFit.cover,
-                          ),
+        // Web-specific layout (Full Screen Gradient)
+        return _buildWebLayout(
+          constraints: constraints,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 550),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1D1E).withValues(alpha: 0.94),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white10),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 40, offset: const Offset(0, 20)),
+                ],
+              ),
+              padding: const EdgeInsets.all(40),
+              child: Form(
+                key: _signUpFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Create Account',
+                      style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    // Role Selection
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.2,
+                      children: [
+                        _buildWebRoleCard('Customer / Seller', 'Buy & sell vehicle parts', Icons.person),
+                        _buildWebRoleCard('Service Provider', 'Registered Businesses', Icons.build),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    
+
+
+                    _buildLabel(_isServiceProviderSignUp ? 'BUSINESS TRADING NAME' : 'FULL NAME'),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: _inputDecoration('John Doe', Icons.person_outline),
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
+                    ),
+                    const SizedBox(height: 24),
+
+                    if (_isServiceProviderSignUp) ...[
+                      _buildLabel('BUSINESS PHONE NUMBER'),
+                      TextFormField(
+                        controller: _businessPhoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: _inputDecoration('61 555 0036', Icons.phone_outlined).copyWith(
+                          prefixText: '+264 ',
+                          prefixStyle: const TextStyle(color: Colors.white70),
                         ),
+                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                        validator: (v) {
+                          final digits = (v ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+                          if (digits.isEmpty) return 'Phone number is required';
+                          if (digits.length < 9) return 'Invalid phone number';
+                          return null;
+                        },
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.1),
-                              Colors.black.withValues(alpha: 0.5),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 40,
-                        left: 40,
+                      const SizedBox(height: 24),
+
+                      _buildLabel('PRIMARY SERVICE'),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: [
-                            const Icon(Icons.speed, color: Colors.white, size: 32),
-                            const SizedBox(width: 12),
-                            Text(
-                              'BoostDrive',
-                              style: GoogleFonts.manrope(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
+                          children: _primaryServiceOptions.map((opt) {
+                            final key = opt['key']!;
+                            final label = opt['label']!;
+                            final selected = (_primaryServiceCategoryKey ?? 'mechanic') == key;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: ChoiceChip(
+                                label: Text(label),
+                                selected: selected,
+                                onSelected: (_) => setState(() => _primaryServiceCategoryKey = key),
+                                selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
+                                backgroundColor: Colors.white.withValues(alpha: 0.05),
+                                labelStyle: TextStyle(
+                                  color: selected ? BoostDriveTheme.primaryColor : Colors.white70,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: selected ? BoostDriveTheme.primaryColor : Colors.white10),
+                                ),
                               ),
-                            ),
-                          ],
+                            );
+                          }).toList(),
                         ),
                       ),
+                      const SizedBox(height: 24),
                     ],
-                  ),
-                ),
-              
-              // Right Side: Sign Up Form
-              Expanded(
-                flex: 1,
-                child: Container(
-                  color: const Color(0xFFF8F9FB),
-                  child: Stack(
-                    children: [
-                      // Header with Close Button
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Create Account',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: _handleClose,
-                                icon: const Icon(Icons.close, color: Colors.white, size: 24),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                                  shape: const CircleBorder(),
-                                ),
-                              ),
-                            ],
-                          ),
+                    
+                    _buildLabel('EMAIL ADDRESS'),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: _inputDecoration('john@example.com', Icons.mail_outline),
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      validator: (v) => v == null || !v.contains('@') ? 'Invalid email' : null,
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    _buildLabel('PASSWORD'),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
+                      validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    _buildLabel('CONFIRM PASSWORD'),
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Passwords do not match';
+                        if (v != _passwordController.text) return 'Passwords do not match';
+                        return null;
+                      },
+                    ),
+                    
+                    if (widget.errorText != null) ...[
+                      const SizedBox(height: 24),
+                      _buildErrorDisplay(widget.errorText!),
+                    ],
+                    
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: BoostDriveTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
                         ),
+                        onPressed: widget.isLoading ? null : _submit,
+                        child: widget.isLoading 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
+                          : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
-                      
-                      Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(40, 100, 40, 24),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 500),
-                            child: Card(
-                              elevation: 0,
-                              color: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(40),
-                                child: Form(
-                                  key: _signUpFormKey,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'Get Started',
-                                        style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF1A1D1E),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        'Join the BoostDrive community',
-                                        style: TextStyle(color: Colors.black54, fontSize: 14),
-                                      ),
-                                      const SizedBox(height: 32),
-                                      
-                      // Role Selection
-                      Column(
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          _buildWebRoleCard('Customer', 'Owner, Seller or Driver', Icons.directions_car),
-                          const SizedBox(height: 16),
-                          _buildWebRoleCard('Service Provider', 'Professional Services', Icons.build),
+                          const Text('Already have an account?', style: TextStyle(color: Colors.white60)),
+                          TextButton(
+                            onPressed: () => setState(() => _isSignUp = false),
+                            child: const Text('Login', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
+                          ),
                         ],
                       ),
-                                      const SizedBox(height: 32),
-                                      
-                                      _buildLabel('Full Name'),
-                                      TextFormField(
-                                        controller: _nameController,
-                                        decoration: _inputDecoration('John Doe', Icons.person_outline),
-                                        style: const TextStyle(color: Colors.black87),
-                                        validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      
-                                      _buildLabel('Email Address'),
-                                      TextFormField(
-                                        controller: _emailController,
-                                        decoration: _inputDecoration('john@example.com', Icons.mail_outline),
-                                        style: const TextStyle(color: Colors.black87),
-                                        validator: (v) => v == null || !v.contains('@') ? 'Invalid email' : null,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      
-                                      _buildLabel('Password'),
-                                      TextFormField(
-                                        controller: _passwordController,
-                                        obscureText: _obscurePassword,
-                                        decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
-                                        style: const TextStyle(color: Colors.black87),
-                                        validator: (v) => v == null || v.length < 8 ? 'Min 8 characters' : null,
-                                      ),
-                                      
-                                      if (widget.errorText != null) ...[
-                                        const SizedBox(height: 16),
-                                        _buildErrorDisplay(widget.errorText!),
-                                      ],
-                                      
-                                      const SizedBox(height: 32),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: 56,
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: BoostDriveTheme.primaryColor,
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                            elevation: 0,
-                                          ),
-                                          onPressed: widget.isLoading ? null : _submit,
-                                          child: widget.isLoading 
-                                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
-                                            : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                        ),
-                                      ),
-                                      
-                                      const SizedBox(height: 24),
-                                Center(
-                                  child: Wrap(
-                                    alignment: WrapAlignment.center,
-                                    crossAxisAlignment: WrapCrossAlignment.center,
-                                    children: [
-                                      const Text("Already have an account?", style: TextStyle(color: Colors.black54)),
-                                      TextButton(
-                                        onPressed: () => setState(() => _isSignUp = false),
-                                        child: const Text('Login', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         );
       },
@@ -1333,6 +1206,74 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebLayout({
+    required BoxConstraints constraints,
+    required Widget child,
+  }) {
+    return Material(
+      child: Container(
+        width: constraints.maxWidth,
+        height: constraints.maxHeight,
+        decoration: const BoxDecoration(
+          color: Colors.transparent,
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.speed, color: Colors.white, size: 40),
+                        const SizedBox(width: 16),
+                        Text(
+                          'BoostDrive',
+                          style: GoogleFonts.manrope(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Your Complete Automotive Ecosystem',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                    child,
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 24,
+              right: 24,
+              child: IconButton(
+                onPressed: _handleClose,
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white10,
+                  shape: const CircleBorder(),
+                ),
               ),
             ),
           ],

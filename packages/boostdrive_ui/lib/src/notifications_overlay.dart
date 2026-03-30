@@ -89,9 +89,27 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     List<Map<String, dynamic>> conversations,
     Set<String> unreadConversationIds,
     List<DeliveryOrder> deliveries,
-    List<Map<String, dynamic>> sosRequests,
+    List<SosRequest> sosRequests,
+    List<Map<String, dynamic>> systemNotifications,
   ) {
     final List<Map<String, dynamic>> all = [];
+
+    for (var n in systemNotifications) {
+      final title = n['title'] ?? 'System Notification';
+      final isRejected = title.toLowerCase().contains('reject');
+      
+      all.add({
+        'id': 'sys_${n['id']}',
+        'title': title,
+        'message': n['message'] ?? '',
+        'time': _formatTime(n['created_at']),
+        'isRead': n['is_read'] ?? false,
+        'icon': isRejected ? Icons.cancel : (n['type'] == 'verification' ? Icons.verified_user : Icons.notifications),
+        'iconColor': isRejected ? Colors.red : null,
+        'type': 'system',
+        'timestamp': n['created_at'] != null ? DateTime.parse(n['created_at'].toString()) : DateTime.now(),
+      });
+    }
 
     for (var conv in conversations) {
       if (conv['buyer_id'] != currentUserId && conv['seller_id'] != currentUserId) continue;
@@ -132,14 +150,14 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     if (!isWeb) {
       for (var sos in sosRequests) {
         all.add({
-          'id': 'sos_${sos['id']}',
-          'title': 'SOS ${sos['status'].toUpperCase()}',
-          'message': 'Your emergency request for ${sos['type']} is ${sos['status']}.',
-          'time': _formatTime(sos['created_at']),
+          'id': 'sos_${sos.id}',
+          'title': 'SOS ${sos.status.toUpperCase()}',
+          'message': 'Your emergency request for ${sos.type} is ${sos.status}.',
+          'time': _formatTime(sos.createdAt),
           'isRead': true,
           'icon': Icons.warning_amber_rounded,
           'type': 'sos',
-          'timestamp': DateTime.parse(sos['created_at']),
+          'timestamp': sos.createdAt,
         });
       }
     }
@@ -162,6 +180,43 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       }).toList();
     }
 
+    return filtered;
+  }
+
+  /// Fallback: build a display list from system notifications only (used when Realtime streams fail)
+  List<Map<String, dynamic>> _getFilteredNotifications(List<Map<String, dynamic>> systemNotifications) {
+    final all = systemNotifications.map((n) {
+      final title = n['title'] ?? 'System Notification';
+      final isRejected = title.toLowerCase().contains('reject');
+      
+      return <String, dynamic>{
+        'id': 'sys_${n['id']}',
+        'title': title,
+        'message': n['message'] ?? '',
+        'time': _formatTime(n['created_at']),
+        'isRead': n['is_read'] ?? false,
+        'icon': isRejected ? Icons.cancel : (n['type'] == 'verification' ? Icons.verified_user : Icons.notifications),
+        'iconColor': isRejected ? Colors.red : null,
+        'type': 'system',
+        'timestamp': n['created_at'] != null ? DateTime.parse(n['created_at'].toString()) : DateTime.now(),
+      };
+    }).toList();
+
+    all.sort((a, b) => (b['timestamp'] as DateTime).compareTo(a['timestamp'] as DateTime));
+
+
+    var filtered = all;
+    final tab = _tabController.index;
+    if (tab == 1) filtered = all.where((n) => !(n['isRead'] as bool)).toList();
+    if (tab == 2) filtered = all.where((n) => n['isRead'] as bool).toList();
+
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((n) {
+        final title = (n['title'] as String).toLowerCase();
+        final msg = (n['message'] as String).toLowerCase();
+        return title.contains(_searchQuery) || msg.contains(_searchQuery);
+      }).toList();
+    }
     return filtered;
   }
 
@@ -334,29 +389,48 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 data: (convs) => unreadConvsAsync.when(
                   data: (unreadIds) => deliveriesAsync.when(
                     data: (dels) => sosAsync.when(
-                      data: (sos) {
-                        final filtered = _processNotifications(user.id, convs, unreadIds, dels, sos);
-                        if (filtered.isEmpty) {
-                          return _buildEmptyState();
-                        }
-                        return ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: filtered.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
-                          itemBuilder: (context, index) => _buildNotificationItem(filtered[index]),
-                        );
-                      },
+                      data: (sos) => ref.watch(userNotificationsProvider(user.id)).when(
+                        data: (sys) {
+                          final filtered = _processNotifications(user.id, convs, unreadIds, dels, sos, sys);
+                          if (filtered.isEmpty) {
+                            return _buildEmptyState();
+                          }
+                          return ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: filtered.length,
+                            separatorBuilder: (context, index) => const Divider(height: 1),
+                            itemBuilder: (context, index) => _buildNotificationItem(filtered[index]),
+                          );
+                        },
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => _buildEmptyState(), // Graceful fallback
+                      ),
                       loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Center(child: Text('Error loading SOS: $e')),
+                      error: (e, _) => _buildEmptyState(), // Graceful fallback
                     ),
                     loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Error loading deliveries: $e')),
+                    error: (e, _) => _buildEmptyState(), // Graceful fallback
                   ),
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error loading unread info: $e')),
+                  error: (e, _) => _buildEmptyState(), // Graceful fallback
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error loading messages: $e')),
+                // If Realtime WebSocket fails, gracefully show system notifications only
+                error: (e, _) => ref.watch(userNotificationsProvider(user.id)).when(
+                  data: (sys) {
+                    final unread = sys.where((n) => n['is_read'] == false).toList();
+                    final toShow = _getFilteredNotifications(sys);
+                    if (toShow.isEmpty) return _buildEmptyState();
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: toShow.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (_, i) => _buildNotificationItem(toShow[i]),
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => _buildEmptyState(),
+                ),
               ),
             ),
             
@@ -401,7 +475,9 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
               decoration: BoxDecoration(
                 color: notification['isRead'] 
                     ? const Color(0xFFF9FAFB) 
-                    : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                    : (notification['iconColor'] != null 
+                        ? (notification['iconColor'] as Color).withValues(alpha: 0.1)
+                        : BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -409,7 +485,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 size: 20,
                 color: notification['isRead'] 
                     ? const Color(0xFF667085) 
-                    : BoostDriveTheme.primaryColor,
+                    : (notification['iconColor'] ?? BoostDriveTheme.primaryColor),
               ),
             ),
             const SizedBox(width: 12),
@@ -476,9 +552,13 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
 
     try {
       if (type == 'message') {
-        await ref.read(messageServiceProvider).markConversationAsRead(realId);
         if (user != null) {
           ref.invalidate(unreadConversationsProvider(user.id));
+        }
+      } else if (type == 'system') {
+        await ref.read(notificationServiceProvider).markAsRead(realId);
+        if (user != null) {
+          ref.invalidate(userNotificationsProvider(user.id));
         }
       }
     } catch (e) {
@@ -499,8 +579,10 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     setState(() => _isMarkingAllAsRead = true);
     try {
       await ref.read(messageServiceProvider).markAllAsRead(userId);
+      await ref.read(notificationServiceProvider).markAllAsRead(userId);
       if (!mounted) return;
       ref.invalidate(unreadConversationsProvider(userId));
+      ref.invalidate(userNotificationsProvider(userId));
       if (!mounted) return;
       setState(() => _isMarkingAllAsRead = false);
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(

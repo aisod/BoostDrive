@@ -1,7 +1,5 @@
 // lib/web_utils.dart
-// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:html' as html;
-// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:js' as js;
 // ignore: camel_case_types
 import 'dart:ui_web' as ui_web;
@@ -18,7 +16,31 @@ class WebUtils {
   }
 
   static void injectGoogleMapsKey(String key) {
+    if (key.isEmpty) {
+      return;
+    }
+
+    // Expose key to JS context if needed elsewhere.
     js.context['GOOGLE_MAPS_API_KEY'] = key;
+
+    // Avoid injecting the script multiple times.
+    final existingScripts = html.document
+        .querySelectorAll('script')
+        .whereType<html.ScriptElement>()
+        .where((s) => s.src.contains('maps.googleapis.com/maps/api/js'))
+        .toList();
+    if (existingScripts.isNotEmpty) {
+      return;
+    }
+
+    final script = html.ScriptElement()
+      ..src = 'https://maps.googleapis.com/maps/api/js?key=$key&libraries=places&loading=async'
+      ..async = true
+      ..defer = true;
+    script.onError.listen((_) {
+      // Optional: add logging via debugPrint from caller if needed.
+    });
+    html.document.head?.append(script);
   }
 
   static String getEnv(String key, {String defaultValue = ''}) {

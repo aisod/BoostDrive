@@ -25,6 +25,9 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
   String? _verificationId;
   String? _pendingName;
   String? _pendingRole;
+  String? _pendingBusinessContactNumber;
+  String? _pendingPrimaryServiceCategory;
+  String? _pendingUsername;
   bool _isPasswordReset = false;
   bool _isSignUp = false;
 
@@ -148,6 +151,7 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
     required String password,
     required String role,
     String? username,
+    String? primaryServiceCategory,
   }) async {
     setState(() {
       _isLoading = true;
@@ -155,10 +159,16 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
       _isSignUp = true;
       _pendingName = fullName;
       _pendingRole = role;
+      _pendingBusinessContactNumber = role.toLowerCase().contains('service_provider') ? phone : null;
+      _pendingPrimaryServiceCategory = primaryServiceCategory;
+      _pendingUsername = username;
     });
 
     try {
-      final normalizedRole = role.toLowerCase().replaceAll(' ', '_');
+      final originalNormalizedRole = role.toLowerCase().replaceAll(' ', '_');
+      final isCustomerSeller = originalNormalizedRole == 'customer_/_seller';
+      final dbRole = isCustomerSeller ? 'customer' : originalNormalizedRole;
+
       final userService = ref.read(userServiceProvider);
       final duplicateError = await userService.checkDuplicateAccount(
         email: email,
@@ -182,7 +192,7 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
         phone: phone,
         username: username,
         fullName: fullName,
-        role: normalizedRole,
+        role: dbRole,
       );
       
       if (mounted) {
@@ -190,17 +200,32 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
           // Immediate sign in (Confirmation OFF)
           // Sync profile and roles
           final user = response.user!;
-          await authService.updateProfile(userId: user.id, fullName: fullName);
+          if (dbRole == 'service_provider') {
+            await authService.updateProfile(
+              userId: user.id,
+              fullName: fullName, // stored into full_name (used as shop display name)
+              username: username,
+              businessContactNumber: phone,
+              tradingName: fullName,
+              primaryServiceCategory: primaryServiceCategory,
+            );
+          } else {
+            await authService.updateProfile(
+              userId: user.id,
+              fullName: fullName,
+              username: username,
+            );
+          }
           
-          final normalizedRole = role.toLowerCase().replaceAll(' ', '_');
-          bool isBuyer = normalizedRole == 'customer';
-          bool isSeller = normalizedRole == 'customer' || normalizedRole == 'service_provider';
+          bool isBuyer = isCustomerSeller || dbRole == 'customer';
+          // Providers should NOT be treated as sellers.
+          bool isSeller = isCustomerSeller || dbRole == 'seller';
           
           await userService.updateRoles(
             uid: user.id,
             isBuyer: isBuyer,
             isSeller: isSeller,
-            role: normalizedRole,
+            role: dbRole,
           );
 
           setState(() => _isLoading = false);
@@ -289,23 +314,38 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
         if (user != null) {
           // Update profile with name
           if (_pendingName != null) {
-            await authService.updateProfile(
-              userId: user.id,
-              fullName: _pendingName,
-            );
+            if (_pendingRole != null && _pendingRole!.toLowerCase().replaceAll(' ', '_') == 'service_provider') {
+              await authService.updateProfile(
+                userId: user.id,
+                fullName: _pendingName,
+                username: _pendingUsername,
+                businessContactNumber: _pendingBusinessContactNumber,
+                tradingName: _pendingName,
+                primaryServiceCategory: _pendingPrimaryServiceCategory,
+              );
+            } else {
+              await authService.updateProfile(
+                userId: user.id,
+                fullName: _pendingName,
+                username: _pendingUsername,
+              );
+            }
           }
           
           // Update roles
           if (_pendingRole != null) {
-            final normalizedRole = _pendingRole!.toLowerCase().replaceAll(' ', '_');
+            final originalNormalizedRole = _pendingRole!.toLowerCase().replaceAll(' ', '_');
+            final isCustomerSeller = originalNormalizedRole == 'customer_/_seller';
+            final dbRole = isCustomerSeller ? 'customer' : originalNormalizedRole;
             final userSerivce = ref.read(userServiceProvider);
-            bool isBuyer = normalizedRole == 'customer';
-            bool isSeller = normalizedRole == 'customer' || normalizedRole == 'service_provider';
+            bool isBuyer = isCustomerSeller || dbRole == 'customer';
+            // Providers should NOT be treated as sellers.
+            bool isSeller = isCustomerSeller || dbRole == 'seller';
             await userSerivce.updateRoles(
               uid: user.id,
               isBuyer: isBuyer,
               isSeller: isSeller,
-              role: normalizedRole,
+              role: dbRole,
             );
           }
         }
@@ -452,73 +492,49 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      return Row(
-        children: [
-          // Left Side: Image
-          Expanded(
-            flex: 1,
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: NetworkImage("https://lh3.googleusercontent.com/aida-public/AB6AXuCuAfnKgvQTFU8mdXJOK2OJrSdpcF6QMKvI6MtCv2T_PuowUTuBUYTxnovRCWOeMgWX20Fdpa6ngazsCa0_-jipGQq37sUi9ZbskUd73-uZkY2403hVqKMhDUMbsBkd0ziAG9ADrjcCgutXcPUyzcwP7yp9jbq_dO_Jma3E8CGlLryK-nu_xr2gv3rVZxLZj3aEas8jNt4q2C2SP0dCSVuSaqeNQnM_AVkU5VYP5KnqN10-3azckFoWgiw7Jkar42nxdR9aCLkX6Ps"),
-                  fit: BoxFit.cover,
+      return Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: NetworkImage("https://lh3.googleusercontent.com/aida-public/AB6AXuCuAfnKgvQTFU8mdXJOK2OJrSdpcF6QMKvI6MtCv2T_PuowUTuBUYTxnovRCWOeMgWX20Fdpa6ngazsCa0_-jipGQq37sUi9ZbskUd73-uZkY2403hVqKMhDUMbsBkd0ziAG9ADrjcCgutXcPUyzcwP7yp9jbq_dO_Jma3E8CGlLryK-nu_xr2gv3rVZxLZj3aEas8jNt4q2C2SP0dCSVuSaqeNQnM_AVkU5VYP5KnqN10-3azckFoWgiw7Jkar42nxdR9aCLkX6Ps"),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Colors.black54, BlendMode.darken),
+          ),
+        ),
+        child: Center(
+          child: Stack(
+            children: [
+              const Positioned(
+                top: 10,
+                right: 70,
+                child: SizedBox(
+                  height: 48,
+                  width: 48,
+                  child: HtmlElementView(viewType: 'recaptcha-container'),
                 ),
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.1),
-                      Colors.black.withValues(alpha: 0.5),
-                    ],
-                  ),
-                ),
+              BoostLoginWidget(
+                onLogin: _login,
+                onSignUp: _signUp,
+                onVerifyOtp: _verifyOtp,
+                onResendOtp: _resendCode,
+                onCancelOtp: () {
+                  setState(() {
+                    _verificationId = null;
+                    _errorText = null;
+                    _isLoading = false;
+                  });
+                },
+                onClose: widget.onClose,
+                onForgotPassword: _showForgotPasswordDialog,
+                onGoogleSignIn: _signInWithGoogle,
+                onAppleSignIn: _signInWithApple,
+                isLoading: _isLoading,
+                isOtpSent: _verificationId != null,
+                errorText: _errorText,
               ),
-            ),
+            ],
           ),
-          // Right Side: Login Widget
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: BoostDriveTheme.backgroundDark,
-              child: Stack(
-                children: [
-                  const Positioned(
-                    top: 10,
-                    right: 70,
-                    child: SizedBox(
-                      height: 48,
-                      width: 48,
-                      child: HtmlElementView(viewType: 'recaptcha-container'),
-                    ),
-                  ),
-                  BoostLoginWidget(
-                    onLogin: _login,
-                    onSignUp: _signUp,
-                    onVerifyOtp: _verifyOtp,
-                    onResendOtp: _resendCode,
-                    onCancelOtp: () {
-                      setState(() {
-                        _verificationId = null;
-                        _errorText = null;
-                        _isLoading = false;
-                      });
-                    },
-                    onClose: widget.onClose,
-                    onForgotPassword: _showForgotPasswordDialog,
-                    onGoogleSignIn: _signInWithGoogle,
-                    onAppleSignIn: _signInWithApple,
-                    isLoading: _isLoading,
-                    isOtpSent: _verificationId != null,
-                    errorText: _errorText,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       );
     }
 

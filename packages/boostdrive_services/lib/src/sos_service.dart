@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:boostdrive_core/boostdrive_core.dart';
 
 class SosService {
   final _supabase = Supabase.instance.client;
@@ -75,13 +76,16 @@ class SosService {
     }
   }
 
-  Stream<List<Map<String, dynamic>>> streamActiveRequest(String userId) {
+  Stream<List<SosRequest>> streamActiveRequest(String userId) {
     return _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
         .order('created_at', ascending: false)
-        .map((data) => data.where((item) => ['pending', 'accepted', 'assigned'].contains(item['status'])).toList());
+        .map((data) => data
+            .where((item) => ['pending', 'accepted', 'assigned'].contains(item['status']))
+            .map((json) => SosRequest.fromMap(json))
+            .toList());
   }
 
   Future<void> cancelRequest(String requestId) async {
@@ -103,22 +107,26 @@ class SosService {
   }
 
   /// Pending SOS requests (for providers to accept).
-  Stream<List<Map<String, dynamic>>> getGlobalActiveRequests() {
+  Stream<List<SosRequest>> getGlobalActiveRequests() {
     return _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
         .eq('status', 'pending')
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .map((data) => data.map((json) => SosRequest.fromMap(json)).toList());
   }
 
   /// Requests assigned to this provider (accepted by them).
-  Stream<List<Map<String, dynamic>>> streamProviderAssignedRequests(String providerId) {
+  Stream<List<SosRequest>> streamProviderAssignedRequests(String providerId) {
     return _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
         .eq('assigned_provider_id', providerId)
         .order('created_at', ascending: false)
-        .map((data) => data.where((r) => ['accepted', 'assigned'].contains(r['status']?.toString())).toList());
+        .map((data) => data
+            .where((r) => ['accepted', 'assigned'].contains(r['status']?.toString()))
+            .map((json) => SosRequest.fromMap(json))
+            .toList());
   }
 
   /// Provider accepts a pending SOS request (sets assigned_provider_id, responded_at, status).
@@ -133,15 +141,15 @@ class SosService {
 
 final sosServiceProvider = Provider<SosService>((ref) => SosService());
 
-final globalActiveSosRequestsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+final globalActiveSosRequestsProvider = StreamProvider<List<SosRequest>>((ref) {
   return ref.watch(sosServiceProvider).getGlobalActiveRequests();
 });
 
-final userActiveSosRequestsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
+final userActiveSosRequestsProvider = StreamProvider.family<List<SosRequest>, String>((ref, userId) {
   return ref.watch(sosServiceProvider).streamActiveRequest(userId);
 });
 
 /// For service providers: requests they have accepted (assigned to them).
-final providerAssignedRequestsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, providerId) {
+final providerAssignedRequestsProvider = StreamProvider.family<List<SosRequest>, String>((ref, providerId) {
   return ref.watch(sosServiceProvider).streamProviderAssignedRequests(providerId);
 });

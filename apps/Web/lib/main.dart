@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'shop_home_page.dart';
+import 'package:boost_drive_web/shop_home_page.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'web_utils.dart';
-// ignore: deprecated_member_use, avoid_web_libraries_in_flutter — web-only app, dart:html used for window.reload
+import 'package:boost_drive_web/web_utils.dart';
+// web-only app; dart:html used for window.reload
 import 'dart:html' as html;
 
 void main() async {
