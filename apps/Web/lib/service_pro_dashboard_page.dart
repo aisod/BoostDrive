@@ -549,14 +549,45 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'BoostDrive Pro: ${profile.fullName}',
-                  style: GoogleFonts.manrope(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -1,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'BoostDrive Pro: ${profile.fullName}',
+                      style: GoogleFonts.manrope(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    if (profile.verificationStatus.toLowerCase() == 'approved') ...[
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.verified, color: BoostDriveTheme.primaryColor, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'VERIFIED',
+                              style: TextStyle(
+                                color: BoostDriveTheme.primaryColor,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(

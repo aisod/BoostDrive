@@ -26,7 +26,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
   String? _selectedRoleFilter; // null = All
   final TextEditingController _searchController = TextEditingController();
 
-  static const List<String> _roleFilters = ['All', 'provider', 'service_provider', 'mechanic', 'towing'];
+  static const List<String> _roleFilters = ['All', 'service_provider', 'mechanic', 'towing'];
 
   @override
   void dispose() {
@@ -182,6 +182,9 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
       );
       
       if (mounted) {
+        // Force the provider to refresh so the user is removed from the pending list immediately
+        ref.invalidate(pendingVerificationsProvider);
+        
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${provider.fullName} Approved', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
@@ -195,8 +198,15 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Approval Failed'),
+            content: Text('Could not approve provider: $e'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+            ],
+          ),
         );
       }
     }
@@ -215,6 +225,9 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
       );
       
       if (mounted) {
+        // Force the provider to refresh
+        ref.invalidate(pendingVerificationsProvider);
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${provider.fullName} Rejected', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
@@ -228,8 +241,15 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Rejection Failed'),
+            content: Text('Could not reject provider: $e'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+            ],
+          ),
         );
       }
     }
@@ -451,7 +471,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
       color: const Color(0xFFF8F9FA),
       child: Row(
         children: const [
-          Expanded(flex: 2, child: Text('PROVIDER', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54))),
+          Expanded(flex: 2, child: Text('SERVICE PROVIDER', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54))),
           Expanded(flex: 1, child: Text('JOINED DATE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54))),
           Expanded(flex: 2, child: Text('ROLE / CATEGORY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54))),
           SizedBox(width: 100, child: Text('ACTION', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54), textAlign: TextAlign.right)),
@@ -637,8 +657,26 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                                       const SizedBox(height: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                                        child: const Text('PENDING VERIFICATION', style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.w900)),
+                                        decoration: BoxDecoration(
+                                          color: p.verificationStatus.toLowerCase() == 'approved' 
+                                            ? Colors.green.withValues(alpha: 0.1) 
+                                            : p.verificationStatus.toLowerCase() == 'rejected' 
+                                              ? Colors.red.withValues(alpha: 0.1) 
+                                              : Colors.orange.withValues(alpha: 0.1), 
+                                          borderRadius: BorderRadius.circular(6)
+                                        ),
+                                        child: Text(
+                                          p.verificationStatus.toUpperCase() == 'PENDING' ? 'PENDING VERIFICATION' : p.verificationStatus.toUpperCase(), 
+                                          style: TextStyle(
+                                            color: p.verificationStatus.toLowerCase() == 'approved' 
+                                              ? Colors.green 
+                                              : p.verificationStatus.toLowerCase() == 'rejected' 
+                                                ? Colors.red 
+                                                : Colors.orange, 
+                                            fontSize: 10, 
+                                            fontWeight: FontWeight.w900
+                                          )
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -665,41 +703,42 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                 ],
               ),
             ),
-            // Action Footer
-            Container(
-              margin: const EdgeInsets.only(top: 24),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                 border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                    onPressed: _isLoading ? null : () => _rejectProvider(p),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            // Action Footer - Only show if pending/unverified
+            if (p.verificationStatus.toLowerCase() == 'pending' || p.verificationStatus.toLowerCase() == 'unverified')
+              Container(
+                margin: const EdgeInsets.only(top: 24),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      onPressed: _isLoading ? null : () => _rejectProvider(p),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                      ),
+                      child: const Text('Reject Application', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text('Reject Application', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : () => _approveProvider(p),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : () => _approveProvider(p),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                      ),
+                      child: _isLoading 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Approve Provider', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                    child: _isLoading 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Approve Provider', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
         if (_isLoading)

@@ -36,7 +36,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
     if (cleaned.isEmpty) return false;
 
     // Your DB sometimes stores provider accounts as plain "provider".
-    if (cleaned == 'provider') return true;
+    if (cleaned == 'service_provider') return true;
 
     return cleaned.contains('service provider') ||
         cleaned.contains('service pro') ||

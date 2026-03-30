@@ -614,7 +614,7 @@ class AuthService {
 
       // Prevent providers from being auto-approved by DB defaults.
       final role = (updates['role'] ?? 'customer').toString().trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
-      final isProviderRole = role == 'provider' ||
+      final isProviderRole = role == 'service_provider' ||
           role.contains('service provider') ||
           role.contains('service pro') ||
           role.contains('mechanic') ||

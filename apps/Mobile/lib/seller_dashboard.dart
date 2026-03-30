@@ -91,7 +91,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                     ),
                   ),
                   Text(
-                    'Metro Salvage & Parts',
+                    '${profile.registeredBusinessName ?? "My Store"} • Official Seller',
                     style: GoogleFonts.manrope(
                       color: BoostDriveTheme.textDim,
                       fontSize: 14,

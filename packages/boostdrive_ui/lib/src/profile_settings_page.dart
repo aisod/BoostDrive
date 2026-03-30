@@ -115,7 +115,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     if (cleaned.isEmpty) return false;
 
     // Some accounts store the role as plain "provider".
-    if (cleaned == 'provider') return true;
+    if (cleaned == 'service_provider') return true;
 
     return cleaned.contains('service provider') ||
         cleaned.contains('service pro') ||
@@ -488,6 +488,20 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   bool _isProviderApproved(String verificationStatus) {
     final s = verificationStatus.trim().toLowerCase();
     return s == 'approved' || s == 'verified';
+  }
+
+  /// Helper to get a human-readable specialization label for the profile header.
+  String _getCategoryLabel(UserProfile profile) {
+    final cat = profile.primaryServiceCategory?.toLowerCase();
+    if (cat == 'mechanic') return 'Mechanic';
+    if (cat == 'towing') return 'Towing Service';
+    if (cat == 'parts') return 'Parts Supplier';
+    
+    // Fallback to role or capitalization
+    if (cat != null && cat.isNotEmpty) {
+      return cat[0].toUpperCase() + cat.substring(1).replaceAll('_', ' ');
+    }
+    return profile.role == 'service_provider' ? 'Service Provider' : profile.role;
   }
 
   Future<void> _showProfilePhotoOptions() async {
@@ -934,22 +948,22 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ),
                   if (_isProviderApproved(profile.verificationStatus)) ...[
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
-                          ),
-                          child: Text('TOP RATED SELLER', style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w800, color: BoostDriveTheme.primaryColor, letterSpacing: 0.5)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
+                      ),
+                      child: Text(
+                        'Verified ${_getCategoryLabel(profile)}',
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: BoostDriveTheme.primaryColor,
+                          letterSpacing: 0.5,
                         ),
-                        Text('Verified Salvage Yard', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
-                      ],
+                      ),
                     ),
                   ],
                 ],

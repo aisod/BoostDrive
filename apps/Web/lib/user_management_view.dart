@@ -23,15 +23,13 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
   bool _isProviderRole(String role) {
     final r = role.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
     if (r.isEmpty) return false;
-    if (r == 'provider') return true;
+    if (r == 'service_provider') return true;
     return r.contains('service provider') ||
         r.contains('service pro') ||
         r.contains('mechanic') ||
         r.contains('towing') ||
         r.contains('logistics') ||
-        r.contains('rental') ||
-        r == 'service_provider' ||
-        r == 'service_pro';
+        r.contains('rental');
   }
 
   bool _matchesGroup(UserProfile p) {
@@ -138,7 +136,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
 
   Widget _buildGroupHeader() {
     String title = 'Users';
-    if (_selectedGroup == _UserGroup.provider) title = 'Providers';
+    if (_selectedGroup == _UserGroup.provider) title = 'Service Providers';
     if (_selectedGroup == _UserGroup.customerSeller) title = 'Customers & Sellers';
     if (_selectedGroup == _UserGroup.admin) title = 'Admins';
 
@@ -179,7 +177,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
         runSpacing: 16,
         children: [
           _groupCard(
-            title: 'Providers',
+            title: 'Service Providers',
             subtitle: '$providerCount total',
             icon: Icons.build_outlined,
             onTap: () => _enterGroup(_UserGroup.provider),
@@ -325,9 +323,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
     if (_selectedGroup == _UserGroup.provider) {
       return const [
         DropdownMenuItem(value: 'all_providers', child: Text('All Providers')),
-        DropdownMenuItem(value: 'provider', child: Text('Provider')),
         DropdownMenuItem(value: 'service_provider', child: Text('Service Provider')),
-        DropdownMenuItem(value: 'service_pro', child: Text('Service Pro')),
         DropdownMenuItem(value: 'mechanic', child: Text('Mechanic')),
         DropdownMenuItem(value: 'towing', child: Text('Towing')),
         DropdownMenuItem(value: 'logistics', child: Text('Logistics')),

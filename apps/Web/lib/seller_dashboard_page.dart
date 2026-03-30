@@ -70,17 +70,48 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Seller Marketplace',
-                    style: GoogleFonts.manrope(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: -0.5,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Seller Marketplace',
+                        style: GoogleFonts.manrope(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      if (profile.verificationStatus.toLowerCase() == 'approved') ...[
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _accentBlue.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _accentBlue.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.verified, color: _accentBlue, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                'VERIFIED',
+                                style: GoogleFonts.manrope(
+                                  color: _accentBlue,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 11,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   Text(
-                    'Metro Salvage & Parts • Top Rated Performance',
+                    '${profile.registeredBusinessName ?? "My Store"} • Official Seller',
                     style: GoogleFonts.manrope(
                       color: BoostDriveTheme.textDim,
                       fontSize: 18,

@@ -790,7 +790,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
 
     // Service provider / mechanic / towing / logistics / rental roles.
     // Some accounts store role as just "provider".
-    if (cleaned == 'provider') return ProviderHubPage();
+    if (cleaned == 'service_provider') return ProviderHubPage();
 
     final isServiceProviderRole =
         cleaned.contains('service provider') ||
@@ -817,7 +817,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
     if (cleaned.isEmpty) return false;
 
     // Role can be stored as plain "provider".
-    if (cleaned == 'provider') return true;
+    if (cleaned == 'service_provider') return true;
 
     return cleaned.contains('service provider') ||
         cleaned.contains('service pro') ||

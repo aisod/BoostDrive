@@ -61,6 +61,25 @@ class NotificationService {
     });
   }
 
+  /// Sends a general account verification notification (Approved/Rejected)
+  Future<void> sendAccountVerificationNotification({
+    required String userId,
+    required String status, // 'approved' or 'rejected'
+  }) async {
+    final isApproved = status.toLowerCase() == 'approved';
+    final title = isApproved ? 'Account Verified' : 'Account Verification Update';
+    final message = isApproved
+        ? 'Congratulations! Your BoostDrive account has been successfully verified. You now have full access to our dispatch and service features.'
+        : 'There is an update regarding your account verification. Please check your document statuses for details.';
+
+    await sendNotification(
+      userId: userId,
+      title: title,
+      message: message,
+      type: 'account_verification',
+    );
+  }
+
 
   /// Fetches notifications for a specific user (no Realtime required)
   Future<List<Map<String, dynamic>>> getNotifications(String userId) async {

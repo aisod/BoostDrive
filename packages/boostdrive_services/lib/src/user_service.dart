@@ -77,7 +77,20 @@ class UserService {
     required String adminUid,
   }) async {
     try {
-      await _supabase.from('profiles').update({'verification_status': status}).eq('id', uid);
+      print('DEBUG: Attempting to update verification_status of $uid to $status...');
+      
+      final response = await _supabase
+          .from('profiles')
+          .update({'verification_status': status})
+          .eq('id', uid)
+          .select();
+
+      if (response == null || (response as List).isEmpty) {
+        throw Exception('No profile found to update or update rejected by RLS.');
+      }
+
+      print('DEBUG: Verification status update successful for $uid');
+
       // Soft-fail audit logging in case table isn't set up yet
       try {
         await _supabase.from('admin_audit_logs').insert({
@@ -89,8 +102,19 @@ class UserService {
       } catch (e) {
         print('Warning: Failed to insert audit log (table might be missing): $e');
       }
+
+      // Trigger the account-level notification for the provider
+      try {
+        final notificationService = NotificationService();
+        await notificationService.sendAccountVerificationNotification(
+          userId: uid,
+          status: status,
+        );
+      } catch (e) {
+        print('Warning: Could not send verification notification: $e');
+      }
     } catch (e) {
-      print('Error updating verification status: $e');
+      print('DEBUG: Error updating verification status: $e');
       rethrow;
     }
   }
@@ -239,8 +263,8 @@ class UserService {
         final r = p.role.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
         if (r.isEmpty) return false;
 
-        // provider accounts may be stored as plain "provider"
-        if (r == 'provider') return true;
+        // provider accounts are stored as "service_provider"
+        if (r == 'service_provider') return true;
 
         return r.contains('service provider') ||
             r.contains('service pro') ||
