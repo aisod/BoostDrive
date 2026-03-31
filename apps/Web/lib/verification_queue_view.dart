@@ -292,12 +292,8 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            const Text(
-              'Pending Verifications',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-            ),
             Consumer(
               builder: (context, ref, child) {
                 final count = ref.watch(pendingVerificationsProvider).maybeWhen(

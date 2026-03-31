@@ -131,6 +131,15 @@ class SosService {
 
   /// Provider accepts a pending SOS request (sets assigned_provider_id, responded_at, status).
   Future<void> acceptRequest(String requestId, String providerId) async {
+    // Check if the provider is suspended before allowing acceptance
+    final profileResponse = await _supabase.from('profiles').select('status').eq('id', providerId).maybeSingle();
+    if (profileResponse != null) {
+      final status = profileResponse['status']?.toString().toLowerCase();
+      if (status == 'suspended' || status == 'banned') {
+        throw Exception('Account is suspended. You cannot accept new SOS requests.');
+      }
+    }
+
     await _supabase.from('sos_requests').update({
       'assigned_provider_id': providerId,
       'responded_at': DateTime.now().toIso8601String(),

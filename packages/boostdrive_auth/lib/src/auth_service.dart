@@ -534,7 +534,13 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
+    try {
+      await _supabase.auth.signOut();
+    } catch (e) {
+      // Supabase Gotrue throws AuthRetryableFetchException on logout if network fails
+      // We can safely ignore this as the local session is usually cleared.
+      print("DEBUG: Sign out network error ignored: $e");
+    }
   }
 
   /// Deletes the current user's profile and signs them out.

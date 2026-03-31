@@ -12,7 +12,8 @@ class UserProfile {
   final int loyaltyPoints;
   final bool isOnline;
   final String verificationStatus; // 'pending' | 'approved' | 'rejected' | 'unverified'
-  final String status; // 'active' | 'banned' | 'frozen'
+  final String status; // 'active' | 'suspended' | 'pending_verification' | 'frozen'
+  final String? suspensionReason;
   final bool isAdmin;
 
   static const Map<String, String> brandOptions = {
@@ -161,6 +162,7 @@ class UserProfile {
     this.sosAlertsEnabled = true,
     this.preferredCommunication = 'app_chat',
     this.status = 'active',
+    this.suspensionReason,
   });
 
   /// Coerces any value to non-null String (avoids "null is not a subtype of String" from API).
@@ -236,6 +238,7 @@ class UserProfile {
       teamSize: _parseInt(data['team_size'] ?? data['teamSize']),
       sosAlertsEnabled: _parseBool(data['sos_alerts_enabled'], true),
       preferredCommunication: _str(data['preferred_communication'] ?? data['preferredCommunication'], 'app_chat'),
+      suspensionReason: data['suspension_reason'] as String?,
     );
   }
 
@@ -324,6 +327,7 @@ class UserProfile {
       'team_size': teamSize,
       'sos_alerts_enabled': sosAlertsEnabled ?? true,
       'preferred_communication': preferredCommunication ?? 'app_chat',
+      if (suspensionReason != null) 'suspension_reason': suspensionReason,
     };
   }
 
@@ -379,6 +383,7 @@ class UserProfile {
     bool? sosAlertsEnabled,
     String? preferredCommunication,
     String? status,
+    String? suspensionReason,
   }) {
     return UserProfile(
       uid: uid,
@@ -434,6 +439,7 @@ class UserProfile {
       sosAlertsEnabled: sosAlertsEnabled ?? this.sosAlertsEnabled,
       preferredCommunication: preferredCommunication ?? this.preferredCommunication,
       status: status ?? this.status,
+      suspensionReason: suspensionReason ?? this.suspensionReason,
     );
   }
 }

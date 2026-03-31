@@ -29,11 +29,7 @@ class _ServiceMonitoringViewState extends ConsumerState<ServiceMonitoringView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Live Service Monitoring',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 0),
         Expanded(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

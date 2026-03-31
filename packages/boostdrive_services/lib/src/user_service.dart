@@ -187,21 +187,27 @@ class UserService {
     }
   }
 
-  /// Updates the user's account status (active, banned, frozen) and logs it.
+  /// Updates the user's account status (active, suspended, frozen) and logs it.
   Future<void> updateUserStatus({
     required String uid,
     required String status,
     required String adminUid,
-    String? notes,
+    String? reason,
   }) async {
     try {
-      await _supabase.from('profiles').update({'status': status}).eq('id', uid);
+      final Map<String, dynamic> updates = {'status': status};
+      if (status == 'active') {
+        updates['suspension_reason'] = null;
+      } else {
+        updates['suspension_reason'] = reason;
+      }
+      await _supabase.from('profiles').update(updates).eq('id', uid);
       try {
         await _supabase.from('admin_audit_logs').insert({
           'admin_id': adminUid,
           'target_id': uid,
           'action_type': 'UPDATE_USER_STATUS',
-          'notes': 'Account status changed to ${status.toUpperCase()}. Notes: ${notes ?? "No notes provided"}'
+          'notes': 'Account status changed to ${status.toUpperCase()}. Reason: ${reason ?? "No reason provided"}'
         });
       } catch (e) {
         print('Warning: Failed to insert audit log for status change: $e');
@@ -308,6 +314,9 @@ class UserService {
       query = query.eq('verification_status', 'approved');
     }
 
+    // Visibility Blackout: Exclude suspended/banned providers from the directory
+    query = query.neq('status', 'suspended').neq('status', 'banned');
+
     // Explicitly exclude non-provider roles
     query = query.neq('role', 'customer').neq('role', 'admin').neq('role', 'seller');
     
@@ -379,4 +388,13 @@ final verifiedProvidersProvider = FutureProvider.family<List<UserProfile>, Strin
 
 final allProfilesProvider = StreamProvider<List<UserProfile>>((ref) {
   return ref.watch(userServiceProvider).getAllProfiles();
+});
+
+final providerStaffProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, providerId) {
+  final supabase = Supabase.instance.client;
+  return supabase
+      .from('provider_staff')
+      .stream(primaryKey: ['id'])
+      .eq('provider_id', providerId)
+      .order('created_at', ascending: false);
 });

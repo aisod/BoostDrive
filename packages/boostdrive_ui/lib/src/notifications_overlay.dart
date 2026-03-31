@@ -555,7 +555,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
         if (user != null) {
           ref.invalidate(unreadConversationsProvider(user.id));
         }
-      } else if (type == 'system') {
+      } else if (type == 'system' || type == 'verification' || type == 'account_verification') {
         await ref.read(notificationServiceProvider).markAsRead(realId);
         if (user != null) {
           ref.invalidate(userNotificationsProvider(user.id));
@@ -566,10 +566,109 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     }
 
     if (!mounted) return;
-    Navigator.pop(context);
-    if (widget.onNotificationTap != null) {
-      widget.onNotificationTap!(type ?? '', realId);
-    }
+    
+    // Show the detailed popup before closing the overlay
+    _showNotificationDetailDialog(notification);
+  }
+
+  void _showNotificationDetailDialog(Map<String, dynamic> notification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.all(32),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: (notification['iconColor'] as Color? ?? BoostDriveTheme.primaryColor).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    notification['icon'] ?? Icons.notifications,
+                    color: notification['iconColor'] ?? BoostDriveTheme.primaryColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notification['title'] ?? 'Notification',
+                        style: GoogleFonts.manrope(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF1D2939),
+                        ),
+                      ),
+                      Text(
+                        notification['time'] ?? 'Just now',
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          color: const Color(0xFF98A2B3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Color(0xFF98A2B3)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              notification['message'] ?? '',
+              style: GoogleFonts.manrope(
+                fontSize: 15,
+                color: const Color(0xFF475467),
+                height: 1.6,
+              ),
+            ),
+            if (notification['type'] == 'message') ...[
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context); // Close detail
+                    Navigator.pop(this.context); // Close overlay
+                    
+                    final type = notification['type'] as String?;
+                    final id = notification['id'] as String;
+                    final realId = id.split('_').last;
+                    
+                    if (widget.onNotificationTap != null) {
+                      widget.onNotificationTap!(type ?? '', realId);
+                    }
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                  label: const Text('Go to Chat'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BoostDriveTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _handleMarkAllAsRead(String userId) async {

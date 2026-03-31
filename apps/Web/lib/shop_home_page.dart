@@ -19,6 +19,7 @@ import 'package:boost_drive_web/seller_dashboard_page.dart';
 
 import 'package:boost_drive_web/provider_hub_page.dart';
 import 'package:boost_drive_web/find_providers_page.dart';
+import 'suspension_overlay.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
   const ShopHomePage({super.key});
@@ -189,7 +190,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
         } else {
           final profile = ref.read(userProfileProvider(u.id)).valueOrNull;
           final isProvider = profile != null && _isProviderRole(profile.role);
-          page = isProvider ? const ProviderHubPage() : const FindProvidersPage();
+          page = isProvider ? ProviderHubPage() : const FindProvidersPage();
         }
         break;
       case 'Terms of Service':
@@ -213,8 +214,15 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
     final authState = ref.watch(authStateProvider).value;
     final user = authState?.session?.user;
     
+    bool isSuspended = false;
     if (user != null) {
       final userProfile = ref.watch(userProfileProvider(user.id));
+      
+      isSuspended = userProfile.when(
+        data: (p) => p != null && (p.status == 'suspended' || p.status == 'banned'),
+        loading: () => false,
+        error: (_, __) => false,
+      );
     
     // DEBUG: Log profile data to help troubleshoot role mismatch
     if (userProfile.value != null) {
@@ -261,8 +269,10 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
       _closeMegaMenu();
     }
 
-    return PremiumPageLayout(
-      scaffoldKey: _scaffoldKey,
+    return Stack(
+      children: [
+        PremiumPageLayout(
+          scaffoldKey: _scaffoldKey,
       endDrawer: Drawer(
         width: isMobile ? MediaQuery.of(context).size.width : MediaQuery.of(context).size.width * 0.5,
         backgroundColor: Colors.white,
@@ -729,6 +739,14 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           const SizedBox(height: 80),
         ],
       ),
+    ),
+    if (isSuspended)
+      Positioned.fill(
+        child: SuspensionOverlay(
+          reason: user != null ? ref.watch(userProfileProvider(user!.id)).valueOrNull?.suspensionReason : null,
+        ),
+      ),
+    ],
     );
   }
 
@@ -836,7 +854,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
       child: TextButton(
         onPressed: () {
           if (isProviderRole) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProviderHubPage()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ProviderHubPage()));
           } else {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const FindProvidersPage()));
           }

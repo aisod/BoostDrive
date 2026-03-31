@@ -873,7 +873,35 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
 
   /// Message input bar: camera (mobile only), gallery, mic, text field (Aa + emoji), thumbs-up, send (far right).
   /// Colors: black (bar bg), orange (send), white (icons).
-  Widget _buildMessageInputBar() {
+  Widget _buildMessageInputBar({bool isSuspended = false}) {
+    if (isSuspended) {
+      return Container(
+        color: _inputBarBg,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: BoostDriveTheme.primaryColor, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Messaging is disabled while your account is suspended.',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Container(
       color: _inputBarBg,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1056,6 +1084,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       );
     }
 
+    final profileAsync = ref.watch(userProfileProvider(user.id));
+    final isSuspended = profileAsync.when(
+      data: (p) => p?.status == 'suspended' || p?.status == 'banned',
+      loading: () => false,
+      error: (_, __) => false,
+    );
+
     final isMobile = MediaQuery.of(context).size.width < 900;
 
     if (isMobile) {
@@ -1077,7 +1112,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         ),
         body: _selectedConversationId == null
             ? _buildConversationList(user.id)
-            : _buildChatView(user.id),
+            : _buildChatView(user.id, isSuspended: isSuspended),
       );
     }
 
@@ -1115,7 +1150,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
           Expanded(
             child: _selectedConversationId == null
                 ? _buildEmptyState()
-                : _buildChatView(user.id),
+                : _buildChatView(user.id, isSuspended: isSuspended),
           ),
         ],
       ),
@@ -1382,7 +1417,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     );
   }
 
-  Widget _buildChatView(String userId) {
+  Widget _buildChatView(String userId, {bool isSuspended = false}) {
     return Column(
       children: [
         // Chat Header
@@ -1482,7 +1517,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
           ),
         ),
         const Divider(height: 1, color: Colors.white10),
-        _buildMessageInputBar(),
+        _buildMessageInputBar(isSuspended: isSuspended),
       ],
     );
   }

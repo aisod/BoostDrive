@@ -7,6 +7,8 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'suspension_overlay.dart';
+import 'add_staff_page.dart';
 
 class ServiceProDashboardPage extends ConsumerStatefulWidget {
   const ServiceProDashboardPage({super.key});
@@ -23,19 +25,53 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     final user = ref.watch(currentUserProvider);
     if (user == null) return const Center(child: Text('Please log in'));
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final profileAsync = ref.watch(userProfileProvider(user.id));
+    final isSuspended = profileAsync.when(
+      data: (p) => p != null && (p.status == 'suspended' || p.status == 'banned'),
+      loading: () => false,
+      error: (_, __) => false,
+    );
+
+    return Scaffold(
+      backgroundColor: BoostDriveTheme.backgroundDark,
+      body: Stack(
         children: [
-          _buildProHeader(ref, user.id),
-          const SizedBox(height: 32),
-          _buildTopNavBar(),
-          const SizedBox(height: 48),
-          _buildSectionContent(user.id),
+          SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildProHeader(ref, user.id),
+                const SizedBox(height: 32),
+                _buildTopNavBar(),
+                const SizedBox(height: 48),
+                _buildSectionContent(user.id),
+              ],
+            ),
+          ),
+          if (isSuspended)
+            Positioned.fill(
+              child: SuspensionOverlay(
+                reason: profileAsync.valueOrNull?.suspensionReason,
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  /// Helper to get a human-readable specialization label for the dashboard header.
+  String _getCategoryLabel(UserProfile profile) {
+    final cat = profile.primaryServiceCategory?.toLowerCase();
+    if (cat == 'mechanic') return 'Mechanic';
+    if (cat == 'towing') return 'Towing Service';
+    if (cat == 'parts') return 'Parts Supplier';
+    
+    // Fallback to role or capitalization
+    if (cat != null && cat.isNotEmpty) {
+      return cat[0].toUpperCase() + cat.substring(1).replaceAll('_', ' ');
+    }
+    return profile.role == 'service_provider' ? 'Service Provider' : profile.role;
   }
 
   static String _navLabel(String section) {
@@ -112,7 +148,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
       return _buildRoutesSection();
     }
     if (_currentSection == 'FLEET') {
-      return _buildFleetSection();
+      return _buildFleetSection(userId);
     }
 
     if (_currentSection != 'HOME') {
@@ -431,7 +467,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
-  Widget _buildFleetSection() {
+  Widget _buildFleetSection(String userId) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -440,16 +476,122 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
           children: [
             _buildSectionHeader('Staff & Fleet Management', Icons.people),
             ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.add),
-              label: const Text('ADD STAFF'),
-              style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AddStaffPage()));
+              },
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text('ADD STAFF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                 backgroundColor: BoostDriveTheme.primaryColor,
+                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 32),
-        _buildStaffEmpty(),
+        _buildStaffList(userId),
       ],
+    );
+  }
+
+  Widget _buildStaffList(String providerId) {
+    final staffAsync = ref.watch(providerStaffProvider(providerId));
+    return staffAsync.when(
+      data: (staff) {
+        if (staff.isEmpty) return _buildStaffEmpty();
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = constraints.maxWidth > 800 ? 3 : (constraints.maxWidth > 500 ? 2 : 1);
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                mainAxisExtent: 180, 
+              ),
+              itemCount: staff.length,
+              itemBuilder: (context, index) {
+                 final s = staff[index];
+                 return _buildStaffCard(s);
+              },
+            );
+          }
+        );
+      },
+      loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor))),
+      error: (err, _) => Padding(padding: const EdgeInsets.all(20), child: Text('Failed to load staff list. Please try again.', style: TextStyle(color: Colors.redAccent.withValues(alpha: 0.8)))),
+    );
+  }
+
+  Widget _buildStaffCard(Map<String, dynamic> staff) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: BoostDriveTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person, color: BoostDriveTheme.primaryColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      staff['full_name'] ?? 'Unknown Staff',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      staff['staff_role'] ?? 'Role not assigned',
+                      style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          const Divider(color: Colors.white10),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.phone, size: 14, color: Colors.white54),
+              const SizedBox(width: 8),
+              Text(staff['phone_number'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.email, size: 14, color: Colors.white54),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  staff['email'] ?? '',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -546,57 +688,64 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
         if (profile == null) return const SizedBox();
         return Row(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'BoostDrive Pro: ${profile.fullName}',
-                      style: GoogleFonts.manrope(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                    if (profile.verificationStatus.toLowerCase() == 'approved') ...[
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'BoostDrive Pro: ${profile.fullName}',
+                          style: GoogleFonts.manrope(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: -1,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.verified, color: BoostDriveTheme.primaryColor, size: 20),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'VERIFIED',
-                              style: TextStyle(
-                                color: BoostDriveTheme.primaryColor,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
-                                letterSpacing: 1,
+                      ),
+                      if (profile.verificationStatus.toLowerCase() == 'approved') ...[
+                        const SizedBox(width: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.verified, color: BoostDriveTheme.primaryColor, size: 20),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'VERIFIED',
+                                style: TextStyle(
+                                  color: BoostDriveTheme.primaryColor,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                  letterSpacing: 1,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Expert Mechanic • Primary Service Provider',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 18),
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Expert ${_getCategoryLabel(profile)} • Primary Service Provider',
+                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 18),
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 24),
+            _buildNotificationBell(ref, uid),
+            const SizedBox(width: 32),
             _buildStatBox('TOTAL EARNINGS', '\$${profile.totalEarnings.toStringAsFixed(2)}', 'LIFETIME'),
             const SizedBox(width: 24),
             _buildStatBox('LOYALTY POINTS', profile.loyaltyPoints.toString(), 'REDEEMABLE'),
@@ -955,6 +1104,92 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
           const Text('Instantly link parts from our marketplace directly to your service ticket.', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
           ElevatedButton(onPressed: () {}, child: const Text('Generate Parts Link')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationBell(WidgetRef ref, String uid) {
+    final notificationsAsync = ref.watch(userNotificationsProvider(uid));
+    
+    return notificationsAsync.when(
+      data: (list) {
+        final unreadCount = list.where((n) => n['is_read'] == false).length;
+        return Stack(
+          children: [
+            IconButton(
+              icon: Icon(
+                unreadCount > 0 ? Icons.notifications_active : Icons.notifications_none,
+                color: unreadCount > 0 ? BoostDriveTheme.primaryColor : Colors.white70,
+                size: 28,
+              ),
+              onPressed: () => _showNotificationsDialog(context, ref, uid, list),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    '$unreadCount',
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2)),
+      error: (_, __) => const Icon(Icons.notifications_off, color: Colors.white24),
+    );
+  }
+
+  void _showNotificationsDialog(BuildContext context, WidgetRef ref, String uid, List<Map<String, dynamic>> list) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1D2939),
+        title: Row(
+          children: [
+            const Icon(Icons.notifications, color: BoostDriveTheme.primaryColor),
+            const SizedBox(width: 12),
+            Text('Notifications', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: list.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('No notifications yet.', style: TextStyle(color: Colors.white60)),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: list.length,
+                  separatorBuilder: (_, __) => const Divider(color: Colors.white12),
+                  itemBuilder: (context, index) {
+                    final n = list[index];
+                    return ListTile(
+                      title: Text(n['title'] ?? 'Notice', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      subtitle: Text(n['message'] ?? '', style: const TextStyle(color: Colors.white70)),
+                      trailing: n['is_read'] == false 
+                        ? const Icon(Icons.circle, color: BoostDriveTheme.primaryColor, size: 10) 
+                        : null,
+                      onTap: () {
+                        ref.read(notificationServiceProvider).markAsRead(n['id']);
+                        ref.invalidate(userNotificationsProvider(uid)); // Refresh the list
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close', style: TextStyle(color: Colors.white60))),
         ],
       ),
     );

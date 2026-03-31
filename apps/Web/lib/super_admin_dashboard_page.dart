@@ -13,6 +13,7 @@ import 'package:boost_drive_web/verification_queue_view.dart';
 import 'package:boost_drive_web/service_monitoring_view.dart';
 import 'package:boost_drive_web/user_management_view.dart';
 import 'package:boost_drive_web/admin_profile_view.dart';
+import 'admin_states.dart';
 
 class SuperAdminDashboardPage extends ConsumerStatefulWidget {
   const SuperAdminDashboardPage({super.key});
@@ -226,6 +227,8 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
         content = const Center(child: Text('Select a module'));
     }
 
+    final selectedGroup = ref.watch(adminUserGroupProvider);
+
     return Column(
       children: [
         // Top Bar
@@ -235,9 +238,21 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Row(
             children: [
+              if (_selectedIndex == 3 && selectedGroup != null) ...[
+                IconButton(
+                  onPressed: () => ref.read(adminUserGroupProvider.notifier).state = null,
+                  icon: const Icon(Icons.arrow_back, size: 20, color: Colors.black87),
+                  tooltip: 'Go back to Selection',
+                ),
+                const SizedBox(width: 8),
+              ],
               Text(
-                _getSectionTitle(),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                _getSectionTitle(selectedGroup),
+                style: GoogleFonts.manrope(
+                  fontSize: 20, 
+                  fontWeight: FontWeight.w800, 
+                  color: Colors.black,
+                ),
               ),
               const Spacer(),
               _buildAdminHeader(ref, uid),
@@ -256,12 +271,16 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
     );
   }
 
-  String _getSectionTitle() {
+  String _getSectionTitle(AdminUserGroup? selectedGroup) {
     switch (_selectedIndex) {
       case 0: return 'System Health & Overview';
       case 1: return 'Verification Queue (Priority #1)';
       case 2: return 'Service Monitoring';
-      case 3: return 'User Management';
+      case 3: 
+        if (selectedGroup == AdminUserGroup.provider) return 'Service Providers';
+        if (selectedGroup == AdminUserGroup.customerSeller) return 'Customers & Sellers';
+        if (selectedGroup == AdminUserGroup.admin) return 'Admins';
+        return 'User Management';
       case 4:
         return 'Financials';
       case 5:
