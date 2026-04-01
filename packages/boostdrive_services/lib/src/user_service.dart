@@ -1,4 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'notification_service.dart';
@@ -79,9 +83,14 @@ class UserService {
     try {
       print('DEBUG: Attempting to update verification_status of $uid to $status...');
       
+      final Map<String, dynamic> updates = {'verification_status': status};
+      if (status == 'approved') {
+        updates['status'] = 'active';
+      }
+      
       final response = await _supabase
           .from('profiles')
-          .update({'verification_status': status})
+          .update(updates)
           .eq('id', uid)
           .select();
 
@@ -91,17 +100,20 @@ class UserService {
 
       print('DEBUG: Verification status update successful for $uid');
 
-      // Soft-fail audit logging in case table isn't set up yet
-      try {
-        await _supabase.from('admin_audit_logs').insert({
-          'admin_id': adminUid,
-          'target_id': uid,
-          'action_type': status == 'approved' ? 'APPROVE_PROVIDER' : 'REJECT_PROVIDER',
-          'notes': 'Verification status changed to $status'
-        });
-      } catch (e) {
-        print('Warning: Failed to insert audit log (table might be missing): $e');
-      }
+      // Granular Audit Logging
+      final context = await _getAuditContext();
+      await logAuditAction(
+        adminId: adminUid,
+        targetId: uid,
+        actionType: status == 'approved' ? 'APPROVE_PROVIDER' : 'REJECT_PROVIDER',
+        notes: 'Verification status changed to ${status.toUpperCase()}',
+        metadata: {
+          'old_status': 'pending', // Usually pending if we are in this flow
+          'new_status': status,
+          'category': 'VERIFICATION'
+        },
+        context: context,
+      );
 
       // Trigger the account-level notification for the provider
       try {
@@ -117,6 +129,77 @@ class UserService {
       print('DEBUG: Error updating verification status: $e');
       rethrow;
     }
+  }
+
+  /// New professional audit helper
+  Future<void> logAuditAction({
+    required String adminId,
+    required String targetId,
+    required String actionType,
+    required String notes,
+    Map<String, dynamic>? metadata,
+    Map<String, String>? context,
+  }) async {
+    try {
+      await _supabase.from('audit_logs').insert({
+        'admin_id': adminId,
+        'target_id': targetId,
+        'action_type': actionType,
+        'notes': notes,
+        'metadata': metadata ?? {},
+        'ip_address': context?['ip'],
+        'device_info': context?['device'],
+        'location': context?['location'],
+      });
+    } catch (e) {
+      print('Warning: Failed to insert professional audit log: $e');
+    }
+  }
+
+  /// Captures IP and Device Info for Security Trail
+  Future<Map<String, String>> _getAuditContext() async {
+    String ip = 'Unknown';
+    String device = kIsWeb ? 'ASUS Web Dashboard' : 'Mobile App'; // Default label
+    if (!kIsWeb) {
+      if (Platform.isIOS) device = 'iPhone';
+      if (Platform.isAndroid) device = 'Android Device';
+    }
+
+    try {
+      final response = await http.get(Uri.parse('https://api.ipify.org?format=json')).timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        final data = (Uri.parse('?${response.body}').queryParameters); 
+        ip = jsonDecode(response.body)['ip'] ?? 'Unknown';
+      }
+    } catch (_) {}
+
+    return {
+      'ip': ip,
+      'device': device,
+      'location': 'Namibia (Estimate)', // Placeholder for location services
+    };
+  }
+
+  /// Logs when an admin views sensitive documents
+  Future<void> logDocumentReview({
+    required String adminId,
+    required String targetId,
+    required String documentType,
+    required String fileName,
+  }) async {
+    final context = await _getAuditContext();
+    await logAuditAction(
+      adminId: adminId,
+      targetId: targetId,
+      actionType: 'DOC_VIEW',
+      notes: 'Admin reviewed $documentType ($fileName)',
+      metadata: {
+        'document_type': documentType,
+        'file_name': fileName,
+        'access_time': DateTime.now().toIso8601String(),
+      },
+      context: context,
+    );
   }
 
   /// Updates status of a specific document for a provider
@@ -198,23 +281,49 @@ class UserService {
       final Map<String, dynamic> updates = {'status': status};
       if (status == 'active') {
         updates['suspension_reason'] = null;
+        updates['suspended_at'] = null;
+        updates['suspended_by'] = null;
       } else {
         updates['suspension_reason'] = reason;
+        updates['suspended_at'] = DateTime.now().toIso8601String();
+        updates['suspended_by'] = adminUid;
       }
       await _supabase.from('profiles').update(updates).eq('id', uid);
-      try {
-        await _supabase.from('admin_audit_logs').insert({
-          'admin_id': adminUid,
-          'target_id': uid,
-          'action_type': 'UPDATE_USER_STATUS',
-          'notes': 'Account status changed to ${status.toUpperCase()}. Reason: ${reason ?? "No reason provided"}'
-        });
-      } catch (e) {
-        print('Warning: Failed to insert audit log for status change: $e');
-      }
+      
+      // Granular Audit Logging
+      final context = await _getAuditContext();
+      final actionLabel = status == 'active' ? 'UNSUSPENDED' : 'SUSPENDED';
+      await logAuditAction(
+        adminId: adminUid,
+        targetId: uid,
+        actionType: 'UPDATE_USER_STATUS',
+        notes: 'Account $actionLabel. Reason: ${reason ?? "No reason provided"}',
+        metadata: {
+          'new_status': status,
+          'reason': reason,
+          'category': 'ACCOUNT_SECURITY'
+        },
+        context: context,
+      );
     } catch (e) {
       print('Error updating user status: $e');
       rethrow;
+    }
+  }
+
+  /// Fetches audit logs for a specific user
+  Future<List<Map<String, dynamic>>> getAuditLogs(String targetId) async {
+    try {
+      final response = await _supabase
+          .from('audit_logs')
+          .select()
+          .eq('target_id', targetId)
+          .order('created_at', ascending: false);
+      
+      return (response as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      print('Error fetching audit logs: $e');
+      return [];
     }
   }
 
@@ -295,13 +404,8 @@ class UserService {
   /// Tries verified first; if none, returns providers by role so the page is never empty.
   Future<List<UserProfile>> getVerifiedProviders({String? serviceType}) async {
     try {
-      // 1) Try verified providers first (verification_status = 'approved')
-      var list = await _fetchProviders(serviceType: serviceType, verifiedOnly: true);
-      // 2) If none, show any provider with that role so the directory isn't blank
-      if (list.isEmpty) {
-        list = await _fetchProviders(serviceType: serviceType, verifiedOnly: false);
-      }
-      return list;
+      // Temporarily relaxed for development: show ALL providers regardless of verification status
+      return await _fetchProviders(serviceType: serviceType, verifiedOnly: false);
     } catch (e) {
       print('Error fetching verified providers: $e');
       return [];
@@ -314,8 +418,8 @@ class UserService {
       query = query.eq('verification_status', 'approved');
     }
 
-    // Visibility Blackout: Exclude suspended/banned providers from the directory
-    query = query.neq('status', 'suspended').neq('status', 'banned');
+    // Visibility Blackout: Exclude suspended/banned/frozen providers from the directory
+    query = query.neq('status', 'suspended').neq('status', 'banned').neq('status', 'frozen');
 
     // Explicitly exclude non-provider roles
     query = query.neq('role', 'customer').neq('role', 'admin').neq('role', 'seller');

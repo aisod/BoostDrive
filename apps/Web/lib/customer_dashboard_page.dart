@@ -81,7 +81,7 @@ class CustomerDashboardPage extends ConsumerWidget {
           children: [
             Text(
               'Welcome back, ${profile.fullName}',
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 40,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
@@ -700,7 +700,7 @@ class CustomerDashboardPage extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${vehicle.year} ${vehicle.make} ${vehicle.model}', style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white)),
+                  Text('${vehicle.year} ${vehicle.make} ${vehicle.model}', style: TextStyle(fontFamily: 'Manrope', fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white)),
                   IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
                 ],
               ),
@@ -804,7 +804,7 @@ class CustomerDashboardPage extends ConsumerWidget {
             const SizedBox(width: 8),
             Text(
               title,
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
                 color: BoostDriveTheme.primaryColor,
@@ -1036,7 +1036,7 @@ class CustomerDashboardPage extends ConsumerWidget {
               Icon(vehicle == null ? Icons.add_road : Icons.edit_road, color: BoostDriveTheme.primaryColor),
               const SizedBox(width: 12),
               Text(vehicle == null ? 'Add Vehicle to Garage' : 'Edit Vehicle Details', 
-                style: GoogleFonts.manrope(fontWeight: FontWeight.w900, color: Colors.white)),
+                style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w900, color: Colors.white)),
               if (isSaving) ...[
                 const SizedBox(width: 16),
                 const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: BoostDriveTheme.primaryColor)),
@@ -1397,7 +1397,7 @@ class CustomerDashboardPage extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 8),
       child: Text(
         title,
-        style: GoogleFonts.manrope(
+        style: TextStyle(fontFamily: 'Manrope', 
           fontSize: 11,
           fontWeight: FontWeight.w900,
           color: BoostDriveTheme.primaryColor,

@@ -56,7 +56,7 @@ class SuspensionOverlay extends StatelessWidget {
               const SizedBox(height: 32),
               Text(
                 'ACCOUNT SUSPENDED',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
@@ -67,7 +67,7 @@ class SuspensionOverlay extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Your service provider account has been flagged for a compliance review and is currently suspended.',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 16,
                   color: Colors.white70,
                   height: 1.6,
@@ -175,7 +175,7 @@ class SuspensionOverlay extends StatelessWidget {
                       const SizedBox(width: 12),
                       Text(
                         supportEmail!,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(fontFamily: 'Manrope', 
                           color: Colors.black87,
                           fontWeight: FontWeight.w800,
                           fontSize: 14,

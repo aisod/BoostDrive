@@ -618,7 +618,8 @@ class AuthService {
     if (existingRole == null) {
       updates['is_buyer'] = true;
 
-      // Prevent providers from being auto-approved by DB defaults.
+      // Only Service Providers go through the manual verification queue.
+      // Customers and Sellers are activated immediately upon profile sync.
       final role = (updates['role'] ?? 'customer').toString().trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
       final isProviderRole = role == 'service_provider' ||
           role.contains('service provider') ||
@@ -632,6 +633,11 @@ class AuthService {
         updates['verification_status'] = 'unverified';
         updates['is_buyer'] = false;
         updates['is_seller'] = false;
+        // Keep DB defaults (likely pending_verification) for providers
+      } else {
+        // Customers/Sellers/Admins: Bypass verification entirely
+        updates['status'] = 'active';
+        updates['verification_status'] = 'approved';
       }
     }
 

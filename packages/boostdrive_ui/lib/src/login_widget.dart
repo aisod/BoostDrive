@@ -256,7 +256,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 const SizedBox(width: 8),
                                 Text(
                                   'BoostDrive',
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(fontFamily: 'Manrope', 
                                     color: Colors.white,
                                     fontSize: 24,
                                     fontWeight: FontWeight.w800,
@@ -403,7 +403,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                   children: [
                     Text(
                       'Welcome Back',
-                      style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+                      style: TextStyle(fontFamily: 'Manrope', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
                     ),
                     const SizedBox(height: 32),
                     _buildLabel('EMAIL'),
@@ -721,7 +721,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                   children: [
                     Text(
                       'Create Account',
-                      style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+                      style: TextStyle(fontFamily: 'Manrope', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
                     ),
                     const SizedBox(height: 32),
                     
@@ -888,7 +888,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         text.toUpperCase(),
-        style: GoogleFonts.manrope(
+        style: TextStyle(fontFamily: 'Manrope', 
           color: isWeb ? const Color(0xFF64748B) : BoostDriveTheme.textDim,
           fontSize: isWeb ? 11 : 10,
           fontWeight: isWeb ? FontWeight.w700 : FontWeight.w800,
@@ -1240,7 +1240,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                         const SizedBox(width: 16),
                         Text(
                           'BoostDrive',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(fontFamily: 'Manrope', 
                             color: Colors.white,
                             fontSize: 36,
                             fontWeight: FontWeight.w900,

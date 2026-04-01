@@ -5,6 +5,7 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_fonts/google_fonts.dart';
 // If document_viewer or similar is needed for PDF, we might need a package, but for now we'll build a stub
 // or use simple Image networks if they are images, or a url_launcher to open PDFs.
 
@@ -255,6 +256,227 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
     }
   }
 
+  Future<void> _toggleSuspendAccount(UserProfile u) async {
+    final isSuspended = u.status == 'suspended' || u.status == 'banned';
+    final newStatus = isSuspended ? 'active' : 'suspended';
+    final action = isSuspended ? 'reactivate' : 'suspend';
+    
+    String? reason;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('${isSuspended ? "REACTIVATE" : "SUSPEND"} ACCOUNT', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, color: Colors.black)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Are you sure you want to $action ${u.fullName}?',
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: Colors.black87),
+              ),
+              if (!isSuspended) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'REASON FOR SUSPENSION',
+                  style: TextStyle(fontFamily: 'Manrope', fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black45, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Suspicious documents or fraudulent activity',
+                    hintStyle: const TextStyle(fontSize: 14, color: Colors.black26),
+                    filled: true,
+                    fillColor: Colors.black.withValues(alpha: 0.05),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  maxLines: 3,
+                  style: const TextStyle(fontSize: 14, color: Colors.black),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (!isSuspended && controller.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please provide a mandatory reason for suspension'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                  return;
+                }
+                reason = controller.text.trim();
+                Navigator.pop(context, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSuspended ? Colors.green : Colors.red,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text(isSuspended ? 'REACTIVATE' : 'SUSPEND', style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        final admin = ref.read(currentUserProvider);
+        if (admin == null) return;
+        
+        await ref.read(userServiceProvider).updateUserStatus(
+          uid: u.uid, 
+          status: newStatus, 
+          adminUid: admin.id, 
+          reason: reason,
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Account ${isSuspended ? "reactivated" : "suspended"} successfully'),
+              backgroundColor: isSuspended ? Colors.green : Colors.redAccent,
+            ),
+          );
+          // Invalidate to refresh the list if needed
+          ref.invalidate(pendingVerificationsProvider);
+          setState(() {
+            _selectedProvider = null;
+          });
+        }
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showMessageDialog(UserProfile u) {
+    final controller = TextEditingController();
+    bool isSending = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Row(
+            children: [
+              const Icon(Icons.email_outlined, color: BoostDriveTheme.primaryColor),
+              const SizedBox(width: 12),
+              Text('Message ${u.fullName}', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Ask for clarification or missing documents.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black87)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                autofocus: true,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  hintText: 'Type your message here...',
+                  hintStyle: const TextStyle(fontSize: 14, color: Colors.black26),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSending ? null : () => Navigator.pop(context),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: isSending ? null : () async {
+                final text = controller.text.trim();
+                if (text.isEmpty) return;
+
+                setDialogState(() => isSending = true);
+
+                try {
+                  final admin = ref.read(currentUserProvider);
+                  if (admin == null) throw Exception('Admin not authenticated');
+
+                  final messageService = ref.read(messageServiceProvider);
+                  final conversationId = await messageService.getOrCreateDirectConversation(
+                    userId: admin.id,
+                    providerId: u.uid,
+                  );
+
+                  await messageService.sendMessage(
+                    conversationId: conversationId,
+                    senderId: admin.id,
+                    content: text,
+                  );
+
+                  // Log audit action
+                  await ref.read(userServiceProvider).logAuditAction(
+                    adminId: admin.id,
+                    targetId: u.uid,
+                    actionType: 'ADMIN_MESSAGE_SENT',
+                    notes: 'Admin messaged provider ${u.fullName} during verification',
+                    metadata: {'message_length': text.length, 'context': 'VERIFICATION_FLOW'},
+                  );
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Message sent to ${u.fullName}'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    setDialogState(() => isSending = false);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send: $e'), backgroundColor: Colors.red));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BoostDriveTheme.primaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: isSending
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('SEND MESSAGE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_selectedProvider != null) {
@@ -479,6 +701,16 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
   Widget _buildQueueItem(UserProfile p) {
     return InkWell(
       onTap: () {
+        final admin = ref.read(currentUserProvider);
+        if (admin != null) {
+          ref.read(userServiceProvider).logAuditAction(
+            adminId: admin.id,
+            targetId: p.uid,
+            actionType: 'PROFILE_REVIEW_OPEN',
+            notes: 'Admin started reviewing verification documents for ${p.fullName}',
+            metadata: {'category': 'VERIFICATION_FLOW'}
+          );
+        }
         setState(() {
           _selectedProvider = p;
           _documentStatuses = {};
@@ -713,6 +945,26 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton(
+                      onPressed: () => _showMessageDialog(p),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.blueGrey,
+                        side: const BorderSide(color: Colors.blueGrey),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                      ),
+                      child: const Text('Message Provider', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton(
+                      onPressed: _isLoading ? null : () => _toggleSuspendAccount(p),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                      ),
+                      child: const Text('Suspend Account', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton(
                       onPressed: _isLoading ? null : () => _rejectProvider(p),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
@@ -841,7 +1093,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                   // View
                   IconButton(
                     icon: const Icon(Icons.open_in_new, size: 20, color: BoostDriveTheme.primaryColor),
-                    onPressed: () => _launchURL(url!),
+                    onPressed: () => _launchURL(url!, label.trim()),
                   ),
                 ],
               ],
@@ -852,8 +1104,19 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
     );
   }
 
-  Future<void> _launchURL(String url) async {
+  Future<void> _launchURL(String url, String docLabel) async {
     final uri = Uri.parse(url);
+    if (_selectedProvider != null) {
+       final admin = ref.read(currentUserProvider);
+       if (admin != null) {
+         await ref.read(userServiceProvider).logDocumentReview(
+           adminId: admin.id, 
+           targetId: _selectedProvider!.uid, 
+           documentType: docLabel, 
+           fileName: url.split('/').last.split('?').first,
+         );
+       }
+    }
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }

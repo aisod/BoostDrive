@@ -205,7 +205,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                 children: [
                   Text(
                     title, 
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontWeight: FontWeight.w800, 
                       fontSize: 16,
                       color: Colors.black,
@@ -214,7 +214,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle, 
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       color: Colors.black87, 
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -335,8 +335,8 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
               _headerCell('USER', flex: 4),
               _headerCell('ROLE', flex: 2),
               _headerCell('STATUS', flex: 2),
-              _headerCell('JOINED', flex: 2),
-              _headerCell('ACTIONS', flex: 1, align: TextAlign.end),
+              _headerCell('JOINED', flex: 1),
+              _headerCell('ACTIONS', flex: 2, align: TextAlign.end),
             ],
           ),
         ),
@@ -358,7 +358,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
       child: Text(
         label,
         textAlign: align,
-        style: GoogleFonts.manrope(
+        style: TextStyle(fontFamily: 'Manrope', 
           fontWeight: FontWeight.w800,
           fontSize: 12,
           letterSpacing: 0.5,
@@ -395,8 +395,8 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(u.fullName, style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black), overflow: TextOverflow.ellipsis),
-                      Text(u.email.isEmpty ? u.phoneNumber : u.email, style: GoogleFonts.manrope(fontSize: 12, color: Colors.black54), overflow: TextOverflow.ellipsis),
+                      Text(u.fullName, style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black), overflow: TextOverflow.ellipsis),
+                      Text(u.email.isEmpty ? u.phoneNumber : u.email, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black54), overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
@@ -428,11 +428,11 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
             ),
           ),
           Expanded(
-            flex: 2,
-            child: Text(DateFormat('MMM d, yyyy').format(u.createdAt), style: GoogleFonts.manrope(fontSize: 13, color: Colors.black54)),
+            flex: 1,
+            child: Text(DateFormat('MMM d, yyyy').format(u.createdAt), style: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: Colors.black54)),
           ),
           Expanded(
-            flex: 1,
+            flex: 2,
             child: _buildActionButtons(u),
           ),
         ],
@@ -447,27 +447,36 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
       children: [
         IconButton(
           onPressed: () => _viewUserDetails(u),
-          icon: const Icon(Icons.visibility_outlined, size: 20, color: Colors.black54),
+          icon: const Icon(Icons.visibility_outlined, size: 18, color: Colors.black54),
           tooltip: 'Quick View',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
+        const SizedBox(width: 12),
         IconButton(
           onPressed: () => _toggleSuspend(u),
           icon: Icon(
             u.status == 'suspended' || u.status == 'banned' ? Icons.settings_backup_restore_rounded : Icons.block_flipped,
-            size: 20,
+            size: 18,
             color: u.status == 'suspended' || u.status == 'banned' ? Colors.green : Colors.red,
           ),
           tooltip: u.status == 'suspended' || u.status == 'banned' ? 'Reactivate (Undo) Suspension' : 'Suspend Account',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
         ),
+        const SizedBox(width: 12),
+        IconButton(
+          onPressed: () => _viewAuditLogs(u),
+          icon: const Icon(Icons.history, size: 18, color: Colors.blueGrey),
+          tooltip: 'Security Audit Logs',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+        ),
         const SizedBox(width: 8),
         IconButton(
           onPressed: () => _showMoreActions(u),
-          icon: const Icon(Icons.more_horiz, size: 20, color: Colors.black54),
+          icon: const Icon(Icons.more_horiz, size: 18, color: Colors.black54),
           tooltip: 'More Actions',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
@@ -558,7 +567,6 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                           _buildDetailItem('Service Radius', u.serviceRadiusKm != null ? '${u.serviceRadiusKm} km' : 'N/A'),
                           _buildDetailItem('Labor Rate', u.standardLaborRate != null ? 'N\$${u.standardLaborRate}/hr' : 'N/A'),
                           _buildDetailItem('Team Size', u.teamSize?.toString() ?? 'N/A'),
-                          _buildDetailItem('Loyalty Points', u.loyaltyPoints.toString()),
                         ],
                       ),
                       const SizedBox(height: 32),
@@ -566,7 +574,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                         _buildSectionTitle('BUSINESS BIO'),
                         Text(
                           (u.businessBio?.isNotEmpty == true) ? u.businessBio! : u.storeBiography!,
-                          style: GoogleFonts.manrope(fontSize: 14, color: Colors.black87, height: 1.5),
+                          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: Colors.black87, height: 1.5),
                         ),
                         const SizedBox(height: 32),
                       ],
@@ -592,7 +600,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                       ),
-                      child: Text('Close', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 14)),
+                      child: Text('Close', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.bold, fontSize: 14)),
                     ),
                   ],
                 ),
@@ -621,7 +629,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(u.fullName, style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black)),
+                Text(u.fullName, style: TextStyle(fontFamily: 'Manrope', fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -641,7 +649,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Padding(padding: const EdgeInsets.only(bottom: 16), child: Text(title, style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black38, letterSpacing: 1.2)));
+    return Padding(padding: const EdgeInsets.only(bottom: 16), child: Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black38, letterSpacing: 1.2)));
   }
 
   Widget _buildDetailItem(String label, String value, {bool isLink = false}) {
@@ -650,11 +658,11 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black45)),
+          Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black45)),
           const SizedBox(height: 4),
           Text(
             value.isEmpty ? 'N/A' : value,
-            style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: isLink ? Colors.blue : Colors.black87, decoration: isLink ? TextDecoration.underline : null),
+            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: isLink ? Colors.blue : Colors.black87, decoration: isLink ? TextDecoration.underline : null),
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -668,7 +676,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black45)),
+        Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black45)),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: tags.map((t) => _buildBadge(UserProfile.getSpecializationLabel(t), color)).toList()),
       ],
@@ -695,20 +703,20 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
         final controller = TextEditingController();
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('${isSuspended ? "REACTIVATE" : "SUSPEND"} ACCOUNT', style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
+          title: Text('${isSuspended ? "REACTIVATE" : "SUSPEND"} ACCOUNT', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Are you sure you want to $action ${u.fullName}?',
-                style: GoogleFonts.manrope(fontSize: 14),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14),
               ),
               if (!isSuspended) ...[
                 const SizedBox(height: 20),
                 Text(
                   'REASON FOR SUSPENSION',
-                  style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black45, letterSpacing: 0.5),
+                  style: TextStyle(fontFamily: 'Manrope', fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black45, letterSpacing: 0.5),
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -738,7 +746,10 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
               onPressed: () {
                 if (!isSuspended && controller.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please provide a reason for suspension')),
+                    const SnackBar(
+                      content: Text('Please provide a mandatory reason for suspension'),
+                      backgroundColor: Colors.redAccent,
+                    ),
                   );
                   return;
                 }
@@ -771,7 +782,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('User ${u.fullName} ${isSuspended ? "reactivated" : "suspended"} successfully'),
+              content: Text('Account ${isSuspended ? "reactivated" : "suspended"} successfully'),
               backgroundColor: isSuspended ? Colors.green : Colors.redAccent,
             ),
           );
@@ -785,25 +796,135 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
   void _showMoreActions(UserProfile u) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const SizedBox(height: 12),
+          Container(height: 4, width: 40, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 20),
           ListTile(
-            leading: const Icon(Icons.ac_unit, color: Colors.orange),
-            title: Text(u.status == 'frozen' ? 'Unfreeze Account' : 'Freeze Account'),
+            leading: const Icon(Icons.email_outlined, color: Colors.black87),
+            title: Text(
+              'Send Message',
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: Colors.black87, fontSize: 14),
+            ),
             onTap: () {
               Navigator.pop(context);
-              _toggleFreeze(u);
+              _showMessageDialog(u);
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text('View Audit Logs'),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
+          const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  void _showMessageDialog(UserProfile u) {
+    final controller = TextEditingController();
+    bool isSending = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Row(
+            children: [
+              const Icon(Icons.email_outlined, color: BoostDriveTheme.primaryColor),
+              const SizedBox(width: 12),
+              Text('Message ${u.fullName}', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Send a direct message to this provider.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black87)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                autofocus: true,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  hintText: 'Type your message here...',
+                  hintStyle: const TextStyle(fontSize: 14, color: Colors.black26),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSending ? null : () => Navigator.pop(context),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: isSending ? null : () async {
+                final text = controller.text.trim();
+                if (text.isEmpty) return;
+
+                setDialogState(() => isSending = true);
+
+                try {
+                  final admin = ref.read(currentUserProvider);
+                  if (admin == null) throw Exception('Admin not authenticated');
+
+                  final messageService = ref.read(messageServiceProvider);
+                  final conversationId = await messageService.getOrCreateDirectConversation(
+                    userId: admin.id,
+                    providerId: u.uid,
+                  );
+
+                  await messageService.sendMessage(
+                    conversationId: conversationId,
+                    senderId: admin.id,
+                    content: text,
+                  );
+
+                  // Log audit action
+                  await ref.read(userServiceProvider).logAuditAction(
+                    adminId: admin.id,
+                    targetId: u.uid,
+                    actionType: 'ADMIN_MESSAGE_SENT',
+                    notes: 'Admin sent a direct message to ${u.fullName}',
+                    metadata: {'message_length': text.length},
+                  );
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Message sent to ${u.fullName}'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    setDialogState(() => isSending = false);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send: $e'), backgroundColor: Colors.red));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BoostDriveTheme.primaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: isSending
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('SEND MESSAGE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -824,5 +945,199 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
     }
+  }
+
+  Future<void> _viewAuditLogs(UserProfile u) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
+    );
+
+    try {
+      final logs = await ref.read(userServiceProvider).getAuditLogs(u.uid);
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        _showAuditLogsDialog(u, logs);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to fetch logs: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  void _showAuditLogsDialog(UserProfile u, List<Map<String, dynamic>> logs) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Security & Audit Trail', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
+                Text('Compliance record for ${u.fullName}', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black54)),
+              ],
+            ),
+            const Spacer(),
+            CircleAvatar(
+              backgroundColor: Colors.blue.withValues(alpha: 0.1),
+              child: const Icon(Icons.security, color: Colors.blue, size: 20),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 550,
+          child: logs.isEmpty 
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.history_toggle_off, size: 48, color: Colors.black12),
+                    SizedBox(height: 16),
+                    Text('No compliance records found.', style: TextStyle(color: Colors.black38)),
+                  ],
+                ),
+              )
+            : Container(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: logs.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final log = logs[index];
+                    final date = log['created_at'] != null ? DateTime.parse(log['created_at']) : DateTime.now();
+                    final isSystem = (log['action_type'] as String).startsWith('SYSTEM');
+                    final metadata = log['metadata'] as Map<String, dynamic>? ?? {};
+                    
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isSystem ? const Color(0xFFF8F9FA) : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: (isSystem ? Colors.grey : BoostDriveTheme.primaryColor).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  log['action_type']?.toString().replaceAll('_', ' ') ?? 'ACTION',
+                                  style: TextStyle(
+                                    fontSize: 10, 
+                                    fontWeight: FontWeight.w900, 
+                                    color: isSystem ? Colors.black54 : BoostDriveTheme.primaryColor,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                DateFormat('MMM d, HH:mm:ss').format(date),
+                                style: const TextStyle(fontSize: 11, color: Colors.black38, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            log['notes'] ?? 'Administrative change recorded.',
+                            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w600),
+                          ),
+                          
+                          // Granular Field-Level Changes
+                          if (metadata.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            const Divider(height: 1, color: Colors.black12),
+                            const SizedBox(height: 8),
+                            ...metadata.entries.map((e) {
+                              final val = e.value;
+                              if (val is Map && val.containsKey('before')) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.arrow_right, size: 16, color: Colors.blueGrey),
+                                      Expanded(
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black87),
+                                            children: [
+                                              TextSpan(text: '${e.key.replaceAll('_', ' ').toUpperCase()}: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black54)),
+                                              TextSpan(text: '"${val['before'] ?? 'N/A'}"', style: const TextStyle(color: Colors.redAccent, decoration: TextDecoration.lineThrough)),
+                                              const TextSpan(text: ' → '),
+                                              TextSpan(text: '"${val['after'] ?? 'N/A'}"', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              return const SizedBox();
+                            }).toList(),
+                          ],
+
+                          const SizedBox(height: 12),
+                          // Security Context
+                          Row(
+                            children: [
+                              const Icon(Icons.fingerprint, size: 12, color: Colors.blueGrey),
+                              const SizedBox(width: 4),
+                              Text(
+                                log['admin_id'] != null 
+                                  ? 'Staff: ${log['admin_id'].toString().substring(0, 8).toUpperCase()}' 
+                                  : 'System Trigger',
+                                style: const TextStyle(fontSize: 10, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                              ),
+                              const Spacer(),
+                              if (log['ip_address'] != null) ...[
+                                const Icon(Icons.lan_outlined, size: 12, color: Colors.black38),
+                                const SizedBox(width: 4),
+                                Text(log['ip_address'], style: const TextStyle(fontSize: 10, color: Colors.black38)),
+                                const SizedBox(width: 8),
+                              ],
+                              if (log['device_info'] != null) ...[
+                                Icon(log['device_info'].contains('Web') ? Icons.laptop : Icons.smartphone, size: 12, color: Colors.black38),
+                                const SizedBox(width: 4),
+                                Text(log['device_info'], style: const TextStyle(fontSize: 10, color: Colors.black38)),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16, bottom: 8),
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('DISMISS', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

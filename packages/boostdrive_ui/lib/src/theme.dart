@@ -46,9 +46,7 @@ class BoostDriveTheme {
         surface: surfaceColor,
         onSurface: textColor,
       ),
-      textTheme: GoogleFonts.manropeTextTheme(
-        Theme.of(context).textTheme,
-      ).apply(
+      textTheme: Theme.of(context).textTheme.apply(fontFamily: 'Manrope').apply(
         bodyColor: textColor,
         displayColor: isDark ? Colors.white : const Color(0xFF101828),
         fontFamilyFallback: const ['sans-serif'],
@@ -58,7 +56,7 @@ class BoostDriveTheme {
         elevation: 0,
         centerTitle: false, // Changed to false for left alignment
         iconTheme: const IconThemeData(color: Colors.white),
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: TextStyle(fontFamily: 'Manrope', 
           color: Colors.white,
           fontSize: 18,
           fontWeight: FontWeight.w800,

@@ -98,7 +98,7 @@ class ServiceTrackingPage extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               color: isDone ? Colors.white : Colors.white24,
               fontSize: 9,
               fontWeight: FontWeight.w900,
@@ -121,7 +121,7 @@ class ServiceTrackingPage extends ConsumerWidget {
       children: [
         Text(
           statusTitle,
-          style: GoogleFonts.manrope(
+          style: TextStyle(fontFamily: 'Manrope', 
             fontSize: 32,
             fontWeight: FontWeight.w900,
             color: Colors.white,
@@ -239,7 +239,7 @@ class ServiceTrackingPage extends ConsumerWidget {
   Widget _buildSectionHeader(String title) {
     return Text(
       title.toUpperCase(),
-      style: GoogleFonts.manrope(
+      style: TextStyle(fontFamily: 'Manrope', 
         fontSize: 12,
         fontWeight: FontWeight.w900,
         color: BoostDriveTheme.textDim,
@@ -304,7 +304,7 @@ class PremiumHeader extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         title,
-        style: GoogleFonts.manrope(
+        style: TextStyle(fontFamily: 'Manrope', 
           color: Colors.white,
           fontWeight: FontWeight.w800,
           fontSize: 18,

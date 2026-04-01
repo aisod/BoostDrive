@@ -12,7 +12,7 @@ class AccountRecoveryPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'ACCOUNT RECOVERY',
-          style: GoogleFonts.manrope(
+          style: TextStyle(fontFamily: 'Manrope', 
             fontSize: 20,
             fontWeight: FontWeight.w900,
             letterSpacing: 2,
@@ -36,7 +36,7 @@ class AccountRecoveryPage extends StatelessWidget {
                 const SizedBox(height: 24),
                 Text(
                   'How to Recover Your Suspended Account',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
@@ -46,7 +46,7 @@ class AccountRecoveryPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   'We take platform integrity seriously to protect both providers and customers. If your account has been suspended, follow the steps below to appeal the decision.',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 16,
                     color: Colors.white70,
                     height: 1.6,
@@ -61,7 +61,7 @@ class AccountRecoveryPage extends StatelessWidget {
                 const SizedBox(height: 24),
                 Text(
                   'Community Guidelines & Rules',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
@@ -71,7 +71,7 @@ class AccountRecoveryPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   'To continue operating on BoostDrive, all providers must adhere to the following strict guidelines to prevent future suspensions.',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 16,
                     color: Colors.white70,
                     height: 1.6,
@@ -173,7 +173,7 @@ class AccountRecoveryPage extends StatelessWidget {
                     const SizedBox(width: 12),
                     Text(
                       title,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -184,7 +184,7 @@ class AccountRecoveryPage extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   description,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 15,
                     color: Colors.white70,
                     height: 1.5,
@@ -272,7 +272,7 @@ class AccountRecoveryPage extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -281,7 +281,7 @@ class AccountRecoveryPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   description,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 15,
                     color: Colors.white70,
                     height: 1.5,

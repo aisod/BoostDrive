@@ -1023,10 +1023,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   /// errorBuilder so that when the profile image fails to load (e.g. when viewed by
   /// another user due to signed URLs), we fall back to initials.
   Widget _buildOtherUserAvatar(UserProfile? profile, {double radius = 20, bool darkBg = true}) {
-    final name = profile?.fullName ?? '?';
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final isSupport = profile?.role == 'admin' || profile?.role == 'super_admin';
+    final name = (profile?.fullName != null && profile!.fullName.isNotEmpty) 
+        ? profile.fullName 
+        : (isSupport ? 'BoostDrive Support' : '?');
+    final initial = isSupport ? 'S' : (name.isNotEmpty ? name[0].toUpperCase() : '?');
     final imageUrl = profile?.profileImg;
-    final bgColor = darkBg ? BoostDriveTheme.primaryColor : Colors.white.withValues(alpha: 0.2);
+    final bgColor = isSupport ? Colors.orange : (darkBg ? BoostDriveTheme.primaryColor : Colors.white.withValues(alpha: 0.2));
     final textStyle = TextStyle(
       color: Colors.white,
       fontWeight: FontWeight.bold,
@@ -1258,9 +1261,19 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             final productId = conv['product_id'] as String?;
             final productAsync = ref.watch(productByIdProvider(productId ?? ''));
             final product = productAsync.valueOrNull;
-            final listingType = _listingTypeLabel(product?.category);
-            final productTitle = product?.title ?? conv['product_title'] ?? (productId == null ? 'Service Request' : 'Product');
-            final roleLabel = _otherPartyRoleLabel(userId, conv['buyer_id'] as String?, conv['seller_id'] as String?);
+            final isDirectMessage = productId == null || productId.isEmpty;
+            final listingType = isDirectMessage ? 'SUPPORT' : _listingTypeLabel(product?.category);
+            final productTitle = product?.title ?? conv['product_title'] ?? (isDirectMessage ? 'General Inquiry' : 'Product');
+            
+            // Resolve the other party's identity
+            final otherProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
+            final otherProfile = otherProfileAsync.valueOrNull;
+            final isOtherAdmin = otherProfile?.role == 'admin' || otherProfile?.role == 'super_admin';
+            final otherName = (otherProfile?.fullName != null && otherProfile!.fullName.isNotEmpty)
+                ? otherProfile.fullName
+                : (isOtherAdmin ? 'BoostDrive Support' : 'User');
+            
+            final roleLabel = isOtherAdmin ? 'Support' : _otherPartyRoleLabel(userId, conv['buyer_id'] as String?, conv['seller_id'] as String?);
             
             // Unread indicator and count (WhatsApp-style: number disappears when conversation is opened)
             final unreadConvs = ref.watch(unreadConversationsProvider(userId)).value ?? {};
@@ -1283,12 +1296,11 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 loading: () => const CircleAvatar(backgroundColor: Colors.white10, child: CircularProgressIndicator(strokeWidth: 2)),
                 error: (_, _) => const CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.white24)),
               ),
-              title: ref.watch(userProfileProvider(otherUserId)).when(
-                data: (profile) => Row(
+              title: Row(
                   children: [
                     Expanded(
                       child: Text(
-                        profile?.fullName ?? 'User',
+                        otherName,
                         style: TextStyle(
                           color: fgColor,
                           fontWeight: isUnread ? FontWeight.w900 : FontWeight.w600,
@@ -1301,13 +1313,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDirectMessage ? Colors.orange : Colors.white,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         listingType.toUpperCase(),
                         style: TextStyle(
-                          color: Colors.black87,
+                          color: isDirectMessage ? Colors.white : Colors.black87,
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
                         ),
@@ -1315,9 +1327,6 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     ),
                   ],
                 ),
-                loading: () => Text('Loading...', style: TextStyle(color: fgDimmer, fontSize: 14)),
-                error: (_, _) => Text('User', style: TextStyle(color: fgColor, fontSize: 14)),
-              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -1430,9 +1439,18 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             final chatProductId = conversation['product_id'] as String?;
             final chatProductAsync = ref.watch(productByIdProvider(chatProductId ?? ''));
             final chatProduct = chatProductAsync.valueOrNull;
-            final chatListingType = _listingTypeLabel(chatProduct?.category);
-            final chatProductTitle = chatProduct?.title ?? conversation['product_title'] ?? (chatProductId == null ? 'Service Request' : 'Product');
-            final chatRoleLabel = _otherPartyRoleLabel(userId, conversation['buyer_id'] as String?, conversation['seller_id'] as String?);
+            final isChatDirect = chatProductId == null || chatProductId.isEmpty;
+            final chatListingType = isChatDirect ? 'SUPPORT' : _listingTypeLabel(chatProduct?.category);
+            final chatProductTitle = chatProduct?.title ?? conversation['product_title'] ?? (isChatDirect ? 'General Inquiry' : 'Product');
+            
+            final otherChatProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
+            final otherChatProfile = otherChatProfileAsync.valueOrNull;
+            final isOtherChatAdmin = otherChatProfile?.role == 'admin' || otherChatProfile?.role == 'super_admin';
+            final otherChatName = (otherChatProfile?.fullName != null && otherChatProfile!.fullName.isNotEmpty)
+                ? otherChatProfile.fullName
+                : (isOtherChatAdmin ? 'BoostDrive Support' : 'User');
+            
+            final chatRoleLabel = isOtherChatAdmin ? 'Support' : _otherPartyRoleLabel(userId, conversation['buyer_id'] as String?, conversation['seller_id'] as String?);
             
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -1454,24 +1472,24 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                       children: [
                         Row(
                           children: [
-                            ref.watch(userProfileProvider(otherUserId)).when(
-                              data: (profile) => Text(
-                                profile?.fullName ?? 'User',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                              loading: () => const Text('Loading...', style: TextStyle(color: Colors.white70)),
-                              error: (_, _) => const Text('User', style: TextStyle(color: Colors.white)),
+                            Text(
+                              otherChatName,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.all(Radius.circular(4)),
+                              decoration: BoxDecoration(
+                                color: isChatDirect ? Colors.orange : Colors.white,
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 chatListingType.toUpperCase(),
-                                style: const TextStyle(color: Colors.black87, fontSize: 9, fontWeight: FontWeight.w900),
+                                style: TextStyle(
+                                  color: isChatDirect ? Colors.white : Colors.black87,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                           ],
@@ -1600,17 +1618,23 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   children: [
                     // Label logic: only show label for the message that isn't from the viewer
                     if (!isMe)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          isBuyerMessage ? 'Buyer' : 'Seller',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final senderProfile = ref.watch(userProfileProvider(senderId)).valueOrNull;
+                          final isSenderAdmin = senderProfile?.role == 'admin' || senderProfile?.role == 'super_admin';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              isSenderAdmin ? 'Support' : (isBuyerMessage ? 'Buyer' : 'Seller'),
+                              style: TextStyle(
+                                color: isSenderAdmin ? BoostDriveTheme.primaryColor : Colors.black54,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     if (_isImageUrl(msg['content'] as String? ?? ''))
                       ClipRRect(

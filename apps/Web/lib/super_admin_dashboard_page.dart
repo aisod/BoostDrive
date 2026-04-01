@@ -13,6 +13,7 @@ import 'package:boost_drive_web/verification_queue_view.dart';
 import 'package:boost_drive_web/service_monitoring_view.dart';
 import 'package:boost_drive_web/user_management_view.dart';
 import 'package:boost_drive_web/admin_profile_view.dart';
+import 'package:boost_drive_web/financials_view.dart';
 import 'admin_states.dart';
 
 class SuperAdminDashboardPage extends ConsumerStatefulWidget {
@@ -94,7 +95,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
               if (!isNarrow) _buildSidebar(context),
               // Main Content
               Expanded(
-                child: _buildMainContent(ref, user.id),
+                child: _buildMainContent(ref, user.id, isNarrow: isNarrow),
               ),
             ],
           );
@@ -115,7 +116,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
             alignment: Alignment.centerLeft,
             child: Text(
               'BoostDrive Admin',
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
                 color: BoostDriveTheme.primaryColor,
@@ -202,11 +203,11 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
     );
   }
 
-  Widget _buildMainContent(WidgetRef ref, String uid) {
+  Widget _buildMainContent(WidgetRef ref, String uid, {required bool isNarrow}) {
     Widget content;
     switch (_selectedIndex) {
       case 0:
-        content = _buildDashboardContent(ref, uid);
+        content = _buildDashboardContent(ref, uid, isNarrow: isNarrow);
         break;
       case 1:
         content = const VerificationQueueView();
@@ -218,7 +219,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
         content = const UserManagementView();
         break;
       case 4:
-        content = _buildFinancials(ref);
+        content = const FinancialsView();
         break;
       case 5:
         content = AdminProfileView(uid: uid);
@@ -235,7 +236,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
         Container(
           height: 70,
           color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: EdgeInsets.symmetric(horizontal: isNarrow ? 16 : 32),
           child: Row(
             children: [
               if (_selectedIndex == 3 && selectedGroup != null) ...[
@@ -246,26 +247,31 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
                 ),
                 const SizedBox(width: 8),
               ],
-              Text(
-                _getSectionTitle(selectedGroup),
-                style: GoogleFonts.manrope(
-                  fontSize: 20, 
-                  fontWeight: FontWeight.w800, 
-                  color: Colors.black,
+              Expanded(
+                child: Text(
+                  _getSectionTitle(selectedGroup),
+                  style: TextStyle(fontFamily: 'Manrope', 
+                    fontSize: isNarrow ? 16 : 20, 
+                    fontWeight: FontWeight.w800, 
+                    color: Colors.black,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const Spacer(),
-              _buildAdminHeader(ref, uid),
+              _buildAdminHeader(ref, uid, isNarrow: isNarrow),
             ],
           ),
         ),
         const Divider(height: 1, color: Colors.black12),
         // Main Content Region
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: content,
-          ),
+          child: _selectedIndex == 4
+              ? content // FinancialsView handles its own padding & scrolling
+              : Padding(
+                  padding: EdgeInsets.all(isNarrow ? 16 : 32),
+                  child: content,
+                ),
         ),
       ],
     );
@@ -291,7 +297,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
   }
 
   // ==== Dashboard Modules from previous design, updated for light mode ====
-  Widget _buildDashboardContent(WidgetRef ref, String uid) {
+  Widget _buildDashboardContent(WidgetRef ref, String uid, {required bool isNarrow}) {
     final pendingAsync = ref.watch(pendingVerificationsProvider);
     final sosAsync = ref.watch(globalActiveSosRequestsProvider);
     final volumeAsync = ref.watch(globalVolumeProvider);
@@ -307,37 +313,48 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
             sosAsync: sosAsync,
             volumeAsync: volumeAsync,
             userCountAsync: userCountAsync,
+            isNarrow: isNarrow,
           ),
           const SizedBox(height: 32),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: _buildSystemHealthMap(
-                  pendingAsync: pendingAsync,
-                  sosAsync: sosAsync,
+          if (isNarrow) ...[
+            _buildSystemHealthMap(pendingAsync: pendingAsync, sosAsync: sosAsync),
+            const SizedBox(height: 24),
+            _buildManagementPanel(
+              pendingAsync: pendingAsync,
+              sosAsync: sosAsync,
+              volumeAsync: volumeAsync,
+              userCountAsync: userCountAsync,
+            ),
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _buildSystemHealthMap(
+                    pendingAsync: pendingAsync,
+                    sosAsync: sosAsync,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 32),
-              Expanded(
-                flex: 2,
-                child: _buildManagementPanel(
-                  pendingAsync: pendingAsync,
-                  sosAsync: sosAsync,
-                  volumeAsync: volumeAsync,
-                  userCountAsync: userCountAsync,
+                const SizedBox(width: 32),
+                Expanded(
+                  flex: 2,
+                  child: _buildManagementPanel(
+                    pendingAsync: pendingAsync,
+                    sosAsync: sosAsync,
+                    volumeAsync: volumeAsync,
+                    userCountAsync: userCountAsync,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           const SizedBox(height: 32),
         ],
       ),
     );
   }
 
-  Widget _buildAdminHeader(WidgetRef ref, String uid) {
+  Widget _buildAdminHeader(WidgetRef ref, String uid, {required bool isNarrow}) {
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
@@ -352,21 +369,23 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      profile.fullName,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                    ),
-                    Text(
-                      'Staff ID: ${profile.uid.substring(0, 8).toUpperCase()}',
-                      style: const TextStyle(color: Colors.black54, fontSize: 12),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 16),
+                if (!isNarrow) ...[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        profile.fullName,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                      Text(
+                        'Staff ID: ${profile.uid.substring(0, 8).toUpperCase()}',
+                        style: const TextStyle(color: Colors.black54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                ],
                 CircleAvatar(
                   backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                   child: const Icon(Icons.person, color: BoostDriveTheme.primaryColor),
@@ -386,41 +405,57 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
     required AsyncValue<List<SosRequest>> sosAsync,
     required AsyncValue<double> volumeAsync,
     required AsyncValue<int> userCountAsync,
+    required bool isNarrow,
   }) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 4,
-      mainAxisSpacing: 24,
-      crossAxisSpacing: 24,
-      childAspectRatio: 2.5,
-      children: [
-        pendingAsync.when(
-          data: (pending) => _buildKPICard(
-            'PENDING VERIFICATIONS',
-            pending.length.toString(),
-            'LIVE',
-            Colors.orange,
-          ),
-          loading: () => _buildKPICard('PENDING VERIFICATIONS', '…', 'LIVE', Colors.orange),
-          error: (_, __) => _buildKPICard('PENDING VERIFICATIONS', 'ERR', 'LIVE', Colors.orange),
-        ),
-        sosAsync.when(
-          data: (data) => _buildKPICard('ACTIVE SOS', data.length.toString(), 'LIVE', Colors.redAccent),
-          loading: () => _buildKPICard('ACTIVE SOS', '…', 'LIVE', Colors.redAccent),
-          error: (_, __) => _buildKPICard('ACTIVE SOS', 'ERR', 'LIVE', Colors.redAccent),
-        ),
-        volumeAsync.when(
-          data: (data) => _buildKPICard('MARKETPLACE VOL', '\$${data.toStringAsFixed(0)}', 'TOTAL', BoostDriveTheme.primaryColor),
-          loading: () => _buildKPICard('MARKETPLACE VOL', '…', 'TOTAL', BoostDriveTheme.primaryColor),
-          error: (_, __) => _buildKPICard('MARKETPLACE VOL', 'ERR', 'TOTAL', BoostDriveTheme.primaryColor),
-        ),
-        userCountAsync.when(
-          data: (data) => _buildKPICard('USER BASE', data.toString(), 'LIVE', Colors.purpleAccent),
-          loading: () => _buildKPICard('USER BASE', '…', 'LIVE', Colors.purpleAccent),
-          error: (_, __) => _buildKPICard('USER BASE', 'ERR', 'LIVE', Colors.purpleAccent),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        int crossAxisCount = 4;
+        double childAspectRatio = 2.5;
+
+        if (constraints.maxWidth < 600) {
+          crossAxisCount = 1;
+          childAspectRatio = 3.5;
+        } else if (constraints.maxWidth < 1100) {
+          crossAxisCount = 2;
+          childAspectRatio = 2.8;
+        }
+
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: childAspectRatio,
+          children: [
+            pendingAsync.when(
+              data: (pending) => _buildKPICard(
+                'PENDING VERIFICATIONS',
+                pending.length.toString(),
+                '',
+                Colors.orange,
+              ),
+              loading: () => _buildKPICard('PENDING VERIFICATIONS', '…', '', Colors.orange),
+              error: (_, __) => _buildKPICard('PENDING VERIFICATIONS', 'ERR', '', Colors.orange),
+            ),
+            sosAsync.when(
+              data: (data) => _buildKPICard('ACTIVE SOS', data.length.toString(), '', Colors.redAccent),
+              loading: () => _buildKPICard('ACTIVE SOS', '…', '', Colors.redAccent),
+              error: (_, __) => _buildKPICard('ACTIVE SOS', 'ERR', '', Colors.redAccent),
+            ),
+            volumeAsync.when(
+              data: (data) => _buildKPICard('MARKETPLACE VOL', '\$${data.toStringAsFixed(0)}', 'TOTAL', BoostDriveTheme.primaryColor),
+              loading: () => _buildKPICard('MARKETPLACE VOL', '…', 'TOTAL', BoostDriveTheme.primaryColor),
+              error: (_, __) => _buildKPICard('MARKETPLACE VOL', 'ERR', 'TOTAL', BoostDriveTheme.primaryColor),
+            ),
+            userCountAsync.when(
+              data: (data) => _buildKPICard('USER BASE', data.toString(), '', Colors.purpleAccent),
+              loading: () => _buildKPICard('USER BASE', '…', '', Colors.purpleAccent),
+              error: (_, __) => _buildKPICard('USER BASE', 'ERR', '', Colors.purpleAccent),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -449,14 +484,15 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
             children: [
               Text(value, style: const TextStyle(color: Colors.black87, fontSize: 28, fontWeight: FontWeight.bold)),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: trend.startsWith('+') ? Colors.green.withValues(alpha: 0.1) : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+              if (trend.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: trend.startsWith('+') ? Colors.green.withValues(alpha: 0.1) : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(trend, style: TextStyle(color: trend.startsWith('+') ? Colors.green : BoostDriveTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
-                child: Text(trend, style: TextStyle(color: trend.startsWith('+') ? Colors.green : BoostDriveTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
             ],
           ),
         ],
@@ -653,19 +689,19 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
                 error: (_, __) => _buildKPICard('MARKETPLACE VOL', 'ERR', 'TOTAL', BoostDriveTheme.primaryColor),
               ),
               userCountAsync.when(
-                data: (v) => _buildKPICard('USER BASE', v.toString(), 'LIVE', Colors.purpleAccent),
-                loading: () => _buildKPICard('USER BASE', '…', 'LIVE', Colors.purpleAccent),
-                error: (_, __) => _buildKPICard('USER BASE', 'ERR', 'LIVE', Colors.purpleAccent),
+                data: (v) => _buildKPICard('USER BASE', v.toString(), '', Colors.purpleAccent),
+                loading: () => _buildKPICard('USER BASE', '…', '', Colors.purpleAccent),
+                error: (_, __) => _buildKPICard('USER BASE', 'ERR', '', Colors.purpleAccent),
               ),
               pendingAsync.when(
-                data: (v) => _buildKPICard('PENDING VERIFICATIONS', v.length.toString(), 'LIVE', Colors.orange),
-                loading: () => _buildKPICard('PENDING VERIFICATIONS', '…', 'LIVE', Colors.orange),
-                error: (_, __) => _buildKPICard('PENDING VERIFICATIONS', 'ERR', 'LIVE', Colors.orange),
+                data: (v) => _buildKPICard('PENDING VERIFICATIONS', v.length.toString(), '', Colors.orange),
+                loading: () => _buildKPICard('PENDING VERIFICATIONS', '…', '', Colors.orange),
+                error: (_, __) => _buildKPICard('PENDING VERIFICATIONS', 'ERR', '', Colors.orange),
               ),
               sosAsync.when(
-                data: (v) => _buildKPICard('ACTIVE SOS', v.length.toString(), 'LIVE', Colors.redAccent),
-                loading: () => _buildKPICard('ACTIVE SOS', '…', 'LIVE', Colors.redAccent),
-                error: (_, __) => _buildKPICard('ACTIVE SOS', 'ERR', 'LIVE', Colors.redAccent),
+                data: (v) => _buildKPICard('ACTIVE SOS', v.length.toString(), '', Colors.redAccent),
+                loading: () => _buildKPICard('ACTIVE SOS', '…', '', Colors.redAccent),
+                error: (_, __) => _buildKPICard('ACTIVE SOS', 'ERR', '', Colors.redAccent),
               ),
             ],
           ),

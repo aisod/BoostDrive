@@ -74,7 +74,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     children: [
                       Text(
                         'Seller Marketplace',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(fontFamily: 'Manrope', 
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
@@ -97,7 +97,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                               const SizedBox(width: 6),
                               Text(
                                 'VERIFIED',
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(fontFamily: 'Manrope', 
                                   color: _accentBlue,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 11,
@@ -112,7 +112,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                   ),
                   Text(
                     '${profile.registeredBusinessName ?? "My Store"} • Official Seller',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       color: BoostDriveTheme.textDim,
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -137,7 +137,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                 foregroundColor: Colors.white,
                 minimumSize: const Size(220, 64),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 16),
+                textStyle: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 16),
               ),
             ),
           ],
@@ -182,7 +182,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
           children: [
             Text(
               'Performance',
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
@@ -199,7 +199,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                 children: [
                   Text(
                     'Last 7 Days',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       color: _accentBlue,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -241,7 +241,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
         children: [
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               color: BoostDriveTheme.textDim,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -250,7 +250,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
           const SizedBox(height: 16),
           Text(
             value,
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               color: Colors.white,
               fontSize: 32,
               fontWeight: FontWeight.w900,
@@ -267,7 +267,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
               const SizedBox(width: 6),
               Text(
                 trend,
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   color: trend == '0%' ? Colors.orange : (isPositive ? const Color(0xFF00C853) : const Color(0xFFFF4D4D)),
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -294,7 +294,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
               labelColor: _accentBlue,
               unselectedLabelColor: BoostDriveTheme.textDim,
               dividerColor: Colors.transparent,
-              labelStyle: GoogleFonts.manrope(
+              labelStyle: TextStyle(fontFamily: 'Manrope', 
                 fontWeight: FontWeight.w900,
                 fontSize: 15,
                 letterSpacing: 1,
@@ -334,7 +334,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     const SizedBox(width: 16),
                     Text(
                       'Search SKU, name or VIN...',
-                      style: GoogleFonts.manrope(color: Colors.white38, fontSize: 16),
+                      style: TextStyle(fontFamily: 'Manrope', color: Colors.white38, fontSize: 16),
                     ),
                   ],
                 ),
@@ -473,7 +473,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                   ),
                   child: Text(
                     tag,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       color: Colors.white,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -495,7 +495,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     Expanded(
                       child: Text(
                         title,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(fontFamily: 'Manrope', 
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -510,14 +510,14 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                 const SizedBox(height: 6),
                 Text(
                   'SKU: $sku',
-                  style: GoogleFonts.manrope(color: BoostDriveTheme.textDim, fontSize: 14),
+                  style: TextStyle(fontFamily: 'Manrope', color: BoostDriveTheme.textDim, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Text(
                       '\$$price',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         color: _accentBlue,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -534,7 +534,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                       ),
                       child: Text(
                         status,
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(fontFamily: 'Manrope', 
                           color: status.contains('In Stock') 
                               ? const Color(0xFF00C853) 
                               : (status == 'Draft' ? Colors.orange : Colors.white38),
@@ -552,7 +552,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     const SizedBox(width: 6),
                     Text(
                       'Clicks: $clickCount',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         color: Colors.white38,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -577,7 +577,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
           children: [
             Text(
               'Service Requests',
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
@@ -587,7 +587,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
               onPressed: () {},
               child: Text(
                 'VIEW ALL',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   color: _accentBlue,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -621,7 +621,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                   children: [
                     Text(
                       'INSTALLATION REQUEST',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         color: _accentBlue,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
@@ -631,7 +631,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     const SizedBox(height: 8),
                     Text(
                       'Transmission Swap - Alex Johnson',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -640,7 +640,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     const SizedBox(height: 4),
                     Text(
                       'Linked Part: 2015 Camry Transmission (Used)',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         color: BoostDriveTheme.textDim,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -662,7 +662,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     ),
                     child: Text(
                       'Decline',
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 16),
+                      style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 16),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -677,7 +677,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     ),
                     child: Text(
                       'Accept Task',
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 16),
+                      style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 16),
                     ),
                   ),
                 ],

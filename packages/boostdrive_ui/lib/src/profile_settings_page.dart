@@ -317,7 +317,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               showInitials 
                   ? 'Profile photo removed.' 
                   : 'Profile photo deleted.',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
             ),
             backgroundColor: BoostDriveTheme.primaryColor,
             behavior: SnackBarBehavior.floating,
@@ -338,7 +338,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           SnackBar(
             content: Text(
               'Error removing photo: $e',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -423,7 +423,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: Text('Confirm Email Change', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+            title: Text('Confirm Email Change', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700)),
             content: Text('Are you sure you want to change your email to $newEmail? A verification link will be sent to the new address.'),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -532,7 +532,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 const SizedBox(height: 20),
                 Text(
                   'Profile Photo',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF1D2939),
@@ -611,7 +611,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: isDestructive ? Colors.red : const Color(0xFF1D2939),
@@ -620,7 +620,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 13,
                       color: const Color(0xFF667085),
                     ),
@@ -746,7 +746,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             'Change Password',
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontWeight: FontWeight.w800,
               color: const Color(0xFF1D2939),
             ),
@@ -785,7 +785,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           actions: [
             TextButton(
               onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: Text('Cancel', style: GoogleFonts.manrope(color: const Color(0xFF667085), fontWeight: FontWeight.w700)),
+              child: Text('Cancel', style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF667085), fontWeight: FontWeight.w700)),
             ),
             ElevatedButton(
               onPressed: isLoading ? null : () async {
@@ -829,7 +829,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               ),
               child: isLoading 
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text('Save', style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: Colors.white)),
+                : Text('Save', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: Colors.white)),
             ),
           ],
         ),
@@ -846,14 +846,14 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
+        Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
           obscureText: true,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF98A2B3)),
+            hintStyle: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF98A2B3)),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -890,7 +890,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         ),
         title: Text(
           isEditOnlyPage ? 'Edit Profile Settings' : 'Provider Profile',
-          style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+          style: TextStyle(fontFamily: 'Manrope', color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
@@ -938,7 +938,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     children: [
                       Text(
                         profile.fullName,
-                        style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939)),
+                        style: TextStyle(fontFamily: 'Manrope', fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939)),
                       ),
                       if (_isProviderApproved(profile.verificationStatus)) ...[
                         const SizedBox(width: 8),
@@ -957,7 +957,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       ),
                       child: Text(
                         'Verified ${_getCategoryLabel(profile)}',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(fontFamily: 'Manrope', 
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: BoostDriveTheme.primaryColor,
@@ -1015,7 +1015,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 40),
           Text(
             'BoostDrive Version 2.4.1 (1209)',
-            style: GoogleFonts.manrope(color: const Color(0xFF98A2B3), fontSize: 11, fontWeight: FontWeight.w500),
+            style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF98A2B3), fontSize: 11, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 40),
         ],
@@ -1061,7 +1061,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             _providerCurrentStep == 1
                                 ? 'Please upload all required documents before continuing.'
                                 : 'Please complete all fields in this section before continuing.',
-                            style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                            style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
                           ),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1137,7 +1137,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: const Color(0xFF344054)),
+                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF344054)),
                   ),
                 ),
               ),
@@ -1155,7 +1155,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                               _providerCurrentStep == 1
                                   ? 'Please upload all required documents before continuing.'
                                   : 'Please complete all fields in this section before saving.',
-                              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
                             ),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1178,7 +1178,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ),
                   child: Text(
                     'Save Changes',
-                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: Colors.white),
+                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: Colors.white),
                   ),
                 ),
               ),
@@ -1282,7 +1282,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     child: profile.profileImg.isEmpty && _optimisticImage == null
                         ? Text(
                             getInitials(profile.fullName),
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
                               color: BoostDriveTheme.primaryColor,
@@ -1356,7 +1356,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       child: (profile.profileImg.isEmpty && _optimisticImage == null)
                           ? Text(
                               getInitials(profile.fullName),
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(fontFamily: 'Manrope', 
                                 fontSize: 32,
                                 fontWeight: FontWeight.w800,
                                 color: BoostDriveTheme.primaryColor,
@@ -1451,7 +1451,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             children: [
               Text(
                 label,
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF667085),
@@ -1461,7 +1461,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF1D2939),
@@ -1483,13 +1483,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.location_on_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Service area & working hours', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Service area & working hours', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
           ],
         ),
         const SizedBox(height: 8),
         Text(
           'Shown to customers on Find a Provider. E.g. "Within 50 km of Windhoek" and "Mon–Fri 8am–6pm".',
-          style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085)),
         ),
         const SizedBox(height: 16),
         _providerLabel('How far you\'re located / service area'),
@@ -1498,7 +1498,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           controller: _serviceAreaController,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
           decoration: _providerInputDecoration(hint: 'e.g. Within 50 km of Windhoek, City centre'),
         ),
         const SizedBox(height: 16),
@@ -1508,7 +1508,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           controller: _workingHoursController,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
           decoration: _providerInputDecoration(hint: 'e.g. Mon–Fri 8am–6pm, Sat 9am–1pm or 24/7'),
         ),
       ],
@@ -1532,13 +1532,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.build_circle_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Services you provide', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Services you provide', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
           ],
         ),
         const SizedBox(height: 8),
         Text(
           'Select at least 1 service. You can select multiple.',
-          style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085)),
         ),
         const SizedBox(height: 16),
         Wrap(
@@ -1580,7 +1580,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     const SizedBox(width: 8),
                     Text(
                       label,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF475467),
@@ -1601,7 +1601,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         Icon(icon, color: BoostDriveTheme.primaryColor, size: 22),
         const SizedBox(width: 10),
-        Text(title, style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+        Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
       ],
     );
   }
@@ -1635,7 +1635,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   return AlertDialog(
                     title: Text(
                       'Other brand expertise',
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                      style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
                     ),
                     content: TextField(
                       controller: controller,
@@ -1653,7 +1653,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                         onPressed: () => Navigator.of(context).pop(controller.text.trim()),
                         child: Text(
                           'Save',
-                          style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -1684,7 +1684,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   return AlertDialog(
                     title: Text(
                       'Other service tag',
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                      style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
                     ),
                     content: TextField(
                       controller: controller,
@@ -1702,7 +1702,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                         onPressed: () => Navigator.of(context).pop(controller.text.trim()),
                         child: Text(
                           'Save',
-                          style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -1744,7 +1744,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               children: [
                 Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, size: 20, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF98A2B3)),
                 const SizedBox(width: 8),
-                Text(label, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF475467))),
+                Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF475467))),
               ],
             ),
           ),
@@ -1760,12 +1760,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Operational & Business Details', Icons.business_center_outlined),
         const SizedBox(height: 12),
-        Text('Powers "Open Now" filter and SOS matching.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        Text('Powers "Open Now" filter and SOS matching.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
         const SizedBox(height: 16),
         if (isTowingOrSos) ...[
           Row(
             children: [
-              Expanded(child: Text('Open 24/7', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
+              Expanded(child: Text('Open 24/7', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
               Switch(
                 value: _businessHours24_7,
                 onChanged: _isProviderEditMode ? (v) => setState(() => _businessHours24_7 = v) : null,
@@ -1774,7 +1774,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text('When on, your profile shows "24/7" for Open Now. When off, use Working hours above.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF98A2B3))),
+          Text('When on, your profile shows "24/7" for Open Now. When off, use Working hours above.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF98A2B3))),
           const SizedBox(height: 16),
         ],
         _providerLabel('Service radius (km)'),
@@ -1784,13 +1784,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           keyboardType: TextInputType.number,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
           decoration: _providerInputDecoration(hint: 'Max distance you travel for jobs'),
         ),
         const SizedBox(height: 16),
         _providerLabel('Workshop address'),
         const SizedBox(height: 8),
-        TextField(controller: _workshopAddressController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
+        TextField(controller: _workshopAddressController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
         const SizedBox(height: 16),
       ],
     );
@@ -1828,7 +1828,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Service Specializations', Icons.build_circle_outlined),
         const SizedBox(height: 12),
-        Text('Used for search filters and matching.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        Text('Used for search filters and matching.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
         const SizedBox(height: 16),
         _providerLabel('Brand expertise'),
         const SizedBox(height: 8),
@@ -1861,27 +1861,27 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Financial & Payout', Icons.account_balance_wallet_outlined),
         const SizedBox(height: 12),
-        Text('For automated payouts and customer price estimates.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        Text('For automated payouts and customer price estimates.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
         const SizedBox(height: 16),
         _providerLabel('Bank name'),
         const SizedBox(height: 8),
-        TextField(controller: _bankNameController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
+        TextField(controller: _bankNameController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
         const SizedBox(height: 12),
         _providerLabel('Branch'),
         const SizedBox(height: 8),
-        TextField(controller: _bankBranchController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Branch name or code')),
+        TextField(controller: _bankBranchController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Branch name or code')),
         const SizedBox(height: 12),
         _providerLabel('Account number'),
         const SizedBox(height: 8),
-        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Bank account number')),
+        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Bank account number')),
         const SizedBox(height: 12),
         _providerLabel(r'Estimated hourly rate (N$)'),
         const SizedBox(height: 8),
-        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
+        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
         const SizedBox(height: 12),
         _providerLabel('Tax / VAT number'),
         const SizedBox(height: 8),
-        TextField(controller: _taxVatNumberController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'For legal invoices')),
+        TextField(controller: _taxVatNumberController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'For legal invoices')),
       ],
     );
   }
@@ -1937,7 +1937,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Photo added to gallery.', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+          content: Text('Photo added to gallery.', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600)),
           backgroundColor: BoostDriveTheme.primaryColor,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1946,7 +1946,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error uploading photo: $e', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+          content: Text('Error uploading photo: $e', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600)),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1979,7 +1979,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Photo removed.', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+          content: Text('Photo removed.', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600)),
           backgroundColor: Colors.green.shade600,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1988,7 +1988,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error removing photo: $e', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+          content: Text('Error removing photo: $e', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600)),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -2007,7 +2007,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Trust & Experience', Icons.verified_user_outlined),
         const SizedBox(height: 12),
-        Text('Business bio and portfolio build customer trust.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        Text('Business bio and portfolio build customer trust.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
         const SizedBox(height: 16),
         _providerLabel('Business bio (About us)'),
         const SizedBox(height: 8),
@@ -2017,20 +2017,20 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           maxLength: 1300,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
           decoration: _providerInputDecoration(hint: 'Your history and passion'),
         ),
         const SizedBox(height: 16),
         _providerLabel('Team size (qualified technicians)'),
         const SizedBox(height: 8),
-        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Number on-site')),
+        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Number on-site')),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               'Gallery (${galleryImages.length}/$_galleryMaxImages photos)',
-              style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085)),
+              style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085)),
             ),
             if (galleryImages.isEmpty)
               Container(
@@ -2040,14 +2040,14 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: Colors.orange.shade200),
                 ),
-                child: Text('Min 1 required', style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.orange.shade700)),
+                child: Text('Min 1 required', style: TextStyle(fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w600, color: Colors.orange.shade700)),
               ),
           ],
         ),
         const SizedBox(height: 4),
         Text(
           'Workshop, tow truck, or completed repairs. Upload 1–10 photos.',
-          style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF98A2B3)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF98A2B3)),
         ),
         const SizedBox(height: 12),
         if (_isUploadingDocuments)
@@ -2079,7 +2079,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       children: [
                         Icon(Icons.add_photo_alternate_outlined, color: BoostDriveTheme.primaryColor, size: 28),
                         const SizedBox(height: 4),
-                        Text('Add Photo', style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w600, color: BoostDriveTheme.primaryColor)),
+                        Text('Add Photo', style: TextStyle(fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w600, color: BoostDriveTheme.primaryColor)),
                       ],
                     ),
                   ),
@@ -2139,11 +2139,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Notification & Alert Settings', Icons.notifications_active_outlined),
         const SizedBox(height: 12),
-        Text('Control how you receive emergency and customer requests.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        Text('Control how you receive emergency and customer requests.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: Text('Emergency (SOS) notifications', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
+            Expanded(child: Text('Emergency (SOS) notifications', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
             Switch(value: _sosAlertsEnabled, onChanged: _isProviderEditMode ? (v) => setState(() => _sosAlertsEnabled = v) : null, activeTrackColor: BoostDriveTheme.primaryColor),
           ],
         ),
@@ -2202,7 +2202,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC), width: selected ? 2 : 1),
         ),
-        child: Text(label, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF475467))),
+        child: Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF475467))),
       ),
     );
   }
@@ -2221,7 +2221,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           'Upload your official business documents for verification, for example BIPA and tax certificates. '
           'Only upload one file per document type. If you have several versions or pages of the same document, '
           'please merge them into a single file and upload that one file only for that row.',
-          style: GoogleFonts.manrope(fontSize: 16, color: const Color(0xFF667085)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 16, color: const Color(0xFF667085)),
         ),
         const SizedBox(height: 16),
         Container(
@@ -2344,7 +2344,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           SnackBar(
             content: Text(
               'Unable to read file contents. Please try again.',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -2363,7 +2363,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           SnackBar(
             content: Text(
               'File is too large. Please upload a document smaller than 10 MB.',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -2402,7 +2402,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           SnackBar(
             content: Text(
               'Document uploaded. Our team will review it for verification.',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
             ),
             backgroundColor: BoostDriveTheme.primaryColor,
             behavior: SnackBarBehavior.floating,
@@ -2416,7 +2416,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           SnackBar(
             content: Text(
               'Error uploading document: $e',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -2444,11 +2444,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         return AlertDialog(
           title: Text(
             'Remove document?',
-            style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+            style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
           ),
           content: Text(
             'This document will be removed from your profile. You can upload it again later if needed.',
-            style: GoogleFonts.manrope(),
+            style: TextStyle(fontFamily: 'Manrope', ),
           ),
           actions: [
             TextButton(
@@ -2459,7 +2459,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               onPressed: () => Navigator.of(context).pop(true),
               child: Text(
                 'Remove',
-                style: GoogleFonts.manrope(color: Colors.red, fontWeight: FontWeight.w600),
+                style: TextStyle(fontFamily: 'Manrope', color: Colors.red, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -2500,7 +2500,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           SnackBar(
             content: Text(
               'Document removed from your profile.',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.green.shade600,
             behavior: SnackBarBehavior.floating,
@@ -2514,7 +2514,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           SnackBar(
             content: Text(
               'Error removing document: $e',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -2555,7 +2555,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(name, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
+            Text(name, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -2571,7 +2571,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ],
                   Text(
                     displayStatus.toUpperCase(),
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: statusColor,
@@ -2601,7 +2601,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 Expanded(
                   child: Text(
                     'REASON: $rejectionReason',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Colors.red.shade800,
@@ -2631,7 +2631,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         children: [
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF667085),
@@ -2652,7 +2652,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     fileName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 13,
                       color: hasUrl ? const Color(0xFF344054) : const Color(0xFF98A2B3),
                     ),
@@ -2670,7 +2670,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ),
                   child: Text(
                     'Upload',
-                    style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2678,7 +2678,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   onPressed: _isUploadingDocuments || !hasUrl ? null : () => _confirmAndRemoveProviderDocument(url!),
                   child: Text(
                     'Remove',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: hasUrl ? const Color(0xFFB42318) : const Color(0xFF98A2B3),
@@ -2694,13 +2694,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _providerLabel(String text) {
-    return Text(text, style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085)));
+    return Text(text, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085)));
   }
 
   InputDecoration _providerInputDecoration({String? hint}) {
     return InputDecoration(
       hintText: hint ?? '',
-      hintStyle: GoogleFonts.manrope(color: const Color(0xFF98A2B3)),
+      hintStyle: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF98A2B3)),
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -2719,7 +2719,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.local_shipping_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Shipping & Logistics', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Shipping & Logistics', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
           ],
         ),
         const SizedBox(height: 16),
@@ -2737,16 +2737,16 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                child: Center(child: Text('BT', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w800, color: BoostDriveTheme.primaryColor))),
+                child: Center(child: Text('BT', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w800, color: BoostDriveTheme.primaryColor))),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('BaTLorriH Integration', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
+                    Text('BaTLorriH Integration', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
                     const SizedBox(height: 2),
-                    Text('Automated freight dispatch.', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+                    Text('Automated freight dispatch.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
                   ],
                 ),
               ),
@@ -2763,7 +2763,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _warehouseAddressController,
-          style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
           decoration: _providerInputDecoration(hint: 'Not set'),
         ),
       ],
@@ -2779,7 +2779,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.account_balance_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Payments & Payouts', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Payments & Payouts', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
           ],
         ),
         const SizedBox(height: 16),
@@ -2808,8 +2808,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Amount', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
-                    Text('—', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+                    Text('Amount', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+                    Text('—', style: TextStyle(fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
                   ],
                 ),
               ),
@@ -2837,9 +2837,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+                Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
                 const SizedBox(height: 2),
-                Text(value, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
+                Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
               ],
             ),
           ),
@@ -2858,7 +2858,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.business_center_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Business Registration', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Business Registration', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
           ],
         ),
         const SizedBox(height: 16),
@@ -2878,7 +2878,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Text('Verification Status', style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+                  Text('Verification Status', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
                   const Spacer(),
                   Row(
                     children: [
@@ -2890,7 +2890,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       const SizedBox(width: 6),
                       Text(
                         profile.verificationStatus.isEmpty ? '—' : profile.verificationStatus.toUpperCase(),
-                        style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939)),
+                        style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939)),
                       ),
                     ],
                   ),
@@ -2906,9 +2906,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   Widget _providerKeyValue(String key, String value) {
     return Row(
       children: [
-        Text(key, style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085))),
+        Text(key, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
         const Spacer(),
-        Text(value, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
+        Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
       ],
     );
   }
@@ -3055,7 +3055,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ),
             title: Text(
               'Profile Settings',
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 18,
@@ -3099,7 +3099,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 const SizedBox(height: 40),
                 Text(
                   'BoostDrive Version 2.4.1 (1209)',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     color: const Color(0xFF98A2B3),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -3122,12 +3122,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 16),
               Text(
                 'Oops! Something went wrong',
-                style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1D2939)),
               ),
               const SizedBox(height: 8),
               Text(
                 e.toString(),
-                style: GoogleFonts.manrope(color: const Color(0xFF667085)),
+                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF667085)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -3178,7 +3178,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     child: (_optimisticImage == null && (_isOptimisticDelete || profile.profileImg.isEmpty))
                         ? Text(
                             getInitials(profile.fullName),
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 32,
                               fontWeight: FontWeight.w800,
                               color: BoostDriveTheme.primaryColor,
@@ -3220,7 +3220,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 16),
         Text(
           profile.fullName.isEmpty ? 'Set Name' : profile.fullName,
-          style: GoogleFonts.manrope(
+          style: TextStyle(fontFamily: 'Manrope', 
             fontSize: 24,
             fontWeight: FontWeight.w800,
             color: const Color(0xFF1D2939),
@@ -3230,7 +3230,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           const SizedBox(height: 4),
           Text(
             '${profile.role.replaceAll('_', ' ').toUpperCase()} • Professional Partner',
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: BoostDriveTheme.primaryColor,
@@ -3244,12 +3244,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(width: 4),
               Text(
                 '—',
-                style: GoogleFonts.manrope(color: const Color(0xFF1D2939), fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF1D2939), fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(width: 8),
               Text(
                 '(— reviews)',
-                style: GoogleFonts.manrope(color: const Color(0xFF667085), fontSize: 12),
+                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF667085), fontSize: 12),
               ),
             ],
           ),
@@ -3258,7 +3258,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             profile.isSeller
                 ? 'BoostDrive Seller since ${profile.createdAt.year}'
                 : 'BoostDrive Customer since ${profile.createdAt.year}',
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: const Color(0xFF667085),
@@ -3274,7 +3274,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         Text(
           'BUSINESS INFORMATION',
-          style: GoogleFonts.manrope(
+          style: TextStyle(fontFamily: 'Manrope', 
             fontSize: 12,
             fontWeight: FontWeight.w800,
             color: const Color(0xFF667085),
@@ -3294,7 +3294,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             children: [
               Text(
                 'Core Business Identity',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF1D2939),
@@ -3307,7 +3307,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _registeredBusinessNameController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(
                   hint: 'Official BIPA name e.g. Mubiana Mechanical Services CC',
                 ),
@@ -3319,7 +3319,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _tradingNameController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(
                   hint: 'Name customers see, e.g. The Turbo Doc',
                 ),
@@ -3332,7 +3332,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
                 keyboardType: TextInputType.phone,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(
                   hint: 'Office WhatsApp or landline',
                 ),
@@ -3342,7 +3342,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _businessType,
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
                   color: const Color(0xFF1D2939),
                 ),
@@ -3383,7 +3383,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _registrationNumberController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(
                   hint: 'e.g. CC/2026/0123',
                 ),
@@ -3391,7 +3391,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 24),
               Text(
                 'Operational Details',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF1D2939),
@@ -3405,7 +3405,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
                 keyboardType: TextInputType.number,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(hint: 'e.g. 5'),
               ),
               const SizedBox(height: 16),
@@ -3413,7 +3413,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _primaryServiceCategory,
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
                   color: const Color(0xFF1D2939),
                 ),
@@ -3468,13 +3468,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 keyboardType: TextInputType.number,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(hint: 'Number of staff on your team'),
               ),
               const SizedBox(height: 24),
               Text(
                 'Physical & Digital Presence',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF1D2939),
@@ -3487,7 +3487,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _workshopAddressController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(hint: 'Registered base of operations'),
               ),
               const SizedBox(height: 16),
@@ -3497,7 +3497,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _socialFacebookController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(hint: 'Facebook business page URL'),
               ),
               const SizedBox(height: 8),
@@ -3505,7 +3505,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _socialInstagramController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(hint: 'Instagram handle / URL'),
               ),
               const SizedBox(height: 8),
@@ -3513,7 +3513,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _websiteUrlController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
                 decoration: _providerInputDecoration(hint: 'Website URL (optional)'),
               ),
             ],
@@ -3533,7 +3533,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Text(
               label,
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF98A2B3),
@@ -3543,7 +3543,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             const SizedBox(height: 4),
             Text(
               value,
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF1D2939),
@@ -3567,7 +3567,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Text(
               isProviderProfile ? 'PRIMARY ACCOUNT DETAILS' : 'PERSONAL INFORMATION',
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF667085),
@@ -3624,7 +3624,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     const SizedBox(width: 8),
                     Text(
                       'CONTACT DETAILS',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF667085),
@@ -3701,7 +3701,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: const Color(0xFF344054)),
+                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF344054)),
                   ),
                 ),
               ),
@@ -3718,7 +3718,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : Text(
                         'Save Changes',
-                        style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: Colors.white),
+                        style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: Colors.white),
                       ),
                 ),
               ),
@@ -3758,7 +3758,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF1D2939),
@@ -3768,13 +3768,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   TextField(
                     controller: controller,
                     focusNode: focusNode,
-                    style: GoogleFonts.manrope(fontSize: 13, color: const Color(0xFF667085)),
+                    style: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: const Color(0xFF667085)),
                     decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                   )
                 else
                   Text(
                     value.isEmpty ? 'Not set' : value,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: const Color(0xFF667085),
@@ -3799,7 +3799,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         children: [
           Text(
             'SAFETY & SOS',
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 12,
               fontWeight: FontWeight.w800,
               color: const Color(0xFFD92D20),
@@ -3826,7 +3826,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       ),
                       child: Text(
                         'SOS',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(fontFamily: 'Manrope', 
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFFD92D20),
@@ -3840,7 +3840,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                         children: [
                           Text(
                             'Emergency Contact',
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF1D2939),
@@ -3849,7 +3849,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                           const SizedBox(height: 2),
                           Text(
                             'Notifications will be sent to this contact in case of a breakdown or collision.',
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: const Color(0xFF667085),
@@ -3877,13 +3877,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             if (_isEditing)
                               TextField(
                                 controller: _emergencyNameController,
-                                style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939)),
+                                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939)),
                                 decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: 'Contact Name'),
                               )
                             else
                               Text(
                                 _emergencyNameController.text.isEmpty ? 'No Contact' : _emergencyNameController.text,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(fontFamily: 'Manrope', 
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF1D2939),
@@ -3892,13 +3892,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             if (_isEditing)
                               TextField(
                                 controller: _emergencyPhoneController,
-                                style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF667085)),
+                                style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF667085)),
                                 decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: 'Phone Number'),
                               )
                             else
                               Text(
                                 _emergencyPhoneController.text.isEmpty ? 'Not set' : _emergencyPhoneController.text,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(fontFamily: 'Manrope', 
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: const Color(0xFF667085),
@@ -3910,7 +3910,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       if (!_isEditing)
                         Text(
                           'Edit',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(fontFamily: 'Manrope', 
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                             color: const Color(0xFFD92D20),
@@ -3935,7 +3935,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Text(
               profile.fullName.isEmpty ? 'Set Name' : profile.fullName,
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
                 color: const Color(0xFF1D2939),
@@ -3954,7 +3954,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           ),
           child: Text(
             'SYSTEM ADMINISTRATOR',
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 12,
               fontWeight: FontWeight.w800,
               color: BoostDriveTheme.primaryColor,

@@ -135,8 +135,8 @@ class SosService {
     final profileResponse = await _supabase.from('profiles').select('status').eq('id', providerId).maybeSingle();
     if (profileResponse != null) {
       final status = profileResponse['status']?.toString().toLowerCase();
-      if (status == 'suspended' || status == 'banned') {
-        throw Exception('Account is suspended. You cannot accept new SOS requests.');
+      if (status == 'suspended' || status == 'banned' || status == 'frozen') {
+        throw Exception('Account is restricted. You cannot accept new SOS requests.');
       }
     }
 

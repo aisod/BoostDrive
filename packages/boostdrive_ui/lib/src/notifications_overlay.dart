@@ -40,17 +40,30 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
   }
 
   /// Derives a descriptive notification title from the product attached to a conversation.
-  String _conversationTitle(Map<String, dynamic> conv) {
+  String _conversationTitle(Map<String, dynamic> conv, String currentUserId) {
     final productId = conv['product_id'] as String?;
-    if (productId == null || productId.isEmpty) return 'New Message';
+    if (productId != null && productId.isNotEmpty) {
+      final productAsync = ref.watch(productByIdProvider(productId));
+      final product = productAsync.valueOrNull;
+      if (product != null) {
+        final typeLabel = _listingTypeLabel(product.category);
+        final name = product.title.isNotEmpty ? product.title : 'a listing';
+        return '$typeLabel – $name';
+      }
+    }
 
-    final productAsync = ref.watch(productByIdProvider(productId));
-    final product = productAsync.valueOrNull;
-    if (product == null) return 'New Message';
+    // Direct message / Administrative message fallback: Use sender's name
+    final isBuyer = conv['buyer_id'] == currentUserId;
+    final otherUserId = isBuyer ? conv['seller_id'] : conv['buyer_id'];
+    final otherProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
+    final otherProfile = otherProfileAsync.valueOrNull;
 
-    final typeLabel = _listingTypeLabel(product.category);
-    final name = product.title.isNotEmpty ? product.title : 'a listing';
-    return '$typeLabel – $name';
+    if (otherProfile != null) {
+      if (otherProfile.fullName.isNotEmpty) return otherProfile.fullName;
+      if (otherProfile.role == 'admin' || otherProfile.role == 'super_admin') return 'BoostDrive Support';
+    }
+    
+    return 'New Message';
   }
 
   /// Human-readable listing type from the product category.
@@ -73,15 +86,24 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     final isBuyer = conv['buyer_id'] == currentUserId;
     final otherUserId = isBuyer ? conv['seller_id'] : conv['buyer_id'];
     final otherProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
-    final otherName = otherProfileAsync.valueOrNull?.fullName;
+    final otherProfile = otherProfileAsync.valueOrNull;
+    final otherName = otherProfile?.fullName;
+    final displayOtherName = (otherName != null && otherName.isNotEmpty) 
+        ? otherName 
+        : ((otherProfile?.role == 'admin' || otherProfile?.role == 'super_admin') ? 'Support' : 'User');
 
     final lastMsg = conv['last_message'] as String?;
+    final productId = conv['product_id'] as String?;
+
     if (lastMsg != null && lastMsg.isNotEmpty) {
-      if (otherName != null && otherName.isNotEmpty) return '$otherName: $lastMsg';
-      return lastMsg;
+      return '$displayOtherName: $lastMsg';
     }
-    if (otherName != null && otherName.isNotEmpty) return 'Conversation with $otherName';
-    return 'You have an active conversation regarding a product.';
+    
+    if (productId != null && productId.isNotEmpty) {
+      return 'You have an active conversation regarding a product.';
+    }
+
+    return 'New direct message from $displayOtherName';
   }
 
   List<Map<String, dynamic>> _processNotifications(
@@ -122,7 +144,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       
       all.add({
         'id': 'msg_$convId',
-        'title': _conversationTitle(conv),
+        'title': _conversationTitle(conv, currentUserId),
         'message': _conversationSubtitle(conv, currentUserId),
         'time': _formatTime(conv['created_at']),
         'isRead': isRead,
@@ -272,7 +294,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 children: [
                   Text(
                     'Notifications',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF1D2939),
@@ -306,7 +328,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                         : const Icon(Icons.done_all, size: 18, color: BoostDriveTheme.primaryColor),
                     label: Text(
                       _isMarkingAllAsRead ? 'Marking...' : 'Mark all as read',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: BoostDriveTheme.primaryColor,
@@ -337,8 +359,8 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 ),
                 labelColor: Colors.white,
                 unselectedLabelColor: const Color(0xFF667085),
-                labelStyle: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 14),
-                unselectedLabelStyle: GoogleFonts.manrope(fontWeight: FontWeight.w600, fontSize: 14),
+                labelStyle: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14),
+                unselectedLabelStyle: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600, fontSize: 14),
                 dividerColor: Colors.transparent,
                 onTap: (_) => setState(() {}),
                 tabs: const [
@@ -365,7 +387,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Search notifications...',
-                    hintStyle: GoogleFonts.manrope(
+                    hintStyle: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 14,
                       color: const Color(0xFF98A2B3),
                     ),
@@ -373,7 +395,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 14,
                     color: Colors.black, // Visible text color
                   ),
@@ -450,7 +472,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
           const SizedBox(height: 16),
           Text(
             'No notifications',
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 16,
               color: const Color(0xFF98A2B3),
             ),
@@ -498,7 +520,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                       Expanded(
                         child: Text(
                           notification['title'],
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(fontFamily: 'Manrope', 
                             fontSize: 14,
                             fontWeight: notification['isRead'] ? FontWeight.w600 : FontWeight.w800,
                             color: const Color(0xFF1D2939),
@@ -519,7 +541,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                   const SizedBox(height: 4),
                   Text(
                     notification['message'],
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 13,
                       color: const Color(0xFF667085),
                     ),
@@ -529,7 +551,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                   const SizedBox(height: 4),
                   Text(
                     notification['time'],
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 12,
                       color: const Color(0xFF98A2B3),
                     ),
@@ -604,7 +626,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     children: [
                       Text(
                         notification['title'] ?? 'Notification',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(fontFamily: 'Manrope', 
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF1D2939),
@@ -612,7 +634,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                       ),
                       Text(
                         notification['time'] ?? 'Just now',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(fontFamily: 'Manrope', 
                           fontSize: 12,
                           color: const Color(0xFF98A2B3),
                         ),
@@ -629,7 +651,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
             const SizedBox(height: 24),
             Text(
               notification['message'] ?? '',
-              style: GoogleFonts.manrope(
+              style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 15,
                 color: const Color(0xFF475467),
                 height: 1.6,
@@ -660,7 +682,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
-                    textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                    textStyle: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -688,7 +710,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
         SnackBar(
           content: Text(
             'All notifications marked as read',
-            style: GoogleFonts.manrope(fontSize: 14, color: Colors.white),
+            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: Colors.white),
           ),
           backgroundColor: BoostDriveTheme.primaryColor,
           behavior: SnackBarBehavior.floating,

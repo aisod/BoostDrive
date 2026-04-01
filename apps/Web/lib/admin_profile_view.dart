@@ -128,7 +128,7 @@ class AdminProfileView extends ConsumerWidget {
                   child: profile.profileImg.isEmpty
                       ? Text(
                           getInitials(profile.fullName),
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(fontFamily: 'Manrope', 
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
                             color: BoostDriveTheme.primaryColor,
@@ -148,7 +148,7 @@ class AdminProfileView extends ConsumerWidget {
                       children: [
                         Text(
                           profile.fullName,
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(fontFamily: 'Manrope', 
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                             color: const Color(0xFF1D2939),
@@ -162,7 +162,7 @@ class AdminProfileView extends ConsumerWidget {
                     ),
                     Text(
                       'System Administrator • Super Admin',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(fontFamily: 'Manrope', 
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF667085),
@@ -195,7 +195,7 @@ class AdminProfileView extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(
                 'Personal Information',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF1D2939),
@@ -231,7 +231,7 @@ class AdminProfileView extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(
                 'System Authority & Security',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF1D2939),
@@ -266,7 +266,7 @@ class AdminProfileView extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(
                 'Recent Administrative Activity',
-                style: GoogleFonts.manrope(
+                style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF1D2939),
@@ -315,7 +315,7 @@ class AdminProfileView extends ConsumerWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 10,
               fontWeight: FontWeight.w900,
               color: color,
@@ -325,7 +325,7 @@ class AdminProfileView extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: const Color(0xFF1D2939),
@@ -348,9 +348,9 @@ class AdminProfileView extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF667085), fontWeight: FontWeight.w600)),
+                Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085), fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text(value, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF1D2939), fontWeight: FontWeight.w700)),
+                Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939), fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -366,7 +366,7 @@ class AdminProfileView extends ConsumerWidget {
         children: [
           Icon(icon, size: 20, color: const Color(0xFF667085)),
           const SizedBox(width: 12),
-          Text(label, style: GoogleFonts.manrope(fontSize: 14, color: const Color(0xFF667085), fontWeight: FontWeight.w600)),
+          Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF667085), fontWeight: FontWeight.w600)),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -376,7 +376,7 @@ class AdminProfileView extends ConsumerWidget {
             ),
             child: Text(
               value,
-              style: GoogleFonts.manrope(fontSize: 12, color: color, fontWeight: FontWeight.w800),
+              style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: color, fontWeight: FontWeight.w800),
             ),
           ),
         ],
@@ -395,8 +395,8 @@ class AdminProfileView extends ConsumerWidget {
             decoration: const BoxDecoration(color: BoostDriveTheme.primaryColor, shape: BoxShape.circle),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Text(title, style: GoogleFonts.manrope(fontSize: 13, color: const Color(0xFF344054)))),
-          Text(time, style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF98A2B3))),
+          Expanded(child: Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: const Color(0xFF344054)))),
+          Text(time, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF98A2B3))),
         ],
       ),
     );

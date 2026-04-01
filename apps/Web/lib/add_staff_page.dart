@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
@@ -54,7 +55,6 @@ class _AddStaffPageState extends ConsumerState<AddStaffPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Get Supabase keys to create a temporary stateless client
       bool isDotEnvInitialized = false;
       try {
         await dotenv.load(fileName: ".env");
@@ -68,23 +68,19 @@ class _AddStaffPageState extends ConsumerState<AddStaffPage> {
           ? (dotenv.maybeGet('SUPABASE_ANON_KEY') ?? WebUtils.getEnv('SUPABASE_ANON_KEY')) 
           : WebUtils.getEnv('SUPABASE_ANON_KEY');
 
-      if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-         throw Exception('Supabase configuration missing.');
-      }
+      if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) throw Exception('Supabase configuration missing.');
 
-      // We use a temporary client so it doesn't log the shop owner out. 
-      // AuthFlowType.implicit disables the PKCE flow requirement which causes the asyncStorage assertion error.
       final tempClient = SupabaseClient(
         supabaseUrl, 
         supabaseAnonKey,
-        authOptions: const AuthClientOptions(
-          authFlowType: AuthFlowType.implicit,
-        ),
+        authOptions: const AuthClientOptions(authFlowType: AuthFlowType.implicit),
       );
 
-      // 2. Sign up the new staff member
+      final email = _emailController.text.trim();
+      
+      // 2. Sign up the new staff member (dispatches OTP automatically)
       final signUpResponse = await tempClient.auth.signUp(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
         data: {
           'full_name': _nameController.text.trim(),
@@ -96,41 +92,195 @@ class _AddStaffPageState extends ConsumerState<AddStaffPage> {
       final newUserId = signUpResponse.user?.id;
       if (newUserId == null) throw Exception('Failed to create sub-account authentication record.');
 
-      // 3. Insert record into provider_staff table using the primary client
-      await Supabase.instance.client.from('provider_staff').insert({
-        'provider_id': user.id,
-        'staff_user_id': newUserId,
-        'full_name': _nameController.text.trim(),
-        'staff_role': _selectedRole,
-        'staff_internal_id': _staffIdController.text.trim().isEmpty ? null : _staffIdController.text.trim(),
-        'phone_number': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
-        'can_view_fleet': _canViewFleet,
-        'can_accept_sos': _canAcceptSos,
-        'can_view_finance': _canViewFinance,
-      });
-
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Staff member successfully added. An invitation has been sent to ${_emailController.text}'),
-          backgroundColor: Colors.green,
-        ),
-      );
       
-      Navigator.pop(context);
+      // 3. Pause & spawn OTP verification dialog. 
+      // The DB insert only occurs inside the dialog AFTER successful OTP verification.
+      await _showOtpDialog(
+        tempClient: tempClient,
+        email: email,
+        providerId: user.id,
+        newUserId: newUserId,
+      );
 
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error adding staff: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
+        SnackBar(content: Text('Error creating staff: $e'), backgroundColor: Colors.redAccent),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _showOtpDialog({
+    required SupabaseClient tempClient,
+    required String email,
+    required String providerId,
+    required String newUserId,
+  }) async {
+    final codeController = TextEditingController();
+    bool isVerifying = false;
+    bool isResending = false;
+    String? errorMessage;
+    int resendCooldown = 0;
+    
+    // Timer logic for resend cooldown
+    void startResendTimer(void Function(void Function()) setDialogState) {
+      setDialogState(() => resendCooldown = 60);
+      Stream.periodic(const Duration(seconds: 1), (i) => 60 - i - 1)
+          .take(60)
+          .listen((seconds) {
+            if (mounted) {
+              setDialogState(() => resendCooldown = seconds);
+            }
+          });
+    }
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF161A23),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
+              ),
+              title: const Text('Verify Email Address', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                   const Text(
+                    'A 6-digit verification code was just sent to the staff member\'s email. Please ask them for the code and enter it below to authorize this sub-account.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildTextField(
+                    controller: codeController,
+                    hintText: '6-Digit Verification Code',
+                    prefixIcon: Icons.dialpad,
+                  ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                  ],
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: (resendCooldown > 0 || isResending) ? null : () async {
+                      setDialogState(() {
+                        isResending = true;
+                        errorMessage = null;
+                      });
+                      try {
+                        await tempClient.auth.resend(
+                          type: OtpType.signup,
+                          email: email,
+                        );
+                        if (mounted) {
+                          startResendTimer(setDialogState);
+                          setDialogState(() => isResending = false);
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          setDialogState(() {
+                            isResending = false;
+                            errorMessage = 'Failed to resend code. Please try again later.';
+                          });
+                        }
+                      }
+                    },
+                    child: Text(
+                      resendCooldown > 0 
+                        ? 'Resend code in ${resendCooldown}s' 
+                        : (isResending ? 'Sending...' : 'Didn\'t receive a code? RESEND'),
+                      style: TextStyle(
+                        color: resendCooldown > 0 ? Colors.white24 : BoostDriveTheme.primaryColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isVerifying ? null : () => Navigator.pop(context),
+                  child: const Text('CANCEL', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+                ),
+                ElevatedButton(
+                  onPressed: isVerifying ? null : () async {
+                    if (codeController.text.trim().length < 6) {
+                      setDialogState(() => errorMessage = 'Please enter the full 6-digit code.');
+                      return;
+                    }
+                    
+                    setDialogState(() {
+                      isVerifying = true;
+                      errorMessage = null;
+                    });
+                    
+                    try {
+                      // Attempt verification
+                      await tempClient.auth.verifyOTP(
+                        type: OtpType.signup,
+                        email: email,
+                        token: codeController.text.trim(),
+                      );
+                      
+                      // Success! Verify clears. Insert staff record into the primary hub.
+                      await Supabase.instance.client.from('provider_staff').insert({
+                        'provider_id': providerId,
+                        'staff_user_id': newUserId,
+                        'full_name': _nameController.text.trim(),
+                        'staff_role': _selectedRole,
+                        'staff_internal_id': _staffIdController.text.trim().isEmpty ? null : _staffIdController.text.trim(),
+                        'phone_number': _phoneController.text.trim(),
+                        'email': email,
+                        'can_view_fleet': _canViewFleet,
+                        'can_accept_sos': _canAcceptSos,
+                        'can_view_finance': _canViewFinance,
+                      });
+                      
+                      // Force immediate refresh of the stream on the dashboard
+                      ref.invalidate(providerStaffProvider(providerId));
+                      
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Staff member successfully verified and added!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        Navigator.pop(context, true); // Pop AddStaffPage with success signal
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        setDialogState(() {
+                          isVerifying = false;
+                          errorMessage = 'Verification failed: Ensure the code is correct. ($e)';
+                        });
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BoostDriveTheme.primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: isVerifying
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('VERIFY & ADD', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
   }
 
   @override
@@ -146,7 +296,7 @@ class _AddStaffPageState extends ConsumerState<AddStaffPage> {
         ),
         title: Text(
           'Add New Team Member',
-          style: GoogleFonts.manrope(
+          style: TextStyle(fontFamily: 'Manrope', 
             fontWeight: FontWeight.w900,
             color: Colors.white,
             fontSize: 24,

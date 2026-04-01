@@ -9,7 +9,6 @@ class UserProfile {
   final bool isSeller;
   final DateTime createdAt;
   final DateTime lastActive;
-  final int loyaltyPoints;
   final bool isOnline;
   final String verificationStatus; // 'pending' | 'approved' | 'rejected' | 'unverified'
   final String status; // 'active' | 'suspended' | 'pending_verification' | 'frozen'
@@ -119,7 +118,6 @@ class UserProfile {
     this.isSeller = false,
     required this.createdAt,
     required this.lastActive,
-    this.loyaltyPoints = 0,
     this.isOnline = true,
     this.verificationStatus = 'pending',
     this.isAdmin = false,
@@ -195,7 +193,6 @@ class UserProfile {
       lastActive: data['last_active'] != null
           ? DateTime.tryParse(data['last_active'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      loyaltyPoints: data['loyalty_points'] ?? 0,
       isOnline: _parseBool(data['is_online'], true),
       verificationStatus: _str(data['verification_status'], 'pending'),
       status: _str(data['status'], 'active'),
@@ -285,7 +282,6 @@ class UserProfile {
       'is_seller': isSeller,
       'created_at': createdAt.toIso8601String(),
       'last_active': DateTime.now().toIso8601String(),
-      'loyalty_points': loyaltyPoints,
       'is_online': isOnline,
       'verification_status': verificationStatus,
       'is_admin': isAdmin,
@@ -340,7 +336,6 @@ class UserProfile {
     bool? isBuyer,
     bool? isSeller,
     DateTime? lastActive,
-    int? loyaltyPoints,
     bool? isOnline,
     String? verificationStatus,
     bool? isAdmin,
@@ -396,7 +391,6 @@ class UserProfile {
       isSeller: isSeller ?? this.isSeller,
       createdAt: createdAt,
       lastActive: lastActive ?? this.lastActive,
-      loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
       isOnline: isOnline ?? this.isOnline,
       verificationStatus: verificationStatus ?? this.verificationStatus,
       isAdmin: isAdmin ?? this.isAdmin,

@@ -12,8 +12,9 @@ import 'dart:html' as html;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Enable runtime fetching so the app can download Outfit font from Google servers
-  GoogleFonts.config.allowRuntimeFetching = true; 
+  // Disable runtime fetching on Flutter Web — fonts are loaded via CSS in index.html instead.
+  // This prevents the "Failed to fetch" font crash in the browser.
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   // Register the reCAPTCHA container once
   WebUtils.registerViewFactory('recaptcha-container', 'recaptcha-container');
@@ -58,11 +59,14 @@ void main() async {
     debugPrint("CRITICAL ERROR: Failed to initialize Supabase: $e");
   }
 
-  runApp(
-    const ProviderScope(
-      child: BoostDriveWebApp(),
-    ),
-  );
+  // Small microtask delay to ensure the engine is fully settled before rendering
+  Future.microtask(() {
+    runApp(
+      const ProviderScope(
+        child: BoostDriveWebApp(),
+      ),
+    );
+  });
 }
 
 class BoostDriveWebApp extends ConsumerWidget {

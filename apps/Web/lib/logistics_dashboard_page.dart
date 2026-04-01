@@ -120,7 +120,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
               children: [
                 Text(
                   'BaTLorriH Logistics: ${profile.fullName}',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: isMobile ? 28 : 40,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,

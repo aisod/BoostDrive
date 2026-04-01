@@ -7,6 +7,7 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'suspension_overlay.dart';
 import 'add_staff_page.dart';
 
@@ -477,7 +478,12 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             _buildSectionHeader('Staff & Fleet Management', Icons.people),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AddStaffPage()));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Add Staff feature coming soon!'),
+                    backgroundColor: BoostDriveTheme.primaryColor,
+                  ),
+                );
               },
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text('ADD STAFF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -563,6 +569,25 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(width: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.white54),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _showEditStaffDialog(staff),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _handleDeleteStaff(staff['staff_user_id']),
+                  ),
+                ],
               ),
             ],
           ),
@@ -697,7 +722,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                       Flexible(
                         child: Text(
                           'BoostDrive Pro: ${profile.fullName}',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(fontFamily: 'Manrope', 
                             fontSize: 40,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
@@ -747,8 +772,6 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             _buildNotificationBell(ref, uid),
             const SizedBox(width: 32),
             _buildStatBox('TOTAL EARNINGS', '\$${profile.totalEarnings.toStringAsFixed(2)}', 'LIFETIME'),
-            const SizedBox(width: 24),
-            _buildStatBox('LOYALTY POINTS', profile.loyaltyPoints.toString(), 'REDEEMABLE'),
           ],
         );
       },
@@ -871,9 +894,6 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
           ),
         ),
         const SizedBox(height: 40),
-        _buildSectionHeader('Parts Link™', Icons.shopping_cart),
-        const SizedBox(height: 24),
-        _buildPartsLinkPromo(),
       ],
     );
   }
@@ -1084,31 +1104,6 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
-  Widget _buildPartsLinkPromo() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [BoostDriveTheme.primaryColor.withValues(alpha: 0.2), Colors.transparent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('NEED PARTS?', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w900, fontSize: 12)),
-          const SizedBox(height: 12),
-          const Text('Instantly link parts from our marketplace directly to your service ticket.', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          ElevatedButton(onPressed: () {}, child: const Text('Generate Parts Link')),
-        ],
-      ),
-    );
-  }
-
   Widget _buildNotificationBell(WidgetRef ref, String uid) {
     final notificationsAsync = ref.watch(userNotificationsProvider(uid));
     
@@ -1157,7 +1152,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
           children: [
             const Icon(Icons.notifications, color: BoostDriveTheme.primaryColor),
             const SizedBox(width: 12),
-            Text('Notifications', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('Notifications', style: TextStyle(fontFamily: 'Manrope', color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
         content: SizedBox(
@@ -1192,6 +1187,214 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close', style: TextStyle(color: Colors.white60))),
         ],
       ),
+    );
+  }
+
+  Future<void> _handleDeleteStaff(String staffUserId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: BoostDriveTheme.surfaceDark,
+        title: const Text('Delete Staff Member?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'This will remove the employee from your fleet. This action cannot be undone.',
+          style: TextStyle(color: BoostDriveTheme.textDim),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('DELETE', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await Supabase.instance.client
+            .from('provider_staff')
+            .delete()
+            .eq('staff_user_id', staffUserId);
+        
+        // Force immediate refresh of the stream
+        final providerId = ref.read(currentUserProvider)?.id;
+        if (providerId != null) {
+          ref.invalidate(providerStaffProvider(providerId));
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Staff member removed successfully'), backgroundColor: Colors.green),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to remove: $e'), backgroundColor: Colors.redAccent),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showEditStaffDialog(Map<String, dynamic> staff) async {
+    final nameController = TextEditingController(text: staff['full_name']);
+    final staffIdController = TextEditingController(text: staff['staff_internal_id'] ?? '');
+    final phoneController = TextEditingController(text: staff['phone_number'] ?? '');
+    
+    String selectedRole = staff['staff_role'] ?? 'Mechanic';
+    final List<String> roleOptions = ['Mechanic', 'Lead Mechanic', 'Technician', 'Driver', 'Dispatcher'];
+
+    bool canViewFleet = staff['can_view_fleet'] ?? false;
+    bool canAcceptSos = staff['can_accept_sos'] ?? false;
+    bool canViewFinance = staff['can_view_finance'] ?? false;
+    
+    bool isSaving = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF161A23),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: const Text('Edit Staff Member', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('PROFILE DETAILS', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w800, fontSize: 12)),
+                    const SizedBox(height: 16),
+                    _buildEditField(nameController, 'Full Legal Name', Icons.person_outline),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: BoostDriveTheme.surfaceDark,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedRole,
+                          dropdownColor: BoostDriveTheme.surfaceDark,
+                          icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
+                          isExpanded: true,
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) setDialogState(() => selectedRole = newValue);
+                          },
+                          items: roleOptions.map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(value: value, child: Text(value));
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildEditField(staffIdController, 'Staff ID (Optional)', Icons.badge_outlined),
+                    const SizedBox(height: 12),
+                    _buildEditField(phoneController, 'Phone Number', Icons.phone_outlined),
+                    
+                    const SizedBox(height: 24),
+                    const Text('PERMISSIONS', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w800, fontSize: 12)),
+                    const SizedBox(height: 12),
+                    _buildEditToggleRow('View Fleet', canViewFleet, (val) => setDialogState(() => canViewFleet = val)),
+                    _buildEditToggleRow('Accept SOS', canAcceptSos, (val) => setDialogState(() => canAcceptSos = val)),
+                    _buildEditToggleRow('Financial Access', canViewFinance, (val) => setDialogState(() => canViewFinance = val)),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving ? null : () async {
+                    setDialogState(() => isSaving = true);
+                    try {
+                      await Supabase.instance.client
+                          .from('provider_staff')
+                          .update({
+                            'full_name': nameController.text.trim(),
+                            'staff_role': selectedRole,
+                            'staff_internal_id': staffIdController.text.trim().isEmpty ? null : staffIdController.text.trim(),
+                            'phone_number': phoneController.text.trim(),
+                            'can_view_fleet': canViewFleet,
+                            'can_accept_sos': canAcceptSos,
+                            'can_view_finance': canViewFinance,
+                          })
+                          .eq('staff_user_id', staff['staff_user_id']);
+                      
+                      // Force immediate refresh of the stream
+                      final providerId = ref.read(currentUserProvider)?.id;
+                      if (providerId != null) {
+                        ref.invalidate(providerStaffProvider(providerId));
+                      }
+                      
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Staff updated successfully'), backgroundColor: Colors.green),
+                        );
+                      }
+                    } catch (e) {
+                      setDialogState(() => isSaving = false);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.redAccent),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BoostDriveTheme.primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: isSaving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('SAVE CHANGES', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildEditField(TextEditingController controller, String hint, IconData icon) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
+        prefixIcon: Icon(icon, color: Colors.white54, size: 20),
+        filled: true,
+        fillColor: BoostDriveTheme.surfaceDark,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildEditToggleRow(String title, bool value, ValueChanged<bool> onChanged) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: BoostDriveTheme.primaryColor,
+        ),
+      ],
     );
   }
 }
