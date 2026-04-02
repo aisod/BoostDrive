@@ -90,7 +90,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   final _businessContactNumberController = TextEditingController();
 
   // Notification & Alert
-  bool _sosAlertsEnabled = true;
   List<String> _preferredCommunication = ['app_chat'];
 
   // Optimistic UI state
@@ -371,6 +370,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         phoneNumber: _phoneController.text.trim(),
         emergencyContactName: _emergencyNameController.text.trim(),
         emergencyContactPhone: _emergencyPhoneController.text.trim(),
+        sosAlertsEnabled: _sosAlertsEnabled,
+        remindersEnabled: _remindersEnabled,
+        dealsEnabled: _dealsEnabled,
       );
 
       // 2. Prepare role-specific updates (Providers/Sellers)
@@ -737,6 +739,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     final confirmPasswordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
     bool isLoading = false;
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
 
     await showDialog(
       context: context,
@@ -761,18 +766,24 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     controller: currentPasswordController,
                     label: 'Current Password',
                     hint: 'Enter current password',
+                    obscureText: obscureCurrent,
+                    onToggleVisibility: () => setDialogState(() => obscureCurrent = !obscureCurrent),
                   ),
                   const SizedBox(height: 16),
                    _buildPasswordTextField(
                     controller: newPasswordController,
                     label: 'New Password',
                     hint: 'Enter new password',
+                    obscureText: obscureNew,
+                    onToggleVisibility: () => setDialogState(() => obscureNew = !obscureNew),
                   ),
                   const SizedBox(height: 16),
                    _buildPasswordTextField(
                     controller: confirmPasswordController,
                     label: 'Confirm New Password',
                     hint: 'Re-enter new password',
+                    obscureText: obscureConfirm,
+                    onToggleVisibility: () => setDialogState(() => obscureConfirm = !obscureConfirm),
                     validator: (val) {
                       if (val != newPasswordController.text) return 'Passwords do not match';
                       return null;
@@ -841,22 +852,35 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     required TextEditingController controller,
     required String label,
     required String hint,
+    required bool obscureText,
+    required VoidCallback onToggleVisibility,
     String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
+        Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: Colors.black)),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
-          obscureText: true,
+          obscureText: obscureText,
+          style: const TextStyle(fontFamily: 'Manrope', fontSize: 14, color: Colors.black),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF98A2B3)),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            suffixIcon: IconButton(
+              icon: Icon(
+                obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                color: const Color(0xFF98A2B3),
+                size: 20,
+              ),
+              onPressed: onToggleVisibility,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
           validator: validator ?? (val) {
@@ -1318,72 +1342,131 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
+        // Header Banner (Fixed Height 180px)
         Container(
-          height: 160,
+          height: 180,
           width: double.infinity,
           decoration: const BoxDecoration(
             color: BoostDriveTheme.primaryColor,
           ),
         ),
+        
+        // Avatar and Identity horizontally aligned inside banner
         Positioned(
-          left: 0,
-          right: 0,
-          bottom: -50,
-          child: Center(
-            child: GestureDetector(
-              onTap: _isUploading ? null : _showProfilePhotoOptions,
-              child: Stack(
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
+          left: 32,
+          bottom: 16, 
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Avatar with thick white border
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _isUploading ? null : _showProfilePhotoOptions,
+                  child: Container(
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 4),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
-                    child: CircleAvatar(
-                      backgroundColor: const Color(0xFFF2F4F7),
-                      backgroundImage: _optimisticImage != null
-                          ? MemoryImage(_optimisticImage!) as ImageProvider
-                          : (profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null),
-                      child: (profile.profileImg.isEmpty && _optimisticImage == null)
-                          ? Text(
-                              getInitials(profile.fullName),
-                              style: TextStyle(fontFamily: 'Manrope', 
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                color: BoostDriveTheme.primaryColor,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: CircleAvatar(
+                            backgroundColor: const Color(0xFFF2F4F7),
+                            backgroundImage: _optimisticImage != null
+                                ? MemoryImage(_optimisticImage!) as ImageProvider
+                                : (profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null),
+                            child: (profile.profileImg.isEmpty && _optimisticImage == null)
+                                ? Text(
+                                    getInitials(profile.fullName),
+                                    style: TextStyle(fontFamily: 'Manrope', 
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800,
+                                      color: BoostDriveTheme.primaryColor,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        if (_isUploading)
+                          const Positioned.fill(
+                            child: ColoredBox(
+                              color: Colors.black26,
+                              child: Center(
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                               ),
-                            )
-                          : null,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: BoostDriveTheme.primaryColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.edit, color: Colors.white, size: 14),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              
+              const SizedBox(width: 32),
+              
+              // Identity Info Section (Moves to right of Avatar)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          profile.fullName,
+                          style: const TextStyle(fontFamily: 'Manrope', 
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(230),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'PLATFORM ADMINISTRATOR',
+                            style: TextStyle(fontFamily: 'Manrope', 
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: BoostDriveTheme.primaryColor,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  String _getMonth(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
   }
 
   // ignore: unused_element
@@ -3014,7 +3097,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           }
           _teamSizeController.text =
               profile.teamSize != null ? profile.teamSize.toString() : '';
-          _sosAlertsEnabled = profile.sosAlertsEnabled ?? true;
           final comm = profile.preferredCommunication ?? 'app_chat';
           _preferredCommunication = comm
               .split(',')
@@ -3074,28 +3156,25 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             child: Column(
               children: [
                 if (profile.role.toLowerCase() == 'admin') ...[
-                  _buildAdminBanner(profile),
-                  const SizedBox(height: 60),
+                  _buildAdminProfileView(profile, isWide),
                 ] else ...[
                   const SizedBox(height: 32),
                   _buildProfileHeader(profile),
-                ],
-                const SizedBox(height: 16),
-                if (profile.role.toLowerCase() == 'admin') _buildAdminIdentity(profile),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
-                  child: Column(
-                    children: [
-                      _buildPersonalInformation(showInlineEdit: true),
-                      if (!kIsWeb) ...[
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
+                    child: Column(
+                      children: [
+                        _buildPersonalInformation(showInlineEdit: true),
+                        if (!kIsWeb) ...[
+                          const SizedBox(height: 32),
+                          _buildSafetySection(),
+                        ],
                         const SizedBox(height: 32),
-                        _buildSafetySection(),
                       ],
-                      const SizedBox(height: 32),
-                    ],
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 40),
                 Text(
                   'BoostDrive Version 2.4.1 (1209)',
@@ -3927,42 +4006,408 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
-  Widget _buildAdminIdentity(UserProfile profile) {
+  Widget _buildAdminProfileView(UserProfile profile, bool isWide) {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              profile.fullName.isEmpty ? 'Set Name' : profile.fullName,
-              style: TextStyle(fontFamily: 'Manrope', 
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                color: const Color(0xFF1D2939),
+        _buildAdminBanner(profile),
+        const SizedBox(height: 100), // Increased top margin to prevent crowding header
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Pair Personal Identity and Account Security side-by-side with equal height
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: _buildAdminPersonalInfo(profile)),
+                    const SizedBox(width: 24),
+                    Expanded(child: _buildAdminSecurity(profile)),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.shield, color: BoostDriveTheme.primaryColor, size: 24),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            'SYSTEM ADMINISTRATOR',
-            style: TextStyle(fontFamily: 'Manrope', 
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: BoostDriveTheme.primaryColor,
-              letterSpacing: 1.0,
-            ),
+              const SizedBox(height: 32),
+              _buildAdminSupport(),
+              const SizedBox(height: 32),
+              _buildAdminStats(), // New Stats Section
+              const SizedBox(height: 48),
+              _buildAdminFooter(),
+              const SizedBox(height: 40),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAdminStats() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'PLATFORM OVERVIEW',
+          style: TextStyle(fontFamily: 'Manrope', 
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF667085),
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildAdminStatTile(
+                label: 'REVIEWS PENDING',
+                count: '12',
+                icon: Icons.rate_review_outlined,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: _buildAdminStatTile(
+                label: 'ACTIVE SOS',
+                count: '2',
+                icon: Icons.emergency_outlined,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdminStatTile({required String label, required String count, required IconData icon, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF2F4F7)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                count,
+                style: const TextStyle(fontFamily: 'Outfit', fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF1D2939)),
+              ),
+              Text(
+                label,
+                style: const TextStyle(fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF667085), letterSpacing: 0.5),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminPersonalInfo(UserProfile profile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'PERSONAL INFORMATION',
+              style: TextStyle(fontFamily: 'Manrope', 
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF667085),
+                letterSpacing: 0.5,
+              ),
+            ),
+            IconButton(
+              onPressed: () => setState(() => _isEditing = !_isEditing),
+              icon: Icon(_isEditing ? Icons.close : Icons.edit, size: 20, color: BoostDriveTheme.primaryColor),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(24), // Consistent Padding 24
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFF2F4F7)),
+          ),
+          child: Column(
+            children: [
+              _buildInfoTile(
+                icon: Icons.person_outline,
+                title: 'Full Name',
+                value: _nameController.text,
+                controller: _nameController,
+                isEditable: _isEditing,
+              ),
+              const Divider(height: 1, indent: 64),
+              _buildInfoTile(
+                icon: Icons.email_outlined,
+                title: 'Official Email',
+                value: _emailController.text,
+                controller: _emailController,
+                isEditable: _isEditing,
+              ),
+              const Divider(height: 1, indent: 64),
+              _buildInfoTile(
+                icon: Icons.phone_outlined,
+                title: 'Work Phone',
+                value: _phoneController.text,
+                controller: _phoneController,
+                isEditable: _isEditing,
+              ),
+              const Divider(height: 1, indent: 64),
+              _buildInfoTile(
+                icon: Icons.fingerprint,
+                title: 'Admin ID',
+                value: profile.uid.substring(0, 8).toUpperCase(),
+                isEditable: false,
+                isLast: true,
+              ),
+            ],
+          ),
+        ),
+        if (_isEditing) ...[
+          const SizedBox(height: 16),
+          _buildSaveAdminAction(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSaveAdminAction() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () {
+              setState(() => _isEditing = false);
+              ref.invalidate(userProfileProvider(ref.read(currentUserProvider)!.id));
+            },
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Cancel', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF344054))),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _isSaving ? null : _handleSaveProfile,
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(0, 48),
+              backgroundColor: BoostDriveTheme.primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _isSaving
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Text('Save Changes', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: Colors.white)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdminSecurity(UserProfile profile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ACCOUNT SECURITY',
+          style: TextStyle(fontFamily: 'Manrope', 
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF667085),
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(24), // Consistent Padding 24
+          decoration: BoxDecoration(
+            color: const Color(0xFF1D2939),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              _buildSecurityAction(
+                icon: Icons.lock_outline,
+                title: 'Change Password',
+                onTap: _showChangePasswordDialog,
+              ),
+              const SizedBox(height: 12),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.laptop_mac, color: BoostDriveTheme.primaryColor, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ASUS Laptop - Windhoek, Namibia - Active Now',
+                        style: TextStyle(fontFamily: 'Manrope', color: Colors.white70, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecurityAction({required IconData icon, required String title, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 22),
+          const SizedBox(width: 16),
+          Text(title, style: TextStyle(fontFamily: 'Manrope', color: Colors.white, fontWeight: FontWeight.w700)),
+          const Spacer(),
+          Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 14),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildAdminSupport() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'SUPPORT & UTILITY',
+          style: TextStyle(fontFamily: 'Manrope', 
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF667085),
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(24), // Consistent Padding 24
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFF2F4F7)),
+          ),
+          child: Column(
+            children: [
+              _buildSupportTile(icon: Icons.list_alt, title: 'View Audit Logs (Global)'),
+              const Divider(indent: 64),
+              _buildSupportTile(icon: Icons.help_outline, title: 'Help & Documentation'),
+              const Divider(indent: 64),
+              _buildSupportTile(icon: Icons.policy_outlined, title: 'Privacy Policy & Terms', isLast: true),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSupportTile({required IconData icon, required String title, bool isLast = false}) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(8)),
+        child: Icon(icon, color: const Color(0xFF667085), size: 20),
+      ),
+      title: Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
+      trailing: Icon(Icons.arrow_forward_ios, size: 14, color: const Color(0xFFD0D5DD)),
+      onTap: () {},
+      shape: isLast ? null : Border(bottom: BorderSide(color: Colors.transparent)),
+    );
+  }
+
+  Widget _buildAdminFooter() {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: _handleLogout,
+            icon: Icon(Icons.logout, color: Colors.white),
+            label: Text('LOG OUT', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1.0)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB42318),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'BoostDrive Admin v1.0.4',
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF98A2B3)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdminInfoTile({
+    required IconData icon,
+    required String title,
+    required String value,
+    TextEditingController? controller,
+    bool isEditable = false,
+    bool isLast = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          // Icon with centered vertical alignment and fixed 24px width
+          SizedBox(
+            width: 24,
+            child: Icon(icon, color: const Color(0xFF667085), size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
+                if (isEditable)
+                  TextField(
+                    controller: controller,
+                    style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)),
+                    decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                  )
+                else
+                  Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

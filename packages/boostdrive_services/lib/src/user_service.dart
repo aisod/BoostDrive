@@ -156,6 +156,15 @@ class UserService {
     }
   }
 
+  /// Returns the last 10 audit logs for administrative overview
+  Stream<List<Map<String, dynamic>>> getRecentAuditLogs() {
+    return _supabase
+        .from('audit_logs')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .limit(10);
+  }
+
   /// Captures IP and Device Info for Security Trail
   Future<Map<String, String>> _getAuditContext() async {
     String ip = 'Unknown';
@@ -502,3 +511,8 @@ final providerStaffProvider = StreamProvider.family<List<Map<String, dynamic>>, 
       .eq('provider_id', providerId)
       .order('created_at', ascending: false);
 });
+
+final recentAuditLogsStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(userServiceProvider).getRecentAuditLogs();
+});
+

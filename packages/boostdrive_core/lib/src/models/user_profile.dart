@@ -14,6 +14,7 @@ class UserProfile {
   final String status; // 'active' | 'suspended' | 'pending_verification' | 'frozen'
   final String? suspensionReason;
   final bool isAdmin;
+  final String pronouns;
 
   static const Map<String, String> brandOptions = {
     'toyota': 'Toyota', 'bmw': 'BMW', 'land_rover': 'Land Rover', 'ford': 'Ford',
@@ -161,6 +162,7 @@ class UserProfile {
     this.preferredCommunication = 'app_chat',
     this.status = 'active',
     this.suspensionReason,
+    this.pronouns = '',
   });
 
   /// Coerces any value to non-null String (avoids "null is not a subtype of String" from API).
@@ -236,6 +238,7 @@ class UserProfile {
       sosAlertsEnabled: _parseBool(data['sos_alerts_enabled'], true),
       preferredCommunication: _str(data['preferred_communication'] ?? data['preferredCommunication'], 'app_chat'),
       suspensionReason: data['suspension_reason'] as String?,
+      pronouns: _str(data['pronouns']),
     );
   }
 
@@ -322,8 +325,9 @@ class UserProfile {
       'gallery_urls': galleryUrls.isEmpty ? '' : galleryUrls.join(','),
       'team_size': teamSize,
       'sos_alerts_enabled': sosAlertsEnabled ?? true,
-      'preferred_communication': preferredCommunication ?? 'app_chat',
+      if (preferredCommunication != null) 'preferred_communication': preferredCommunication,
       if (suspensionReason != null) 'suspension_reason': suspensionReason,
+      'pronouns': pronouns,
     };
   }
 
@@ -379,6 +383,7 @@ class UserProfile {
     String? preferredCommunication,
     String? status,
     String? suspensionReason,
+    String? pronouns,
   }) {
     return UserProfile(
       uid: uid,
@@ -434,6 +439,7 @@ class UserProfile {
       preferredCommunication: preferredCommunication ?? this.preferredCommunication,
       status: status ?? this.status,
       suspensionReason: suspensionReason ?? this.suspensionReason,
+      pronouns: pronouns ?? this.pronouns,
     );
   }
 }

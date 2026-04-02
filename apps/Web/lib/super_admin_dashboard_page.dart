@@ -388,7 +388,12 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
                 ],
                 CircleAvatar(
                   backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                  child: const Icon(Icons.person, color: BoostDriveTheme.primaryColor),
+                  backgroundImage: (profile.profileImg != null && profile.profileImg!.isNotEmpty) 
+                      ? NetworkImage(profile.profileImg!) 
+                      : null,
+                  child: (profile.profileImg == null || profile.profileImg!.isEmpty)
+                      ? const Icon(Icons.person, color: BoostDriveTheme.primaryColor)
+                      : null,
                 ),
               ],
             ),

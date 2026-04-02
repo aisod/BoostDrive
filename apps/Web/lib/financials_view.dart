@@ -16,6 +16,48 @@ final financialDateRangeProvider = StateProvider<FinancialDateRange>(
 );
 
 // ---------------------------------------------------------------------------
+// State: Search & Filters
+// ---------------------------------------------------------------------------
+final financialsSearchQueryProvider = StateProvider<String>((ref) => '');
+final financialsStatusFilterProvider = StateProvider<String>((ref) => 'All');
+final financialsCategoryFilterProvider = StateProvider<String>((ref) => 'All Categories');
+
+String _humanizeCategory(String cat) {
+  if (cat.isEmpty) return 'Unknown';
+  return cat
+      .replaceAll('_', ' ')
+      .split(' ')
+      .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1) : w)
+      .join(' ');
+}
+
+final availableCategoriesProvider = Provider<List<String>>((ref) {
+  final profiles = ref.watch(allProfilesProvider).valueOrNull ?? [];
+  
+  // Use a comprehensive base set of industry-standard categories so they are 
+  // always available for filtering even if no providers are registered yet.
+  final Set<String> baseCategories = {
+    'Mechanic',
+    'Towing',
+    'Parts Supplier',
+    'Rental',
+    'Battery Specialist',
+    'Locksmith',
+    'Tire Shop',
+  };
+
+  final dynamicCats = profiles
+      .where((p) => p.primaryServiceCategory != null && p.primaryServiceCategory!.isNotEmpty)
+      .map((p) => _humanizeCategory(p.primaryServiceCategory!))
+      .toSet();
+
+  final allCats = baseCategories.union(dynamicCats).toList();
+  allCats.sort();
+  
+  return ['All Categories', ...allCats];
+});
+
+// ---------------------------------------------------------------------------
 // Derived providers
 // ---------------------------------------------------------------------------
 
@@ -51,41 +93,78 @@ final userRoleSplitProvider = Provider<Map<String, int>>((ref) {
   };
 });
 
-/// Service category revenue breakdown from profiles (using standard labor rate proxy)
+/// Service category revenue breakdown
+/// TODO: Wire this to `platform_transactions` for actual revenue grouping
 final serviceCategoryBreakdownProvider = Provider<Map<String, double>>((ref) {
-  final profiles = ref.watch(allProfilesProvider).valueOrNull ?? [];
-  final breakdown = <String, double>{};
-  for (final p in profiles) {
-    if (p.primaryServiceCategory != null &&
-        p.primaryServiceCategory!.isNotEmpty) {
-      final cat = p.primaryServiceCategory!;
-      final rate = p.standardLaborRate ?? 0.0;
-      breakdown[cat] = (breakdown[cat] ?? 0.0) + rate;
-    }
-  }
-  return breakdown;
+  // Returns empty map until platform_transactions logic is implemented
+  return <String, double>{};
 });
 
 /// Providers who have bank details set (eligible for payout)
 final payoutEligibleProvidersProvider = Provider<List<UserProfile>>((ref) {
   final profiles = ref.watch(allProfilesProvider).valueOrNull ?? [];
+  final searchQuery = ref.watch(financialsSearchQueryProvider).toLowerCase();
+  final statusFilter = ref.watch(financialsStatusFilterProvider);
+  final categoryFilter = ref.watch(financialsCategoryFilterProvider);
+
   return profiles
-      .where((p) =>
-          (p.role == 'mechanic' ||
+      .where((p) {
+        if (!(p.role == 'mechanic' ||
               p.role == 'towing' ||
               p.role == 'service_provider' ||
-              p.role == 'provider') &&
-          p.verificationStatus == 'approved' &&
-          p.bankName != null &&
-          p.bankName!.isNotEmpty)
+              p.role == 'provider')) return false;
+        if (p.verificationStatus != 'approved') return false;
+        if (p.bankName == null || p.bankName!.isNotEmpty == false) return false;
+
+        if (searchQuery.isNotEmpty) {
+          final matchName = p.fullName.toLowerCase().contains(searchQuery);
+          final matchEmail = p.email?.toLowerCase().contains(searchQuery) ?? false;
+          if (!matchName && !matchEmail) return false;
+        }
+
+        if (categoryFilter != 'All Categories' && _humanizeCategory(p.primaryServiceCategory ?? '') != categoryFilter) {
+          return false;
+        }
+
+        if (statusFilter != 'All') {
+          if (statusFilter == 'Ready' && p.totalEarnings < 1000) return false;
+          if (statusFilter == 'Pending' && p.totalEarnings >= 1000) return false;
+        }
+
+        return true;
+      })
       .toList();
 });
 
 /// Suspended accounts (potential fraud flag)
 final suspendedAccountsProvider = Provider<List<UserProfile>>((ref) {
   final profiles = ref.watch(allProfilesProvider).valueOrNull ?? [];
+  final searchQuery = ref.watch(financialsSearchQueryProvider).toLowerCase();
+  final statusFilter = ref.watch(financialsStatusFilterProvider);
+  final categoryFilter = ref.watch(financialsCategoryFilterProvider);
+
   return profiles
-      .where((p) => p.status == 'suspended' || p.status == 'banned')
+      .where((p) {
+        if (p.status != 'suspended' && p.status != 'banned') return false;
+
+        if (searchQuery.isNotEmpty) {
+          final matchName = p.fullName.toLowerCase().contains(searchQuery);
+          final matchEmail = p.email?.toLowerCase().contains(searchQuery) ?? false;
+          if (!matchName && !matchEmail) return false;
+        }
+
+        if (categoryFilter != 'All Categories' && _humanizeCategory(p.primaryServiceCategory ?? '') != categoryFilter) {
+          return false;
+        }
+
+        if (statusFilter != 'All') {
+           if (statusFilter == 'Suspended' && p.status != 'suspended') return false;
+           if (statusFilter == 'Banned' && p.status != 'banned') return false;
+           if (statusFilter == 'Ready' || statusFilter == 'Pending') return false;
+        }
+
+        return true;
+      })
       .toList();
 });
 
@@ -108,11 +187,13 @@ class FinancialsView extends ConsumerWidget {
         children: [
           _buildPageHeader(context, ref, dateRange),
           const SizedBox(height: 28),
+          _buildSearchAndFiltersRow(ref),
+          const SizedBox(height: 28),
           _buildKPIRow(ref),
           const SizedBox(height: 28),
-          _buildSecondaryRow(ref),
-          const SizedBox(height: 28),
           _buildBottomRow(ref),
+          const SizedBox(height: 28),
+          _buildSecondaryRow(ref),
           const SizedBox(height: 32),
         ],
       ),
@@ -728,6 +809,134 @@ class FinancialsView extends ConsumerWidget {
   }
 
   // -------------------------------------------------------------------------
+  // Search & Filters Row
+  // -------------------------------------------------------------------------
+  Widget _buildSearchAndFiltersRow(WidgetRef ref) {
+    final categories = ref.watch(availableCategoriesProvider);
+    final selectedCategory = ref.watch(financialsCategoryFilterProvider);
+    final selectedStatus = ref.watch(financialsStatusFilterProvider);
+    final statuses = ['All', 'Ready', 'Pending', 'Suspended', 'Banned'];
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Text('Provider Search & Filters',
+              style: TextStyle(fontFamily: 'Manrope', 
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black87)),
+          const SizedBox(height: 16),
+          LayoutBuilder(builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 600;
+            return Flex(
+              direction: isNarrow ? Axis.vertical : Axis.horizontal,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: isNarrow ? 0 : 2,
+                  child: TextField(
+                    onChanged: (val) => ref.read(financialsSearchQueryProvider.notifier).state = val,
+                    decoration: InputDecoration(
+                      hintText: 'Search providers by name or email...',
+                      hintStyle: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: Colors.black38),
+                      prefixIcon: const Icon(Icons.search_rounded, color: Colors.black38, size: 20),
+                      filled: true,
+                      fillColor: Colors.black.withValues(alpha: 0.02),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+                SizedBox(width: isNarrow ? 0 : 16, height: isNarrow ? 16 : 0),
+                Expanded(
+                  flex: isNarrow ? 0 : 1,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedCategory,
+                        isExpanded: true,
+                        icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.black54),
+                        style: TextStyle(fontFamily: 'Manrope', fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+                        dropdownColor: Colors.white, // Fix: Ensure menu background is white
+                        onChanged: (val) {
+                          if (val != null) {
+                            ref.read(financialsCategoryFilterProvider.notifier).state = val;
+                          }
+                        },
+                        items: categories.map((c) => DropdownMenuItem(
+                          value: c, 
+                          child: Text(
+                            c, 
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Color(0xFF1D2939), fontWeight: FontWeight.w600), // Fix: Ensure text visibility
+                          ),
+                        )).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+                 SizedBox(width: isNarrow ? 0 : 16, height: isNarrow ? 16 : 0),
+                Expanded(
+                  flex: isNarrow ? 0 : 1,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedStatus,
+                        isExpanded: true,
+                        icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.black54),
+                        style: TextStyle(fontFamily: 'Manrope', fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+                        dropdownColor: Colors.white, // Fix: Ensure menu background is white
+                        onChanged: (val) {
+                          if (val != null) {
+                            ref.read(financialsStatusFilterProvider.notifier).state = val;
+                          }
+                        },
+                        items: statuses.map((s) => DropdownMenuItem(
+                          value: s, 
+                          child: Text(
+                            s,
+                            style: const TextStyle(color: Color(0xFF1D2939), fontWeight: FontWeight.w600), // Fix: Ensure text visibility
+                          ),
+                        )).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
   // Row 3: Payout Queue + Suspended Accounts Watchlist
   // -------------------------------------------------------------------------
   Widget _buildBottomRow(WidgetRef ref) {
@@ -860,18 +1069,23 @@ class FinancialsView extends ConsumerWidget {
             }
             if (eligible.isEmpty) {
               return _buildEmptyState(
-                  'No providers ready for payout',
-                  'Providers need to be verified and have banking details set.',
+                  'No providers match',
+                  'Or providers need to be verified and have banking details set.',
                   Icons.account_balance_wallet_rounded);
             }
+            final isFiltering = ref.read(financialsSearchQueryProvider).isNotEmpty || 
+                                ref.read(financialsStatusFilterProvider) != 'All' || 
+                                ref.read(financialsCategoryFilterProvider) != 'All Categories';
+            final items = isFiltering ? eligible : eligible.take(8).toList();
+
             return ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: eligible.take(8).length,
+              itemCount: items.length,
               separatorBuilder: (_, __) =>
                   const Divider(height: 1, color: Color(0xFFF0F0F0)),
               itemBuilder: (context, i) {
-                final p = eligible[i];
+                final p = items[i];
                 final earnings = p.totalEarnings;
                 final readyForPayout = earnings >= 1000;
                 return Padding(
@@ -1103,8 +1317,13 @@ class FinancialsView extends ConsumerWidget {
                       'Suspended accounts will appear here for monitoring.',
                       Icons.check_circle_outline_rounded);
                 }
+                final isFiltering = ref.read(financialsSearchQueryProvider).isNotEmpty || 
+                                    ref.read(financialsStatusFilterProvider) != 'All' || 
+                                    ref.read(financialsCategoryFilterProvider) != 'All Categories';
+                final items = isFiltering ? suspended : suspended.take(6).toList();
+
                 return Column(
-                  children: suspended.take(6).map((a) {
+                  children: items.map((a) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Row(
@@ -1247,15 +1466,6 @@ class FinancialsView extends ConsumerWidget {
   String _formatNAD(double v) {
     final fmt = NumberFormat('#,##0', 'en_US');
     return 'N\$${fmt.format(v)}';
-  }
-
-  String _humanizeCategory(String cat) {
-    if (cat.isEmpty) return 'Unknown';
-    return cat
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1) : w)
-        .join(' ');
   }
 
   String _initials(String name) {
