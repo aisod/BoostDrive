@@ -84,6 +84,55 @@ class UserService {
     }
   }
 
+  /// Finalizes an admin account after email verification
+  Future<Map<String, dynamic>> finalizeAdminAccount({
+    required String targetUid,
+    required String adminUid,
+    required String email,
+    required String fullName,
+  }) async {
+    try {
+      final response = await _supabase.rpc('finalize_admin_account', params: {
+        'target_uid': targetUid,
+        'admin_id': adminUid,
+        'target_email': email.trim(),
+        'target_full_name': fullName.trim(),
+      });
+      return Map<String, dynamic>.from(response);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Requests a 6-digit verification code for a new admin invitation
+  Future<Map<String, dynamic>> requestAdminInviteOtp(String email) async {
+    try {
+      final response = await _supabase.rpc(
+        'request_admin_invite_otp',
+        params: {'target_email': email.toLowerCase().trim()},
+      );
+      return Map<String, dynamic>.from(response as Map);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Verifies the 6-digit invitation code
+  Future<bool> verifyAdminInviteOtp(String email, String code) async {
+    try {
+      final response = await _supabase.rpc(
+        'verify_admin_invite_otp',
+        params: {
+          'target_email': email.toLowerCase().trim(),
+          'input_otp': code.trim(),
+        },
+      );
+      return response as bool;
+    } catch (e) {
+      print('OTP Verification Error: $e');
+      return false;
+    }
+  }
 
   /// Gets the profile for the current user
   Future<UserProfile?> getProfile(String uid) async {

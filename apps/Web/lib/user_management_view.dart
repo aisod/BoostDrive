@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
@@ -6,6 +7,9 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'web_utils.dart';
 import 'admin_states.dart';
 
 class UserManagementView extends ConsumerStatefulWidget {
@@ -253,6 +257,19 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           ),
         ),
         const SizedBox(width: 16),
+        ElevatedButton.icon(
+          onPressed: _showAddAdminModal,
+          icon: const Icon(Icons.admin_panel_settings, size: 18),
+          label: const Text('NEW ADMIN', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: BoostDriveTheme.primaryColor,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        const SizedBox(width: 16),
         Container(
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -291,21 +308,6 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
             ),
           ),
         ),
-        if (selectedGroup == AdminUserGroup.admin) ...[
-          const SizedBox(width: 16),
-          ElevatedButton.icon(
-            onPressed: _showAddAdminModal,
-            icon: const Icon(Icons.admin_panel_settings, size: 18),
-            label: const Text('NEW ADMIN', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: BoostDriveTheme.primaryColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -1161,12 +1163,14 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     bool isProcessing = false;
+    bool obscurePassword = true;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
+          backgroundColor: const Color(0xFF1D2939), // Dark background for premium look
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           titlePadding: EdgeInsets.zero,
           contentPadding: EdgeInsets.zero,
@@ -1185,34 +1189,50 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                       children: [
                         Text('SECURE INVITE', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w900, color: BoostDriveTheme.primaryColor, letterSpacing: 1.2)),
                         const SizedBox(height: 4),
-                        Text('Create Admin Account', style: TextStyle(fontFamily: 'Manrope', fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black)),
+                        Text('Create Admin Account', style: TextStyle(fontFamily: 'Manrope', fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
                       ],
                     ),
-                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white70)),
                   ],
                 ),
                 const SizedBox(height: 24),
                 _buildFieldLabel('FULL NAME'),
                 TextField(
                   controller: nameController,
+                  cursorColor: Colors.black,
                   decoration: _adminInputDecoration('e.g. Karlos Brian'),
-                  style: const TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 14, color: Colors.black),
                 ),
                 const SizedBox(height: 20),
                 _buildFieldLabel('OFFICIAL EMAIL'),
                 TextField(
                   controller: emailController,
+                  cursorColor: Colors.black,
                   decoration: _adminInputDecoration('e.g. karlos@boostdrive.na'),
-                  style: const TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 14, color: Colors.black),
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 20),
                 _buildFieldLabel('TEMPORARY PASSWORD'),
                 TextField(
                   controller: passwordController,
-                  decoration: _adminInputDecoration('Choose a strong password'),
-                  obscureText: true,
-                  style: const TextStyle(fontSize: 14),
+                  cursorColor: Colors.black,
+                  decoration: _adminInputDecoration('Choose a strong password').copyWith(
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.black45,
+                          size: 20,
+                        ),
+                        onPressed: () => setModalState(() => obscurePassword = !obscurePassword),
+                        splashRadius: 20,
+                      ),
+                    ),
+                  ),
+                  obscureText: obscurePassword,
+                  style: const TextStyle(fontSize: 14, color: Colors.black),
                 ),
                 const SizedBox(height: 32),
                 SizedBox(
@@ -1235,18 +1255,38 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                             throw 'An account with this email already exists.';
                           }
                           
-                          final result = await ref.read(userServiceProvider).createAdminAccount(
-                            fullName: nameController.text,
-                            email: emailController.text,
+                          // 1. Initialize Temp Client for Session-less SignUp
+                          bool isDotEnvInitialized = false;
+                          try { await dotenv.load(fileName: ".env"); isDotEnvInitialized = true; } catch (_) {}
+                          
+                          final url = isDotEnvInitialized ? (dotenv.maybeGet('SUPABASE_URL') ?? WebUtils.getEnv('SUPABASE_URL')) : WebUtils.getEnv('SUPABASE_URL');
+                          final key = isDotEnvInitialized ? (dotenv.maybeGet('SUPABASE_ANON_KEY') ?? WebUtils.getEnv('SUPABASE_ANON_KEY')) : WebUtils.getEnv('SUPABASE_ANON_KEY');
+                          
+                          if (url.isEmpty || key.isEmpty) throw 'Configuration error: Missing Supabase URL/Key';
+                          
+                          final tempClient = SupabaseClient(url, key, authOptions: const AuthClientOptions(authFlowType: AuthFlowType.implicit));
+
+                          // 2. Trigger Native Supabase SignUp (dispatches automated email)
+                          final response = await tempClient.auth.signUp(
+                            email: emailController.text.trim(),
                             password: passwordController.text,
-                            adminUid: currentAdmin!.id,
+                            data: {
+                              'full_name': nameController.text.trim(),
+                              'role': 'admin',
+                            },
                           );
                           
-                          if (result['success'] == true) {
+                          if (response.user != null) {
                             Navigator.pop(context); // Close Form Modal
-                            _showInviteSuccessModal(nameController.text, emailController.text, passwordController.text);
+                            _showOtpVerificationModal(
+                              tempClient: tempClient,
+                              fullName: nameController.text.trim(),
+                              email: emailController.text.trim(),
+                              password: passwordController.text,
+                              newUserId: response.user!.id,
+                            );
                           } else {
-                            throw result['error'] ?? 'Unknown error occurred';
+                            throw 'Failed to initialize account invitation.';
                           }
                         } catch (e) {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
@@ -1273,24 +1313,177 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
     );
   }
 
+  void _showOtpVerificationModal({
+    required SupabaseClient tempClient,
+    required String fullName,
+    required String email,
+    required String password,
+    required String newUserId,
+  }) {
+    final otpController = TextEditingController();
+    int resendCooldown = 0;
+    bool isResending = false;
+    bool isProcessing = false;
+    
+    void startResendTimer(void Function(void Function()) setModalState) {
+      setModalState(() => resendCooldown = 60);
+      Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!context.mounted) {
+          timer.cancel();
+          return;
+        }
+        setModalState(() {
+          if (resendCooldown > 0) {
+            resendCooldown--;
+          } else {
+            timer.cancel();
+          }
+        });
+      });
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: const Color(0xFF1D2939),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          content: Container(
+            width: 400,
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.mark_email_read_outlined, color: BoostDriveTheme.primaryColor, size: 48),
+                const SizedBox(height: 24),
+                const Text('Verify Email', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+                const SizedBox(height: 12),
+                Text(
+                  'A verification code has been sent to $email using your standard email configuration. Please ask the new admin for the code.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                ),
+                const SizedBox(height: 32),
+                _buildFieldLabel('VERIFICATION CODE'),
+                TextField(
+                  controller: otpController,
+                  cursorColor: Colors.black,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 8, color: Colors.black),
+                  decoration: _adminInputDecoration('000000').copyWith(counterText: ""),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: isProcessing ? null : () async {
+                      if (otpController.text.length < 6) return;
+                      
+                      setModalState(() => isProcessing = true);
+                      try {
+                        // 1. Verify OTP using native Supabase Auth
+                        await tempClient.auth.verifyOTP(
+                          type: OtpType.signup,
+                          email: email,
+                          token: otpController.text.trim(),
+                        );
+
+                        // 2. Finalize & Elevate Account
+                        final currentAdmin = ref.read(currentUserProvider);
+                        final result = await ref.read(userServiceProvider).finalizeAdminAccount(
+                          targetUid: newUserId,
+                          adminUid: currentAdmin!.id,
+                          email: email,
+                          fullName: fullName,
+                        );
+                        
+                        if (result['success'] == true) {
+                          Navigator.pop(context); // Close OTP Modal
+                          _showInviteSuccessModal(fullName, email, password);
+                        } else {
+                          throw result['error'] ?? 'Failed to finalize account';
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                      } finally {
+                        setModalState(() => isProcessing = false);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: BoostDriveTheme.primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: isProcessing 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('VERIFY & FINALIZE', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, color: Colors.white)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: (resendCooldown > 0 || isResending) ? null : () async {
+                    setModalState(() => isResending = true);
+                    try {
+                      await tempClient.auth.resend(
+                        type: OtpType.signup,
+                        email: email,
+                      );
+                      startResendTimer(setModalState);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification code resent successfully!'), backgroundColor: Colors.green));
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to resend: $e'), backgroundColor: Colors.red));
+                    } finally {
+                      setModalState(() => isResending = false);
+                    }
+                  },
+                  child: Text(
+                    resendCooldown > 0 
+                      ? 'RESEND CODE IN ${resendCooldown}s' 
+                      : (isResending ? 'SENDING...' : 'RESEND CODE'),
+                    style: TextStyle(
+                      color: resendCooldown > 0 ? Colors.white24 : BoostDriveTheme.primaryColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: isProcessing ? null : () => Navigator.pop(context),
+                  child: const Text('CANCEL', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<bool?> _showSecurityConfirmation() {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1D2939),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
             const SizedBox(width: 12),
-            const Text('Security Confirmation', style: TextStyle(fontWeight: FontWeight.w800)),
+            const Text('Security Confirmation', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
           ],
         ),
         content: const Text(
           'Are you sure? This user will have full access to freeze accounts, view financials, and manage all providers across the Namibian automotive ecosystem.',
-          style: TextStyle(fontSize: 14, color: Colors.black87),
+          style: TextStyle(fontSize: 14, color: Colors.white70),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade700, foregroundColor: Colors.white, elevation: 0),
@@ -1317,6 +1510,7 @@ Please change your password immediately after your first login.
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1D2939),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: Container(
           width: 400,
@@ -1326,9 +1520,9 @@ Please change your password immediately after your first login.
             children: [
               const Icon(Icons.check_circle, color: Colors.green, size: 64),
               const SizedBox(height: 24),
-              const Text('Account Created!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const Text('Account Created!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
               const SizedBox(height: 12),
-              const Text('The admin account is ready. Copy the credentials below and share them securely.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.black54)),
+              const Text('The admin account is ready. Copy the credentials below and share them securely.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.white70)),
               const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -1341,16 +1535,33 @@ Please change your password immediately after your first login.
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        // In a real app, use Clipboard.setData
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invitation copied to clipboard!')));
                         Navigator.pop(context);
                       },
-                      icon: const Icon(Icons.copy, size: 18),
-                      label: const Text('COPY INVITE'),
-                      style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      icon: const Icon(Icons.copy, size: 18, color: Colors.white70),
+                      label: const Text('COPY INVITE', style: TextStyle(color: Colors.white70)),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: const BorderSide(color: Colors.white24),
+                      ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white10,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text('DISMISS', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                ),
               ),
             ],
           ),
@@ -1360,7 +1571,7 @@ Please change your password immediately after your first login.
   }
 
   Widget _buildFieldLabel(String label) {
-    return Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black45, letterSpacing: 0.5)));
+    return Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.white70, letterSpacing: 0.5)));
   }
 
   InputDecoration _adminInputDecoration(String hint) {
