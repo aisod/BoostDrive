@@ -370,9 +370,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         phoneNumber: _phoneController.text.trim(),
         emergencyContactName: _emergencyNameController.text.trim(),
         emergencyContactPhone: _emergencyPhoneController.text.trim(),
-        sosAlertsEnabled: _sosAlertsEnabled,
-        remindersEnabled: _remindersEnabled,
-        dealsEnabled: _dealsEnabled,
       );
 
       // 2. Prepare role-specific updates (Providers/Sellers)
@@ -410,7 +407,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           businessBio: _businessBioController.text.trim(),
           galleryUrls: _galleryUrls,
           teamSize: int.tryParse(_teamSizeController.text.trim()),
-          sosAlertsEnabled: _sosAlertsEnabled,
           preferredCommunication: _preferredCommunication.join(','),
         );
       }
@@ -1030,8 +1026,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           _buildFinancialPayout(),
           const SizedBox(height: 32),
           _buildTrustExperience(),
-          const SizedBox(height: 32),
-          _buildNotificationAlertSettings(),
           if (!kIsWeb) ...[
             const SizedBox(height: 32),
             _buildDocumentsVault(profile),
@@ -1222,7 +1216,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             _buildBusinessInformation(profile),
             const SizedBox(height: 32),
-            _buildNotificationAlertSettings(),
             const SizedBox(height: 32),
             _buildTrustExperience(),
             const SizedBox(height: 32),
@@ -2215,80 +2208,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
-
-  Widget _buildNotificationAlertSettings() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('Notification & Alert Settings', Icons.notifications_active_outlined),
-        const SizedBox(height: 12),
-        Text('Control how you receive emergency and customer requests.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(child: Text('Emergency (SOS) notifications', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
-            Switch(value: _sosAlertsEnabled, onChanged: _isProviderEditMode ? (v) => setState(() => _sosAlertsEnabled = v) : null, activeTrackColor: BoostDriveTheme.primaryColor),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _providerLabel('Preferred communication'),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildCommChip('app_chat', 'App Chat'),
-                  _buildCommChip('phone', 'Phone'),
-                  _buildCommChip('whatsapp', 'WhatsApp'),
-                ],
-              ),
-            ),
-            TextButton(
-              onPressed: !_isProviderEditMode
-                  ? null
-                  : () {
-                      setState(() {
-                        _preferredCommunication.clear();
-                      });
-                    },
-              child: const Text(
-                'Clear',
-                style: TextStyle(fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCommChip(String value, String label) {
-    final selected = _preferredCommunication.contains(value);
-    return GestureDetector(
-      onTap: () {
-        if (!_isProviderEditMode) return;
-        setState(() {
-          if (_preferredCommunication.contains(value)) {
-            _preferredCommunication.remove(value);
-          } else {
-            _preferredCommunication.add(value);
-          }
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFF2F4F7),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC), width: selected ? 2 : 1),
-        ),
-        child: Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF475467))),
-      ),
-    );
-  }
 
   Widget _buildDocumentsVault(UserProfile profile) {
     final hasDocs = _galleryUrls.any((url) => url.trim().isNotEmpty);
@@ -4027,11 +3946,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
-              _buildAdminSupport(),
-              const SizedBox(height: 32),
-              _buildAdminStats(), // New Stats Section
-              const SizedBox(height: 48),
               _buildAdminFooter(),
               const SizedBox(height: 40),
             ],
@@ -4041,81 +3955,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
-  Widget _buildAdminStats() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'PLATFORM OVERVIEW',
-          style: TextStyle(fontFamily: 'Manrope', 
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF667085),
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildAdminStatTile(
-                label: 'REVIEWS PENDING',
-                count: '12',
-                icon: Icons.rate_review_outlined,
-                color: Colors.orange,
-              ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: _buildAdminStatTile(
-                label: 'ACTIVE SOS',
-                count: '2',
-                icon: Icons.emergency_outlined,
-                color: Colors.red,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAdminStatTile({required String label, required String count, required IconData icon, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF2F4F7)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                count,
-                style: const TextStyle(fontFamily: 'Outfit', fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF1D2939)),
-              ),
-              Text(
-                label,
-                style: const TextStyle(fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF667085), letterSpacing: 0.5),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildAdminPersonalInfo(UserProfile profile) {
     return Column(
@@ -4171,13 +4010,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 value: _phoneController.text,
                 controller: _phoneController,
                 isEditable: _isEditing,
-              ),
-              const Divider(height: 1, indent: 64),
-              _buildInfoTile(
-                icon: Icons.fingerprint,
-                title: 'Admin ID',
-                value: profile.uid.substring(0, 8).toUpperCase(),
-                isEditable: false,
                 isLast: true,
               ),
             ],
@@ -4296,54 +4128,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
 
-  Widget _buildAdminSupport() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'SUPPORT & UTILITY',
-          style: TextStyle(fontFamily: 'Manrope', 
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF667085),
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(24), // Consistent Padding 24
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFF2F4F7)),
-          ),
-          child: Column(
-            children: [
-              _buildSupportTile(icon: Icons.list_alt, title: 'View Audit Logs (Global)'),
-              const Divider(indent: 64),
-              _buildSupportTile(icon: Icons.help_outline, title: 'Help & Documentation'),
-              const Divider(indent: 64),
-              _buildSupportTile(icon: Icons.policy_outlined, title: 'Privacy Policy & Terms', isLast: true),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSupportTile({required IconData icon, required String title, bool isLast = false}) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, color: const Color(0xFF667085), size: 20),
-      ),
-      title: Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
-      trailing: Icon(Icons.arrow_forward_ios, size: 14, color: const Color(0xFFD0D5DD)),
-      onTap: () {},
-      shape: isLast ? null : Border(bottom: BorderSide(color: Colors.transparent)),
-    );
-  }
 
   Widget _buildAdminFooter() {
     return Column(

@@ -378,10 +378,6 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
                         profile.fullName,
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
                       ),
-                      Text(
-                        'Staff ID: ${profile.uid.substring(0, 8).toUpperCase()}',
-                        style: const TextStyle(color: Colors.black54, fontSize: 12),
-                      ),
                     ],
                   ),
                   const SizedBox(width: 16),

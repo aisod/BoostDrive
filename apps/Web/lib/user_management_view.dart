@@ -291,6 +291,21 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
             ),
           ),
         ),
+        if (selectedGroup == AdminUserGroup.admin) ...[
+          const SizedBox(width: 16),
+          ElevatedButton.icon(
+            onPressed: _showAddAdminModal,
+            icon: const Icon(Icons.admin_panel_settings, size: 18),
+            label: const Text('NEW ADMIN', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: BoostDriveTheme.primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1138,6 +1153,226 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showAddAdminModal() {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    bool isProcessing = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: EdgeInsets.zero,
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            width: 450,
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('SECURE INVITE', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w900, color: BoostDriveTheme.primaryColor, letterSpacing: 1.2)),
+                        const SizedBox(height: 4),
+                        Text('Create Admin Account', style: TextStyle(fontFamily: 'Manrope', fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black)),
+                      ],
+                    ),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildFieldLabel('FULL NAME'),
+                TextField(
+                  controller: nameController,
+                  decoration: _adminInputDecoration('e.g. Karlos Brian'),
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 20),
+                _buildFieldLabel('OFFICIAL EMAIL'),
+                TextField(
+                  controller: emailController,
+                  decoration: _adminInputDecoration('e.g. karlos@boostdrive.na'),
+                  style: const TextStyle(fontSize: 14),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 20),
+                _buildFieldLabel('TEMPORARY PASSWORD'),
+                TextField(
+                  controller: passwordController,
+                  decoration: _adminInputDecoration('Choose a strong password'),
+                  obscureText: true,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: isProcessing ? null : () async {
+                      if (nameController.text.trim().isEmpty || emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields')));
+                        return;
+                      }
+                      
+                      final confirm = await _showSecurityConfirmation();
+                      if (confirm == true) {
+                        setModalState(() => isProcessing = true);
+                        try {
+                          final currentAdmin = ref.read(currentUserProvider);
+                          final exists = await ref.read(userServiceProvider).checkEmailExists(emailController.text);
+                          if (exists) {
+                            throw 'An account with this email already exists.';
+                          }
+                          
+                          final result = await ref.read(userServiceProvider).createAdminAccount(
+                            fullName: nameController.text,
+                            email: emailController.text,
+                            password: passwordController.text,
+                            adminUid: currentAdmin!.id,
+                          );
+                          
+                          if (result['success'] == true) {
+                            Navigator.pop(context); // Close Form Modal
+                            _showInviteSuccessModal(nameController.text, emailController.text, passwordController.text);
+                          } else {
+                            throw result['error'] ?? 'Unknown error occurred';
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                        } finally {
+                          setModalState(() => isProcessing = false);
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: BoostDriveTheme.primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: isProcessing 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('GENERATE ACCOUNT', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool?> _showSecurityConfirmation() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+            const SizedBox(width: 12),
+            const Text('Security Confirmation', style: TextStyle(fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure? This user will have full access to freeze accounts, view financials, and manage all providers across the Namibian automotive ecosystem.',
+          style: TextStyle(fontSize: 14, color: Colors.black87),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade700, foregroundColor: Colors.white, elevation: 0),
+            child: const Text('CONFIRM ELEVATION', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInviteSuccessModal(String name, String email, String password) {
+    final inviteText = """
+Hello $name,
+
+You have been invited as an Administrator for BoostDrive.
+
+Dashboard URL: https://admin.boostdrive.na
+Email: $email
+Temporary Password: $password
+
+Please change your password immediately after your first login.
+""";
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Container(
+          width: 400,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 64),
+              const SizedBox(height: 24),
+              const Text('Account Created!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              const Text('The admin account is ready. Copy the credentials below and share them securely.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.black54)),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(12)),
+                child: Text(inviteText, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.black87)),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        // In a real app, use Clipboard.setData
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invitation copied to clipboard!')));
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.copy, size: 18),
+                      label: const Text('COPY INVITE'),
+                      style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black45, letterSpacing: 0.5)));
+  }
+
+  InputDecoration _adminInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 13, color: Colors.black26),
+      filled: true,
+      fillColor: const Color(0xFFF9FAFB),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }

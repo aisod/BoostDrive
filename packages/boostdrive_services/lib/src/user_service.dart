@@ -46,6 +46,44 @@ class UserService {
     }
   }
 
+  /// Specialized check for Admin Invite system
+  Future<bool> checkEmailExists(String email) async {
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email.trim())
+          .maybeSingle();
+          
+      return response != null;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Creates a new admin account using a secure RPC call
+  Future<Map<String, dynamic>> createAdminAccount({
+    required String fullName,
+    required String email,
+    required String password,
+    required String adminUid,
+  }) async {
+    try {
+      // Direct call to Secure RPC
+      final response = await _supabase.rpc('create_admin_user', params: {
+        'email': email.trim(),
+        'password': password,
+        'full_name': fullName.trim(),
+        'admin_id': adminUid,
+      });
+      
+      return Map<String, dynamic>.from(response);
+    } catch (e) {
+      print('Error calling create_admin_user RPC: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
 
   /// Gets the profile for the current user
   Future<UserProfile?> getProfile(String uid) async {

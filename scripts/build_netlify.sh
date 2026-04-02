@@ -5,10 +5,10 @@ set -e
 
 # Configuration
 FLUTTER_SDK_DIR="$HOME/flutter"
-PATH="$PATH:$FLUTTER_SDK_DIR/bin"
+PATH="$FLUTTER_SDK_DIR/bin:$PATH"
 
 # 1. Install/Verify Flutter
-FLUTTER_VERSION=${FLUTTER_VERSION:-"3.10.7"}
+FLUTTER_VERSION=${FLUTTER_VERSION:-"3.24.5"}
 export FLUTTER_VERSION
 bash scripts/install_flutter.sh
 
