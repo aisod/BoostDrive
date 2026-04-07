@@ -957,7 +957,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        profile.fullName,
+                        profile.displayName,
                         style: TextStyle(fontFamily: 'Manrope', fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939)),
                       ),
                       if (_isProviderApproved(profile.verificationStatus)) ...[
@@ -1298,13 +1298,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                         : (profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null),
                     child: profile.profileImg.isEmpty && _optimisticImage == null
                         ? Text(
-                            getInitials(profile.fullName),
-                            style: TextStyle(fontFamily: 'Manrope', 
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: BoostDriveTheme.primaryColor,
-                            ),
-                          )
+                            getInitials(profile.displayName),
+                             style: TextStyle(fontFamily: 'Manrope', 
+                               fontSize: 28,
+                               fontWeight: FontWeight.w800,
+                               color: BoostDriveTheme.primaryColor,
+                             ),
+                           )
                         : null,
                   ),
                   if (_isProviderEditMode)
@@ -1380,7 +1380,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                                 : (profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null),
                             child: (profile.profileImg.isEmpty && _optimisticImage == null)
                                 ? Text(
-                                    getInitials(profile.fullName),
+                                    getInitials(profile.displayName),
                                     style: TextStyle(fontFamily: 'Manrope', 
                                       fontSize: 32,
                                       fontWeight: FontWeight.w800,
@@ -1417,7 +1417,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     Row(
                       children: [
                         Text(
-                          profile.fullName,
+                          profile.displayName,
                           style: const TextStyle(fontFamily: 'Manrope', 
                             fontSize: 24,
                             fontWeight: FontWeight.w800,

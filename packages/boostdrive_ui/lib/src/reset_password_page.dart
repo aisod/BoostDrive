@@ -44,8 +44,13 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               backgroundColor: Colors.green,
             ),
           );
+          // Pop FIRST so this page's route is cleanly removed before we fire
+          // the callback on the parent (_BoostLoginPageState). Doing it in the
+          // reverse order caused a race: the auth state change from
+          // updatePassword() could dispose _BoostLoginPageState mid-callback,
+          // producing "setState() called after dispose()".
+          Navigator.pop(context);
           widget.onPasswordChanged();
-          Navigator.pop(context); // Go back to login or dashboard
         }
       } catch (e) {
         if (mounted) {

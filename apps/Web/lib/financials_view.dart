@@ -94,10 +94,21 @@ final userRoleSplitProvider = Provider<Map<String, int>>((ref) {
 });
 
 /// Service category revenue breakdown
-/// TODO: Wire this to `platform_transactions` for actual revenue grouping
 final serviceCategoryBreakdownProvider = Provider<Map<String, double>>((ref) {
-  // Returns empty map until platform_transactions logic is implemented
-  return <String, double>{};
+  final profiles = ref.watch(allProfilesProvider).valueOrNull ?? [];
+  final breakdown = <String, double>{};
+
+  for (final p in profiles) {
+    if (p.isProvider && (p.totalEarnings > 0 || (p.primaryServiceCategory != null && p.primaryServiceCategory!.isNotEmpty))) {
+      final cat = p.primaryServiceCategory ?? 'Other';
+      breakdown[cat] = (breakdown[cat] ?? 0.0) + p.totalEarnings;
+    }
+  }
+
+  // Remove entries with 0 if we want to clean it up, or leave them. Let's filter out 0.0 for a cleaner chart.
+  breakdown.removeWhere((key, value) => value <= 0.0);
+
+  return breakdown;
 });
 
 /// Providers who have bank details set (eligible for payout)
@@ -1102,7 +1113,7 @@ class FinancialsView extends ConsumerWidget {
                               backgroundColor: BoostDriveTheme.primaryColor
                                   .withValues(alpha: 0.1),
                               child: Text(
-                                _initials(p.fullName),
+                                _initials(p.displayName),
                                 style: TextStyle(fontFamily: 'Manrope', 
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
@@ -1114,7 +1125,7 @@ class FinancialsView extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(p.fullName,
+                                  Text(p.displayName,
                                       style: TextStyle(fontFamily: 'Manrope', 
                                           fontSize: 13,
                                           fontWeight: FontWeight.w700,
@@ -1333,7 +1344,7 @@ class FinancialsView extends ConsumerWidget {
                             backgroundColor:
                                 Colors.redAccent.withValues(alpha: 0.1),
                             child: Text(
-                              _initials(a.fullName),
+                              _initials(a.displayName),
                               style: TextStyle(fontFamily: 'Manrope', 
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
@@ -1345,7 +1356,7 @@ class FinancialsView extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(a.fullName,
+                                Text(a.displayName,
                                     style: TextStyle(fontFamily: 'Manrope', 
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,

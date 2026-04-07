@@ -42,6 +42,15 @@ class PaymentService {
         .eq('customer_id', userId)
         .order('created_at', ascending: false);
   }
+
+  Future<List<Map<String, dynamic>>> getTransactionsFuture(String userId) async {
+    final response = await _supabase
+        .from('transactions')
+        .select()
+        .eq('customer_id', userId)
+        .order('created_at', ascending: false);
+    return (response as List).map((e) => e as Map<String, dynamic>).toList();
+  }
 }
 
 final paymentServiceProvider = Provider<PaymentService>((ref) {

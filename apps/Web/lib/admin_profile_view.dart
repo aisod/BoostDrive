@@ -305,7 +305,6 @@ class AdminProfileView extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           _statusRow(Icons.admin_panel_settings_outlined, 'Access Level', 'Full System Access', Colors.green),
-          _statusRow(Icons.lock_outline, '2FA Status', 'Active', Colors.green),
           _infoRow(Icons.history, 'Last Login', '${DateFormat('MMM d, HH:mm').format(profile.lastActive)} • Windhoek, NA'),
           Builder(
             builder: (context) {

@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'web_utils.dart';
 import 'admin_states.dart';
+import 'notification_hub_view.dart';
 
 class UserManagementView extends ConsumerStatefulWidget {
   const UserManagementView({super.key});
@@ -58,9 +59,6 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
       _searchController.text = '';
       _statusFilter = 'all';
       _roleFilter = 'all';
-      if (g == AdminUserGroup.provider) _roleFilter = 'all_providers';
-      if (g == AdminUserGroup.customerSeller) _roleFilter = 'all_member';
-      if (g == AdminUserGroup.admin) _roleFilter = 'all_admin';
     });
   }
 
@@ -98,7 +96,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                   if (!_matchesGroup(p, selectedGroup)) return false;
 
                   final q = _searchQuery.toLowerCase();
-                  final matchesSearch = p.fullName.toLowerCase().contains(q) ||
+                  final matchesSearch = p.displayName.toLowerCase().contains(q) ||
                       p.email.toLowerCase().contains(q) ||
                       p.phoneNumber.contains(_searchQuery);
 
@@ -109,15 +107,10 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                   }
 
                   final role = p.role.toLowerCase();
-                  switch (_roleFilter) {
-                    case 'all':
-                    case 'all_providers':
-                    case 'all_member':
-                    case 'all_admin':
-                      return true;
-                    default:
-                      return role == _roleFilter;
+                  if (_roleFilter != 'all' && role != _roleFilter) {
+                    return false;
                   }
+                  return true;
                 }).toList();
 
                 return _buildUserTable(filtered);
@@ -256,19 +249,21 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
             onChanged: (v) => setState(() => _searchQuery = v),
           ),
         ),
-        const SizedBox(width: 16),
-        ElevatedButton.icon(
-          onPressed: _showAddAdminModal,
-          icon: const Icon(Icons.admin_panel_settings, size: 18),
-          label: const Text('NEW ADMIN', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: BoostDriveTheme.primaryColor,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        if (selectedGroup == AdminUserGroup.admin) ...[
+          const SizedBox(width: 16),
+          ElevatedButton.icon(
+            onPressed: _showAddAdminModal,
+            icon: const Icon(Icons.admin_panel_settings, size: 18),
+            label: const Text('NEW ADMIN', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: BoostDriveTheme.primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
           ),
-        ),
+        ],
         const SizedBox(width: 16),
         Container(
           height: 40,
@@ -280,6 +275,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _statusFilter,
+              dropdownColor: Colors.white,
               style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600),
               items: const [
                 DropdownMenuItem(value: 'all', child: Text('All Status')),
@@ -302,6 +298,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _roleFilter,
+              dropdownColor: Colors.white,
               style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600),
               items: _roleItemsForGroup(selectedGroup),
               onChanged: (v) => setState(() => _roleFilter = v!),
@@ -315,7 +312,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
   List<DropdownMenuItem<String>> _roleItemsForGroup(AdminUserGroup selectedGroup) {
     if (selectedGroup == AdminUserGroup.provider) {
       return const [
-        DropdownMenuItem(value: 'all_providers', child: Text('All Providers')),
+        DropdownMenuItem(value: 'all', child: Text('All Providers')),
         DropdownMenuItem(value: 'service_provider', child: Text('Service Provider')),
         DropdownMenuItem(value: 'mechanic', child: Text('Mechanic')),
         DropdownMenuItem(value: 'towing', child: Text('Towing')),
@@ -325,13 +322,13 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
     }
     if (selectedGroup == AdminUserGroup.admin) {
       return const [
-        DropdownMenuItem(value: 'all_admin', child: Text('All Admins')),
+        DropdownMenuItem(value: 'all', child: Text('All Admins')),
         DropdownMenuItem(value: 'admin', child: Text('Admin')),
         DropdownMenuItem(value: 'super_admin', child: Text('Super Admin')),
       ];
     }
     return const [
-      DropdownMenuItem(value: 'all_member', child: Text('All Customers & Sellers')),
+      DropdownMenuItem(value: 'all', child: Text('All Customers & Sellers')),
       DropdownMenuItem(value: 'customer', child: Text('Customer')),
       DropdownMenuItem(value: 'seller', child: Text('Seller')),
     ];
@@ -401,7 +398,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                   backgroundImage: u.profileImg.isNotEmpty ? NetworkImage(u.profileImg) : null,
                   child: u.profileImg.isEmpty
                       ? Text(
-                          (u.fullName.isNotEmpty ? u.fullName[0] : '?').toUpperCase(),
+                          getInitials(u.displayName),
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor),
                         )
                       : null,
@@ -412,7 +409,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(u.fullName, style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black), overflow: TextOverflow.ellipsis),
+                      Text(u.displayName, style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black), overflow: TextOverflow.ellipsis),
                       Text(u.email.isEmpty ? u.phoneNumber : u.email, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black54), overflow: TextOverflow.ellipsis),
                     ],
                   ),
@@ -469,8 +466,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
         ),
-        const SizedBox(width: 12),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         IconButton(
           onPressed: () => _toggleSuspend(u),
           icon: Icon(
@@ -478,11 +474,11 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
             size: 18,
             color: u.status == 'suspended' || u.status == 'banned' ? Colors.green : Colors.red,
           ),
-          tooltip: u.status == 'suspended' || u.status == 'banned' ? 'Reactivate (Undo) Suspension' : 'Suspend Account',
+          tooltip: u.status == 'suspended' || u.status == 'banned' ? 'Reactivate Suspension' : 'Suspend Account',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         IconButton(
           onPressed: () => _viewAuditLogs(u),
           icon: const Icon(Icons.history, size: 18, color: Colors.blueGrey),
@@ -490,7 +486,15 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
+        IconButton(
+          onPressed: () => _viewTransactionHistory(u),
+          icon: const Icon(Icons.receipt_long_outlined, size: 18, color: Color(0xFF667085)),
+          tooltip: 'Transaction History',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+        ),
+        const SizedBox(width: 10),
         IconButton(
           onPressed: () => _showMoreActions(u),
           icon: const Icon(Icons.more_horiz, size: 18, color: Colors.black54),
@@ -539,7 +543,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                           spacing: 40,
                           runSpacing: 24,
                           children: [
-                            _buildDetailItem('Trading Name', u.tradingName?.isNotEmpty == true ? u.tradingName! : u.fullName),
+                            _buildDetailItem('Trading Name', u.tradingName?.isNotEmpty == true ? u.tradingName! : u.displayName),
                             _buildDetailItem('Registered Name', u.registeredBusinessName ?? 'N/A'),
                             _buildDetailItem('Business Type', u.businessType?.toUpperCase() ?? 'N/A'),
                             _buildDetailItem('Years in Operation', u.yearsInOperation?.toString() ?? 'N/A'),
@@ -997,7 +1001,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Security & Audit Trail', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
-                Text('Compliance record for ${u.fullName}', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black54)),
+                Text('Compliance record for ${u.displayName}', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black54)),
               ],
             ),
             const Spacer(),
@@ -1584,6 +1588,121 @@ Please change your password immediately after your first login.
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+  // ─── NOTIFICATION HUB ───────────────────────────────────────────────────────
+
+  void _showNotificationModal({String preselectedGroup = 'all_users'}) {
+    showDialog(
+      context: context,
+      builder: (context) => NotificationDialog(initialGroup: preselectedGroup),
+    );
+  }
+
+  Future<void> _viewTransactionHistory(UserProfile u) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
+    );
+
+    try {
+      final txns = await ref.read(paymentServiceProvider).getTransactionsFuture(u.uid);
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        _showTransactionHistoryDialog(u, txns);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to fetch transactions: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  void _showTransactionHistoryDialog(UserProfile u, List<Map<String, dynamic>> txns) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Transaction History', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
+                Text('Billing audit for ${u.displayName}', style: const TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.black54)),
+              ],
+            ),
+            const Spacer(),
+            IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 20)),
+          ],
+        ),
+        content: SizedBox(
+          width: 700,
+          height: 500,
+          child: txns.isEmpty 
+            ? const Center(child: Text('No transactions found for this account.', style: TextStyle(color: Colors.black38)))
+            : Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(8)),
+                    child: const Row(
+                      children: [
+                        Expanded(child: Text('ID/DATE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54))),
+                        Expanded(child: Text('METHOD', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54))),
+                        Expanded(child: Text('AMOUNT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54))),
+                        Text('STATUS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: txns.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final txn = txns[index];
+                        final isCompleted = txn['status']?.toString().toLowerCase() == 'completed';
+                        final date = txn['created_at'] != null ? DateTime.parse(txn['created_at']) : DateTime.now();
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          title: Text('#${txn['id']?.toString().substring(0, 10).toUpperCase()}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          subtitle: Text(DateFormat('MMM d, yyyy HH:mm').format(date), style: const TextStyle(fontSize: 11, color: Colors.black38)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('Payment System', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                                  Text(txn['payment_method']?.toString().toUpperCase() ?? 'N/A', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                                ],
+                              ),
+                              const SizedBox(width: 24),
+                              SizedBox(
+                                width: 80,
+                                child: Text('N\$${txn['amount']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black87), textAlign: TextAlign.right),
+                              ),
+                              const SizedBox(width: 24),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: (isCompleted ? Colors.green : Colors.orange).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                                child: Text(txn['status']?.toString().toUpperCase() ?? 'UNKNOWN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isCompleted ? Colors.green : Colors.orange)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+        ),
+      ),
     );
   }
 }

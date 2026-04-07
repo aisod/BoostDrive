@@ -110,7 +110,7 @@ class SuspensionOverlay extends StatelessWidget {
                   children: [
                     _buildRestrictionItem(Icons.visibility_off_outlined, 'Business hidden from search/maps'),
                     const SizedBox(height: 12),
-                    _buildRestrictionItem(Icons.block_flipped, 'SOS request broadcaster blocked'),
+                    _buildRestrictionItem(Icons.block_flipped, 'SOS request notifications blocked'),
                     const SizedBox(height: 12),
                     _buildRestrictionItem(Icons.money_off_rounded, 'Payouts and withdrawals frozen'),
                   ],

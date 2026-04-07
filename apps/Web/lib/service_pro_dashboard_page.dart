@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'suspension_overlay.dart';
 import 'add_staff_page.dart';
+import 'user_support_view.dart';
 
 class ServiceProDashboardPage extends ConsumerStatefulWidget {
   const ServiceProDashboardPage({super.key});
@@ -83,8 +84,8 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
   Widget _buildTopNavBar() {
     // Services requested (REQUESTS/SOS) only on mobile; hidden on web
     final sections = kIsWeb
-        ? ['HOME', 'ROUTES', 'FLEET', 'FINANCE']
-        : ['HOME', 'REQUESTS', 'ROUTES', 'FLEET', 'FINANCE'];
+        ? ['HOME', 'ROUTES', 'FLEET', 'FINANCE', 'SUPPORT']
+        : ['HOME', 'REQUESTS', 'ROUTES', 'FLEET', 'FINANCE', 'SUPPORT'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Container(
@@ -105,6 +106,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
               case 'ROUTES': icon = Icons.map_outlined; break;
               case 'FLEET': icon = Icons.local_shipping_outlined; break;
               case 'FINANCE': icon = Icons.account_balance_wallet_outlined; break;
+              case 'SUPPORT': icon = Icons.support_agent; break;
               default: icon = Icons.help_outline;
             }
             return InkWell(
@@ -150,6 +152,9 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     }
     if (_currentSection == 'FLEET') {
       return _buildFleetSection(userId);
+    }
+    if (_currentSection == 'SUPPORT') {
+      return UserSupportView(userId: userId, userType: 'service_provider');
     }
 
     if (_currentSection != 'HOME') {
@@ -721,7 +726,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                     children: [
                       Flexible(
                         child: Text(
-                          'BoostDrive Pro: ${profile.fullName}',
+                          'BoostDrive Pro: ${profile.displayName}',
                           style: TextStyle(fontFamily: 'Manrope', 
                             fontSize: 40,
                             fontWeight: FontWeight.w900,

@@ -7,6 +7,7 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:image_picker/image_picker.dart' as image_picker;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'user_support_view.dart';
 
 class CustomerDashboardPage extends ConsumerWidget {
   const CustomerDashboardPage({super.key});
@@ -286,6 +287,8 @@ class CustomerDashboardPage extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, _) => const Text('Error loading orders'),
         ),
+        const SizedBox(height: 64),
+        UserSupportView(userId: uid, userType: 'customer'),
       ],
     );
   }

@@ -165,6 +165,25 @@ class UserProfile {
     this.pronouns = '',
   });
 
+  /// True if the user has a provider-related role (service_provider, mechanic, towing, etc.)
+  bool get isProvider {
+    final cleaned = role.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
+    if (cleaned.isEmpty) return false;
+    if (cleaned == 'service_provider' || cleaned == 'service provider' || cleaned == 'service pro') return true;
+    return cleaned.contains('mechanic') ||
+        cleaned.contains('towing') ||
+        cleaned.contains('logistics') ||
+        cleaned.contains('rental');
+  }
+
+  /// Returns the business name for providers (if set), otherwise the personal full name.
+  String get displayName {
+    if (isProvider && (registeredBusinessName?.isNotEmpty ?? false)) {
+      return registeredBusinessName!;
+    }
+    return fullName;
+  }
+
   /// Coerces any value to non-null String (avoids "null is not a subtype of String" from API).
   static String _str(dynamic v, [String fallback = '']) {
     if (v == null) return fallback;
@@ -324,10 +343,14 @@ class UserProfile {
       'store_biography': storeBiography ?? '',
       'gallery_urls': galleryUrls.isEmpty ? '' : galleryUrls.join(','),
       'team_size': teamSize,
-      'sos_alerts_enabled': sosAlertsEnabled ?? true,
+      if (sosAlertsEnabled != null) 'sos_alerts_enabled': sosAlertsEnabled,
       if (preferredCommunication != null) 'preferred_communication': preferredCommunication,
       if (suspensionReason != null) 'suspension_reason': suspensionReason,
-      'pronouns': pronouns,
+      // NOTE: 'pronouns' is intentionally excluded from toMap() because the
+      // column does not yet exist in the Supabase 'profiles' table. When you
+      // are ready to enable it, run notifications_broadcast_setup.sql's
+      // companion migration (add_pronouns_column.sql) and restore the line:
+      //   'pronouns': pronouns,
     };
   }
 

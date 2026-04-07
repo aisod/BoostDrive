@@ -13,3 +13,6 @@ export 'src/vehicle_service.dart';
 export 'src/service_record_service.dart';
 export 'src/delivery_service.dart';
 export 'src/notification_service.dart';
+export 'src/notification_hub_service.dart';
+export 'src/analytics_service.dart';
+export 'src/support_service.dart';

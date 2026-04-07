@@ -111,7 +111,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                     ],
                   ),
                   Text(
-                    '${profile.registeredBusinessName ?? "My Store"} • Official Seller',
+                    '${profile.displayName} • Official Seller',
                     style: TextStyle(fontFamily: 'Manrope', 
                       color: BoostDriveTheme.textDim,
                       fontSize: 18,

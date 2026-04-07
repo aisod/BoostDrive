@@ -1269,8 +1269,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             final otherProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
             final otherProfile = otherProfileAsync.valueOrNull;
             final isOtherAdmin = otherProfile?.role == 'admin' || otherProfile?.role == 'super_admin';
-            final otherName = (otherProfile?.fullName != null && otherProfile!.fullName.isNotEmpty)
-                ? otherProfile.fullName
+            final otherName = (otherProfile != null)
+                ? otherProfile.displayName
                 : (isOtherAdmin ? 'BoostDrive Support' : 'User');
             
             final roleLabel = isOtherAdmin ? 'Support' : _otherPartyRoleLabel(userId, conv['buyer_id'] as String?, conv['seller_id'] as String?);
@@ -1446,8 +1446,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             final otherChatProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
             final otherChatProfile = otherChatProfileAsync.valueOrNull;
             final isOtherChatAdmin = otherChatProfile?.role == 'admin' || otherChatProfile?.role == 'super_admin';
-            final otherChatName = (otherChatProfile?.fullName != null && otherChatProfile!.fullName.isNotEmpty)
-                ? otherChatProfile.fullName
+            final otherChatName = (otherChatProfile != null)
+                ? otherChatProfile.displayName
                 : (isOtherChatAdmin ? 'BoostDrive Support' : 'User');
             
             final chatRoleLabel = isOtherChatAdmin ? 'Support' : _otherPartyRoleLabel(userId, conversation['buyer_id'] as String?, conversation['seller_id'] as String?);

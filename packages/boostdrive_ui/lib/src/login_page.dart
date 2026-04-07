@@ -289,14 +289,18 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
               MaterialPageRoute(
                 builder: (context) => ResetPasswordPage(
                   onPasswordChanged: () {
-                    // Reset UI state
-                    setState(() {
-                      _verificationId = null;
-                      _isPasswordReset = false;
-                      _errorText = null;
-                      _isLoading = false;
-                    });
-                    
+                    // Reset UI state — guard with mounted check since the
+                    // ResetPasswordPage callback fires after navigation and
+                    // this State may already be disposed at that point.
+                    if (mounted) {
+                      setState(() {
+                        _verificationId = null;
+                        _isPasswordReset = false;
+                        _errorText = null;
+                        _isLoading = false;
+                      });
+                    }
+
                     if (widget.onLoginSuccess != null) {
                       widget.onLoginSuccess!();
                     } else if (mounted && Navigator.canPop(context)) {

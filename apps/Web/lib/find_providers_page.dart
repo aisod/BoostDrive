@@ -118,7 +118,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
       final locationQuery = _locationController.text.toLowerCase().trim();
 
       return list.where((p) {
-        final name = (p.fullName ?? '').toLowerCase();
+        final name = (p.displayName ?? '').toLowerCase();
         final bio = (p.businessBio ?? '').toLowerCase();
         final brands = p.brandExpertise.map((k) => UserProfile.getSpecializationLabel(k ?? '').toLowerCase()).join(' ');
         final tags = p.serviceTags.map((k) => UserProfile.getSpecializationLabel(k ?? '').toLowerCase()).join(' ');
@@ -725,14 +725,17 @@ class _ToggleSegment extends StatelessWidget {
   }
 }
 
-class _ProviderCard extends StatelessWidget {
+class _ProviderCard extends ConsumerWidget {
   final UserProfile profile;
   final VoidCallback? onTap;
 
   const _ProviderCard({required this.profile, this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activePromos = ref.watch(activePromotionsProvider(profile.primaryServiceCategory)).value ?? [];
+    final hasPromo = activePromos.isNotEmpty;
+
     final roleLabel = _roleDisplayName(profile.role ?? 'mechanic');
     final isVerified = (profile.verificationStatus ?? '').toLowerCase() == 'approved';
     final businessContactNumber = (profile.businessContactNumber ?? '').trim();
@@ -759,7 +762,7 @@ class _ProviderCard extends StatelessWidget {
                 radius: 28,
                 backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                 child: Text(
-                  ((profile.fullName ?? '').isNotEmpty ? (profile.fullName ?? '')[0] : '?').toUpperCase(),
+                  getInitials(profile.displayName),
                   style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -772,7 +775,7 @@ class _ProviderCard extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            (profile.fullName ?? '').isNotEmpty ? (profile.fullName ?? '') : 'Provider',
+                            profile.displayName,
                             style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -783,6 +786,26 @@ class _ProviderCard extends StatelessWidget {
                         ] else ...[
                           const SizedBox(width: 8),
                           Icon(Icons.schedule, size: 18, color: BoostDriveTheme.textDim),
+                        ],
+                        if (hasPromo) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+                            ),
+                            child: const Text(
+                              'PROMO',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -1123,7 +1146,7 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
     final primaryContactNumber = hasBusinessContact ? businessContactNumber : personalContactNumber;
 
     return PremiumPageLayout(
-      title: (profile.fullName ?? '').isNotEmpty ? (profile.fullName ?? '') : 'Provider',
+      title: profile.displayName,
       leading: GestureDetector(
         onTap: () => Navigator.pop(context),
         child: const Icon(Icons.arrow_back, color: Colors.white),
@@ -1142,7 +1165,7 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
                       radius: 40,
                       backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
                       child: Text(
-                        ((profile.fullName ?? '').isNotEmpty ? (profile.fullName ?? '')[0] : '?').toUpperCase(),
+                        getInitials(profile.displayName),
                         style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 32, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -1152,7 +1175,7 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            (profile.fullName ?? '').isNotEmpty ? (profile.fullName ?? '') : 'Provider',
+                            profile.displayName,
                             style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),

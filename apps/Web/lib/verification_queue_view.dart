@@ -27,7 +27,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
   String? _selectedRoleFilter; // null = All
   final TextEditingController _searchController = TextEditingController();
 
-  static const List<String> _roleFilters = ['All', 'service_provider', 'mechanic', 'towing'];
+  static const List<String> _roleFilters = ['All', 'service_provider', 'mechanic', 'towing', 'rental', 'customer/seller'];
 
   @override
   void dispose() {
@@ -188,7 +188,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
         
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${provider.fullName} Approved', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+            SnackBar(content: Text('${provider.displayName} Approved', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
           );
         }
         setState(() {
@@ -231,7 +231,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${provider.fullName} Rejected', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+            SnackBar(content: Text('${provider.displayName} Rejected', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
           );
         }
         setState(() {
@@ -275,7 +275,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Are you sure you want to $action ${u.fullName}?',
+                'Are you sure you want to $action ${u.displayName}?',
                 style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: Colors.black87),
               ),
               if (!isSuspended) ...[
@@ -383,7 +383,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
             children: [
               const Icon(Icons.email_outlined, color: BoostDriveTheme.primaryColor),
               const SizedBox(width: 12),
-              Text('Message ${u.fullName}', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
+              Text('Message ${u.displayName}', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
             ],
           ),
           content: Column(
@@ -442,7 +442,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                     adminId: admin.id,
                     targetId: u.uid,
                     actionType: 'ADMIN_MESSAGE_SENT',
-                    notes: 'Admin messaged provider ${u.fullName} during verification',
+                    notes: 'Admin messaged provider ${u.displayName} during verification',
                     metadata: {'message_length': text.length, 'context': 'VERIFICATION_FLOW'},
                   );
 
@@ -450,7 +450,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Message sent to ${u.fullName}'),
+                        content: Text('Message sent to ${u.displayName}'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -493,6 +493,11 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
       list = list.where((p) {
         final role = p.role == null ? '' : p.role!.toLowerCase();
         final category = p.primaryServiceCategory == null ? '' : p.primaryServiceCategory!.toLowerCase();
+        
+        if (filter == 'customer/seller') {
+          return role == 'customer' || role == 'seller';
+        }
+        
         return role == filter || category == filter;
       }).toList();
     }
@@ -500,7 +505,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
     final q = _searchQuery.toLowerCase();
     if (q.isNotEmpty) {
       list = list.where((p) {
-        final name = p.fullName.toLowerCase();
+        final name = p.displayName.toLowerCase();
         final email = p.email.toLowerCase();
         final role = p.role == null ? '' : p.role!.toLowerCase();
         return name.contains(q) || email.contains(q) || role.contains(q);
@@ -707,7 +712,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
             adminId: admin.id,
             targetId: p.uid,
             actionType: 'PROFILE_REVIEW_OPEN',
-            notes: 'Admin started reviewing verification documents for ${p.fullName}',
+            notes: 'Admin started reviewing verification documents for ${p.displayName}',
             metadata: {'category': 'VERIFICATION_FLOW'}
           );
         }
@@ -728,14 +733,14 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                 children: [
                   CircleAvatar(
                     backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                    child: Text(getInitials(p.fullName), style: const TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
+                    child: Text(getInitials(p.displayName), style: const TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(p.fullName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87), overflow: TextOverflow.ellipsis),
+                        Text(p.displayName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87), overflow: TextOverflow.ellipsis),
                         Text(p.email, style: const TextStyle(color: Colors.black54, fontSize: 13), overflow: TextOverflow.ellipsis),
                       ],
                     ),

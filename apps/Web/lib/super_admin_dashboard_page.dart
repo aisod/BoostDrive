@@ -14,7 +14,10 @@ import 'package:boost_drive_web/service_monitoring_view.dart';
 import 'package:boost_drive_web/user_management_view.dart';
 import 'package:boost_drive_web/admin_profile_view.dart';
 import 'package:boost_drive_web/financials_view.dart';
+import 'package:boost_drive_web/notification_hub_view.dart';
 import 'admin_states.dart';
+import 'admin_widgets.dart';
+import 'support_center_view.dart';
 
 class SuperAdminDashboardPage extends ConsumerStatefulWidget {
   const SuperAdminDashboardPage({super.key});
@@ -131,7 +134,9 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
           _buildNavItem(2, Icons.map_outlined, 'Service Monitoring'),
           _buildNavItem(3, Icons.people_outline, 'User Management'),
           _buildNavItem(4, Icons.attach_money_outlined, 'Financials'),
-          _buildNavItem(5, Icons.account_circle_outlined, 'Admin Profile'),
+          _buildNavItem(5, Icons.notifications_outlined, 'Notification Hub'),
+          _buildNavItem(6, Icons.support_agent_outlined, 'Support Center'),
+          _buildNavItem(7, Icons.account_circle_outlined, 'Admin Profile'),
           const Spacer(),
           const Divider(height: 1, color: Colors.black12),
           _buildLogoutItem(context),
@@ -222,6 +227,12 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
         content = const FinancialsView();
         break;
       case 5:
+        content = NotificationHubView();
+        break;
+      case 6:
+        content = SupportCenterView();
+        break;
+      case 7:
         content = AdminProfileView(uid: uid);
         break;
       default:
@@ -290,6 +301,10 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
       case 4:
         return 'Financials';
       case 5:
+        return 'Notification Hub';
+      case 6:
+        return 'Support Center';
+      case 7:
         return 'Admin Profile';
       default:
         return 'Admin';
@@ -315,6 +330,8 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
             userCountAsync: userCountAsync,
             isNarrow: isNarrow,
           ),
+          const SizedBox(height: 32),
+          const DynamicPricingMonitor(),
           const SizedBox(height: 32),
           if (isNarrow) ...[
             _buildSystemHealthMap(pendingAsync: pendingAsync, sosAsync: sosAsync),
@@ -348,6 +365,8 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
                 ),
               ],
             ),
+          const SizedBox(height: 32),
+          const ProviderPerformanceLeaderboard(),
           const SizedBox(height: 32),
         ],
       ),
@@ -527,34 +546,10 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
             ),
-            child: Center(
-              child: sosAsync.when(
-                data: (requests) {
-                  final active = requests.length;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.public, color: BoostDriveTheme.primaryColor, size: 80),
-                      const SizedBox(height: 16),
-                      Text(
-                        active == 0 ? 'No active SOS clusters' : '$active active SOS cluster${active == 1 ? '' : 's'}',
-                        style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      pendingAsync.when(
-                        data: (pending) => Text(
-                          '${pending.length} pending verification${pending.length == 1 ? '' : 's'}',
-                          style: const TextStyle(color: Colors.black54),
-                        ),
-                        loading: () => const Text('Loading verifications…', style: TextStyle(color: Colors.black54)),
-                        error: (_, __) => const Text('Could not load verifications', style: TextStyle(color: Colors.black54)),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => const CircularProgressIndicator(),
-                error: (_, __) => const Text('Could not load SOS activity', style: TextStyle(color: Colors.black54)),
-              ),
+            child: sosAsync.when(
+              data: (requests) => NamibiaSOSRadar(activeRequests: requests),
+              loading: () => const CircularProgressIndicator(),
+              error: (_, __) => const Text('Could not load SOS activity', style: TextStyle(color: Colors.black54)),
             ),
           ),
         ],

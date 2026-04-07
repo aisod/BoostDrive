@@ -129,3 +129,8 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 final userNotificationsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
   return ref.watch(notificationServiceProvider).getNotifications(userId);
 });
+
+final activeDashboardAlertsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, userId) async {
+  final allNotifs = await ref.watch(userNotificationsProvider(userId).future);
+  return allNotifs.where((n) => n['type'] == 'dashboard_alert' && n['is_read'] == false).toList();
+});

@@ -39,11 +39,12 @@ class DeliveryService {
 
   Stream<double> getGlobalVolume() {
     return _supabase
-        .from('delivery_orders')
+        .from('transactions')
         .stream(primaryKey: ['id'])
+        .eq('status', 'completed')
         .map((data) => data.fold(0.0, (sum, item) {
-          final items = Map<String, dynamic>.from(item['items'] ?? {});
-          return sum + (items['price'] ?? 0.0);
+          final amt = double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0;
+          return sum + amt;
         }));
   }
 }

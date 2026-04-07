@@ -19,6 +19,7 @@ import 'package:boost_drive_web/seller_dashboard_page.dart';
 
 import 'package:boost_drive_web/provider_hub_page.dart';
 import 'package:boost_drive_web/find_providers_page.dart';
+import 'package:boost_drive_web/dashboard_alert_banner.dart';
 import 'suspension_overlay.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
@@ -302,7 +303,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                   ),
                   if (user != null)
                     ref.watch(userProfileProvider(user.id)).when(
-                      data: (profile) => Text(profile?.fullName ?? '', style: const TextStyle(color: Colors.white70)),
+                      data: (profile) => Text(profile?.displayName ?? '', style: const TextStyle(color: Colors.white70)),
                       loading: () => const SizedBox(),
                       error: (_, _) => const SizedBox(),
                     ),
@@ -559,7 +560,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                             backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
                             child: profile.profileImg.isEmpty
                                 ? Text(
-                                    getInitials(profile.fullName),
+                                    getInitials(profile.displayName),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -606,6 +607,21 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
       ),
       child: Column(
         children: [
+          // DASHBOARD ALERTS
+          if (user != null)
+            Consumer(
+              builder: (context, ref, _) {
+                final alertsAsync = ref.watch(activeDashboardAlertsProvider(user.id));
+                return alertsAsync.maybeWhen(
+                  data: (alerts) {
+                    if (alerts.isEmpty) return const SizedBox.shrink();
+                    // Just show the latest one to keep layout clean
+                    return DashboardAlertBanner(alert: alerts.first);
+                  },
+                  orElse: () => const SizedBox.shrink(),
+                );
+              },
+            ),
           HeroSection(
             title: 'Your Complete Automotive Ecosystem',
             subtitle: 'The premier destination to buy, sell, and rent vehicles in Namibia. Drive your dreams forward with BoostDrive.',
