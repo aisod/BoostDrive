@@ -20,6 +20,7 @@ import 'package:boost_drive_web/seller_dashboard_page.dart';
 import 'package:boost_drive_web/provider_hub_page.dart';
 import 'package:boost_drive_web/find_providers_page.dart';
 import 'package:boost_drive_web/dashboard_alert_banner.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'suspension_overlay.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
@@ -287,70 +288,207 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
         ),
       ),
       drawer: isMobile ? Drawer(
-        backgroundColor: BoostDriveTheme.backgroundDark,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.white10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                   const Text(
-                    'BoostDrive',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24),
-                  ),
-                  if (user != null)
-                    ref.watch(userProfileProvider(user.id)).when(
-                      data: (profile) => Text(profile?.displayName ?? '', style: const TextStyle(color: Colors.white70)),
-                      loading: () => const SizedBox(),
-                      error: (_, _) => const SizedBox(),
+        backgroundColor: Colors.white,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Orange brand header matching the desktop AppBar
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                decoration: BoxDecoration(color: BoostDriveTheme.primaryColor),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'BoostDrive',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 26, letterSpacing: -0.5),
                     ),
-                ],
+                    if (user != null)
+                      ref.watch(userProfileProvider(user.id)).when(
+                        data: (profile) => profile != null
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  profile.displayName,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                ),
+                              )
+                            : const SizedBox(),
+                        loading: () => const SizedBox(),
+                        error: (_, __) => const SizedBox(),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings_input_component, color: BoostDriveTheme.primaryColor),
-              title: const Text('PARTS', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
-            ),
-            if (user != null)
-              ListTile(
-                leading: const Icon(Icons.message_outlined, color: BoostDriveTheme.primaryColor),
-                title: const Text('MESSAGES', style: TextStyle(color: Colors.white)),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesPage())),
+              // Scrollable nav links
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  children: [
+                    // ── MARKETPLACE ──────────────────────────────────────
+                    _DrawerSectionHeader(label: 'Marketplace'),
+                    _DrawerNavTile(
+                      icon: Icons.settings_input_component_outlined,
+                      label: 'Buy Parts',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsMarketplacePage()));
+                      },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.car_rental_outlined,
+                      label: 'Rent a Car',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage()));
+                      },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.sell_outlined,
+                      label: 'Sell Your Vehicle',
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (user == null) {
+                          _showLoginDialog();
+                        } else {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage()));
+                        }
+                      },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.new_releases_outlined,
+                      label: 'New Arrivals',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const NewArrivalsPage()));
+                      },
+                    ),
+                    const Divider(height: 24, indent: 16, endIndent: 16),
+                    // ── COMPANY ──────────────────────────────────────────
+                    _DrawerSectionHeader(label: 'Company'),
+                    _DrawerNavTile(
+                      icon: Icons.info_outline,
+                      label: 'About Us',
+                      onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage())); },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.mail_outline,
+                      label: 'Contact',
+                      onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const ContactPage())); },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.work_outline,
+                      label: 'Careers',
+                      onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const CareersPage())); },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.handshake_outlined,
+                      label: 'Partner Program',
+                      onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerProgramPage())); },
+                    ),
+                    const Divider(height: 24, indent: 16, endIndent: 16),
+                    // ── SUPPORT ──────────────────────────────────────────
+                    _DrawerSectionHeader(label: 'Support'),
+                    _DrawerNavTile(
+                      icon: Icons.build_outlined,
+                      label: 'Find a Provider',
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (user == null) {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage()));
+                        } else {
+                          final profile = ref.read(userProfileProvider(user.id)).valueOrNull;
+                          final isProvider = profile != null && _isProviderRole(profile.role);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => isProvider ? ProviderHubPage() : const FindProvidersPage()));
+                        }
+                      },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.shield_outlined,
+                      label: 'Safety Center',
+                      onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyCenterPage())); },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.description_outlined,
+                      label: 'Terms of Service',
+                      onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsPage())); },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.privacy_tip_outlined,
+                      label: 'Privacy Policy',
+                      onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())); },
+                    ),
+                    _DrawerNavTile(
+                      icon: Icons.help_outline,
+                      label: 'FAQ',
+                      onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage())); },
+                    ),
+                    // ── AUTH-AWARE ITEMS ─────────────────────────────────
+                    if (user != null) ...[
+                      const Divider(height: 24, indent: 16, endIndent: 16),
+                      _DrawerNavTile(
+                        icon: Icons.message_outlined,
+                        label: 'Messages',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage()));
+                        },
+                      ),
+                      _DrawerNavTile(
+                        icon: Icons.dashboard_outlined,
+                        label: 'Dashboard',
+                        onTap: () {
+                          Navigator.pop(context);
+                          final profile = ref.read(userProfileProvider(user.id)).value;
+                          if (profile != null) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
+                          }
+                        },
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ListTile(
-              leading: const Icon(Icons.car_rental, color: BoostDriveTheme.primaryColor),
-              title: const Text('RENTALS', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RentalMarketplacePage())),
-            ),
-            if (user != null)
-              ListTile(
-                leading: const Icon(Icons.dashboard_outlined, color: BoostDriveTheme.primaryColor),
-                title: const Text('DASHBOARD', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  final profile = ref.read(userProfileProvider(user.id)).value;
-                  if (profile != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => _getDashboardForRole(profile.role)),
-                    );
-                  }
-                },
+              // Bottom Login / Logout button
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      if (user == null) {
+                        _showLoginDialog();
+                      } else {
+                        ref.read(authServiceProvider).signOut();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.red.shade50,
+                      foregroundColor: user == null ? Colors.white : Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: Icon(user == null ? Icons.login : Icons.logout, size: 18),
+                    label: Text(user == null ? 'Login' : 'Log Out', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
               ),
-          ],
+            ],
+          ),
         ),
       ) : null,
-      appBar: AppBar(
+      appBar: isMobile ? AppBar(
         backgroundColor: BoostDriveTheme.primaryColor,
-        titleSpacing: isMobile ? 0 : 24, // Use 0 on mobile to be next to drawer icon, 24 on desktop
+        elevation: 0,
+        titleSpacing: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Row(
+        title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'BoostDrive',
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -1, color: Colors.white),
             ),
@@ -362,244 +500,18 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (!isMobile) ...[
-                  if (user == null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          onEnter: (_) => _toggleMegaMenu('Marketplace'),
-                          child: TextButton(
-                            key: _marketplaceKey,
-                            onPressed: () => _toggleMegaMenu('Marketplace'),
-                            child: _NavTopLabel(text: 'Marketplace', isActive: _activeMegaSection == 'Marketplace'),
-                          ),
-                        ),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          onEnter: (_) => _toggleMegaMenu('Company'),
-                          child: TextButton(
-                            key: _companyKey,
-                            onPressed: () => _toggleMegaMenu('Company'),
-                            child: _NavTopLabel(text: 'Company', isActive: _activeMegaSection == 'Company'),
-                          ),
-                        ),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          onEnter: (_) => _toggleMegaMenu('Support'),
-                          child: TextButton(
-                            key: _supportKey,
-                            onPressed: () => _toggleMegaMenu('Support'),
-                            child: _NavTopLabel(text: 'Support', isActive: _activeMegaSection == 'Support'),
-                          ),
-                        ),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: TextButton(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FindProvidersPage())),
-                            child: const _NavTopLabel(text: 'Find a Provider', isActive: false),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                    )
-                  else
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: TextButton(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
-                            child: const Text('PARTS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-                          ),
-                        ),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: TextButton(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MessagesPage())),
-                            child: const Text('MESSAGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-                          ),
-                        ),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: TextButton(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RentalMarketplacePage())),
-                            child: const Text('RENTALS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)),
-                          ),
-                        ),
-                        // Show "Find a Provider" only for customers.
-                        // If the profile is still loading, hide it to prevent provider/account mismatch flicker.
-                        ref.watch(userProfileProvider(user.id)).when(
-                          data: (profile) {
-                            final role = profile?.role ?? '';
-                            final isProvider = profile != null && _isProviderRole(role);
-                            if (isProvider) return const SizedBox.shrink();
-                            return _buildFindProviderOrServicesRequestedNav(ref, context, user);
-                          },
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
-                        ),
-                        MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: TextButton(
-                              onPressed: () {
-                                final profile = ref.read(userProfileProvider(user.id)).value;
-                                if (profile != null) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => _getDashboardForRole(profile.role)),
-                                  );
-                                }
-                              },
-                              child: const Text('DASHBOARD', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
-                            ),
-                          ),
-                        const SizedBox(width: 12),
-                      ],
-                    ),
-                ],
-                const SizedBox(width: 8),
-                if (user != null) ...[
-                  SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: IconButton(
-                            onPressed: () {
-                              ref.invalidate(userNotificationsProvider(user.id));
-                              showDialog(
-                                context: context,
-                                builder: (context) => NotificationsOverlay(
-                                  onNotificationTap: (type, id) {
-                                    if (type == 'message') {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => MessagesPage(initialConversationId: id),
-                                        ),
-                                      );
-                                    } else if (type == 'delivery') {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ServiceTrackingPage(orderId: id),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-                              ).then((_) {
-                                ref.invalidate(userNotificationsProvider(user.id));
-                              });
-                            },
-                            icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
-                          ),
-                        ),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final unreadMsgs = ref.watch(unreadConversationsProvider(user.id)).maybeWhen(
-                              data: (ids) => ids.length,
-                              orElse: () => 0,
-                            );
-                            final unreadSys = ref.watch(userNotificationsProvider(user.id)).maybeWhen(
-                              data: (notifs) => notifs.where((n) => n['is_read'] == false).length,
-                              orElse: () => 0,
-                            );
-                            final total = unreadMsgs + unreadSys;
-                            if (total == 0) return const SizedBox.shrink();
-                            return Positioned(
-                              right: 4,
-                              top: 4,
-                              child: IgnorePointer(
-                                child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                                  child: Text(
-                                    total > 99 ? '99+' : '$total',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                if (user != null)
-                  ref.watch(userProfileProvider(user.id)).when(
-                    data: (profile) {
-                      if (profile == null) return const SizedBox();
-                      return GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
-                        ),
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Colors.white.withValues(alpha: 0.2),
-                            backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-                            child: profile.profileImg.isEmpty
-                                ? Text(
-                                    getInitials(profile.displayName),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox(width: 36, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))),
-                    error: (_, _) => const Icon(Icons.account_circle_outlined, color: Colors.white),
-                  ),
-                const SizedBox(width: 8),
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (user == null) {
-                        _showLoginDialog();
-                      } else {
-                        ref.read(authServiceProvider).signOut();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(100, 44),
-                      backgroundColor: user == null ? Colors.white : Colors.white10,
-                      foregroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.white,
-                    ),
-                    child: Text(user == null ? 'Login' : 'Log Out'),
+                  child: IconButton(
+                    icon: const Icon(Icons.login),
+                    onPressed: () => _showLoginDialog(),
                   ),
                 ),
-                const SizedBox(width: 40),
               ],
             ),
           ),
         ],
-      ),
+      ) : null,
       footer: AppFooter(
         onLinkTap: (section, title) {
           _handleNavLinkTap(title);
@@ -622,46 +534,13 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                 );
               },
             ),
-          HeroSection(
-            title: 'Your Complete Automotive Ecosystem',
-            subtitle: 'The premier destination to buy, sell, and rent vehicles in Namibia. Drive your dreams forward with BoostDrive.',
-            // backgroundImage removed to prevent overlap with PremiumPageLayout global background
-            actions: [
-              ElevatedButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(200, 64),
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                child: const Text('Shop Spare Parts'),
-              ),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(200, 64),
-                  side: const BorderSide(color: Colors.white30, width: 2),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Text('+ Add New Listing', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                onPressed: () async {
-                  if (user == null) {
-                    _showLoginDialog();
-                  } else {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => AddListingPage()),
-                    );
-                    
-                    if (result == true) {
-                      // Refresh the featured products
-                      setState(() {
-                        _featuredProductsFuture = _productService.getFeaturedProducts();
-                      });
-                    }
-                  }
-                },
-              ),
-            ],
+          EditorialHeroSection(
+            title: 'Your Premium Automotive Connection',
+            subtitle: 'Buy, sell, and rent vehicles with confidence across Namibia. Drive your dreams forward with BoostDrive.',
+            backgroundImage: 'assets/images/landing-page-image.jpg',
+            hashtag: "#DRIVEYOURDREAMS",
+            onReadMore: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AllListingsPage())),
+            navBar: _buildEditorialNavBar(user),
           ),
           const SizedBox(height: 40),
           Padding(
@@ -673,9 +552,9 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'All Listings',
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                        style: GoogleFonts.montserrat(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                       ),
                       const SizedBox(height: 8),
                       const Text(
@@ -710,15 +589,15 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'All Listings',
-                            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                            style: GoogleFonts.montserrat(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                           ),
-                          SizedBox(height: 8),
-                          Text(
+                          const SizedBox(height: 8),
+                          const Text(
                             'Hand-picked vehicles and parts from verified sellers.',
                             style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
                           ),
@@ -862,6 +741,123 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
   }
 
   /// Customer nav: "Find a Provider" → FindProvidersPage. Provider nav: "Services requested" → ProviderHubPage.
+  Widget _buildEditorialNavBar(dynamic user) {
+    return Row(
+      children: [
+        // Brand Logo in Nav
+        Padding(
+          padding: const EdgeInsets.only(left: 24),
+          child: Text(
+            "BoostDrive",
+            style: GoogleFonts.montserrat(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const Spacer(),
+        // Role-based Nav Structure
+        if (user == null) ...[
+          _EditorialNavLink(text: 'Marketplace', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
+          _EditorialNavLink(text: 'Buy parts', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsMarketplacePage())), isDark: true),
+          _EditorialNavLink(text: 'Rent a car', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
+          _EditorialNavLink(text: 'Sell your car', onTap: () => _showLoginDialog(), isDark: true),
+          _EditorialNavLink(text: 'New arrivals', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewArrivalsPage())), isDark: true),
+          _EditorialNavLink(text: 'Find a Provider', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage())), isDark: true),
+          _EditorialNavDropdown(
+            title: 'Company',
+            items: [
+              _DropdownItem(label: 'About us', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage()))),
+              _DropdownItem(label: 'Contact', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContactPage()))),
+              _DropdownItem(label: 'Careers', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CareersPage()))),
+              _DropdownItem(label: 'Partner program', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerProgramPage()))),
+            ],
+          ),
+          _EditorialNavDropdown(
+            title: 'Support',
+            items: [
+              _DropdownItem(label: 'Safety center', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyCenterPage()))),
+              _DropdownItem(label: 'Terms of service', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsPage()))),
+              _DropdownItem(label: 'Privacy policy', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
+              _DropdownItem(label: 'FAQ', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage()))),
+            ],
+          ),
+        ] else ...[
+          _EditorialNavLink(text: 'MARKETPLACE', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
+          _EditorialNavLink(text: 'MESSAGES', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage())), isDark: true),
+          
+          Consumer(
+            builder: (context, ref, _) {
+              final profile = ref.watch(userProfileProvider(user.id)).value;
+              if (profile == null) return const SizedBox.shrink();
+              
+              final isProvider = _isProviderRole(profile.role);
+              if (isProvider) {
+                return Row(
+                  children: [
+                    _EditorialNavLink(text: 'SERVICES REQUESTED', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProviderHubPage())), isDark: true),
+                    _EditorialNavLink(text: 'FINANCE', onTap: () {}, isDark: true),
+                  ],
+                );
+              } else {
+                return Row(
+                  children: [
+                    _EditorialNavLink(text: 'MY LISTINGS', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SellerDashboardPage())), isDark: true),
+                    _EditorialNavLink(text: 'RENTALS', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
+                  ],
+                );
+              }
+            },
+          ),
+          
+          _EditorialNavLink( 
+            text: 'DASHBOARD', 
+            onTap: () {
+               final profile = ref.read(userProfileProvider(user.id)).value;
+               if (profile != null) {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
+               }
+            }, 
+            isDark: true
+          ),
+        ],
+        
+        const Spacer(),
+        
+        // AUTH CTA (Pill Button)
+        Container(
+          margin: const EdgeInsets.only(left: 20),
+          child: ElevatedButton(
+            onPressed: () {
+              if (user == null) {
+                _showLoginDialog();
+              } else {
+                ref.read(authServiceProvider).signOut();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: BoostDriveTheme.primaryColor,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: const StadiumBorder(),
+              elevation: 0,
+            ),
+            child: Text(
+              user == null ? 'Login' : 'Log Out',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 40),
+      ],
+    );
+  }
+
   Widget _buildFindProviderOrServicesRequestedNav(WidgetRef ref, BuildContext context, dynamic user) {
     final profile = ref.watch(userProfileProvider(user.id)).value;
     final isProviderRole = profile != null && _isProviderRole(profile.role);
@@ -1026,3 +1022,210 @@ class _MegaMenuPanel extends StatelessWidget {
     );
   }
 }
+
+/// Section label (e.g. "Marketplace", "Company") in the mobile drawer.
+class _DrawerSectionHeader extends StatelessWidget {
+  final String label;
+  const _DrawerSectionHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
+          color: BoostDriveTheme.primaryColor,
+        ),
+      ),
+    );
+  }
+}
+
+/// Single nav row in the mobile drawer.
+class _DrawerNavTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _DrawerNavTile({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: BoostDriveTheme.primaryColor),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DropdownItem {
+  final String label;
+  final VoidCallback onTap;
+  _DropdownItem({required this.label, required this.onTap});
+}
+
+class _EditorialNavDropdown extends StatefulWidget {
+  final String title;
+  final List<_DropdownItem> items;
+
+  const _EditorialNavDropdown({
+    required this.title,
+    required this.items,
+  });
+
+  @override
+  State<_EditorialNavDropdown> createState() => _EditorialNavDropdownState();
+}
+
+class _EditorialNavDropdownState extends State<_EditorialNavDropdown> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isHovered = false;
+
+  void _showOverlay() {
+    if (_overlayEntry != null) return;
+
+    final overlay = Overlay.of(context);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        width: 220,
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          showWhenUnlinked: false,
+          offset: const Offset(0, 45),
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => _hideOverlay(),
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: widget.items.map((item) => _buildItem(item)).toList(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(_overlayEntry!);
+  }
+
+  void _hideOverlay() {
+    setState(() => _isHovered = false);
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!_isHovered) {
+        _overlayEntry?.remove();
+        _overlayEntry = null;
+      }
+    });
+  }
+
+  Widget _buildItem(_DropdownItem item) {
+    return InkWell(
+      onTap: () {
+        _overlayEntry?.remove();
+        _overlayEntry = null;
+        item.onTap();
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Text(
+          item.label,
+          style: GoogleFonts.montserrat(
+            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: MouseRegion(
+        onEnter: (_) {
+          setState(() => _isHovered = true);
+          _showOverlay();
+        },
+        onExit: (_) => _hideOverlay(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.title,
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorialNavLink extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+  final bool isDark;
+  
+  const _EditorialNavLink({required this.text, required this.onTap, this.isDark = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Text(
+            text,
+            style: GoogleFonts.montserrat(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

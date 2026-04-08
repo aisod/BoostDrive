@@ -738,9 +738,14 @@ class _ProviderCard extends ConsumerWidget {
 
     final roleLabel = _roleDisplayName(profile.role ?? 'mechanic');
     final isVerified = (profile.verificationStatus ?? '').toLowerCase() == 'approved';
-    final businessContactNumber = (profile.businessContactNumber ?? '').trim();
+    final businessContactString = (profile.businessContactNumber ?? '').trim();
+    final List<String> businessNumbers = businessContactString
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     final personalContactNumber = (profile.phoneNumber ?? '').trim();
-    final hasBusinessContact = businessContactNumber.isNotEmpty;
+    final hasBusinessContact = businessNumbers.isNotEmpty;
     final hasPersonalContact = personalContactNumber.isNotEmpty;
 
     return MouseRegion(
@@ -887,67 +892,46 @@ class _ProviderCard extends ConsumerWidget {
                     if (hasBusinessContact || hasPersonalContact) ...[
                       const SizedBox(height: 8),
                       if (hasBusinessContact)
-                        GestureDetector(
-                          onTap: () => _launchTel(context, businessContactNumber),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.business_outlined, size: 14, color: BoostDriveTheme.primaryColor),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: SelectableText(
-                                  'Business: $businessContactNumber',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: BoostDriveTheme.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                    decoration: TextDecoration.underline,
+                        ...businessNumbers.map((number) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: GestureDetector(
+                            onTap: () => _launchTel(context, number),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.business_outlined, size: 14, color: BoostDriveTheme.primaryColor),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: SelectableText(
+                                    'Business: $number',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: BoostDriveTheme.primaryColor,
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration.underline,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      if (hasBusinessContact && hasPersonalContact) const SizedBox(height: 4),
-                      if (hasPersonalContact)
-                        GestureDetector(
-                          onTap: () => _launchTel(context, personalContactNumber),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.phone_android_outlined, size: 14, color: BoostDriveTheme.primaryColor),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: SelectableText(
-                                  'Personal: $personalContactNumber',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: BoostDriveTheme.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        )),
                     ],
                   ],
                 ),
               ),
-              if (hasBusinessContact || hasPersonalContact)
+              if (hasBusinessContact)
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => _showContactNumbersDialog(
                     context,
-                    businessNumber: hasBusinessContact ? businessContactNumber : null,
-                    personalNumber: hasPersonalContact ? personalContactNumber : null,
+                    businessNumbers: businessNumbers,
                   ),
                   child: const Padding(
                     padding: EdgeInsets.all(8),
                     child: Icon(Icons.phone_outlined, color: BoostDriveTheme.primaryColor, size: 24),
                   ),
-                ), // GestureDetector
+                ),
             ],
           ),
         ),
@@ -975,16 +959,12 @@ class _ProviderCard extends ConsumerWidget {
   /// On web, show both business and personal contact numbers in one dialog.
   static Future<void> _showContactNumbersDialog(
     BuildContext context, {
-    String? businessNumber,
-    String? personalNumber,
+    List<String> businessNumbers = const [],
   }) async {
     if (!kIsWeb || !context.mounted) return;
 
-    final business = (businessNumber ?? '').trim();
-    final personal = (personalNumber ?? '').trim();
-    final hasBusiness = business.isNotEmpty;
-    final hasPersonal = personal.isNotEmpty;
-    if (!hasBusiness && !hasPersonal) return;
+    final hasBusiness = businessNumbers.isNotEmpty;
+    if (!hasBusiness) return;
 
     await showDialog<void>(
       context: context,
@@ -996,18 +976,14 @@ class _ProviderCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (hasBusiness)
-                _contactNumberRow(
-                  context: ctx,
-                  label: 'Business',
-                  value: business,
-                ),
-              if (hasBusiness && hasPersonal) const SizedBox(height: 10),
-              if (hasPersonal)
-                _contactNumberRow(
-                  context: ctx,
-                  label: 'Personal',
-                  value: personal,
-                ),
+                ...businessNumbers.map((number) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _contactNumberRow(
+                    context: ctx,
+                    label: 'Business',
+                    value: number,
+                  ),
+                )),
             ],
           ),
           actions: [
@@ -1139,11 +1115,16 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
     final profile = widget.profile;
     final roleLabel = _ProviderCard._roleDisplayName(profile.role ?? 'mechanic');
     final isVerified = (profile.verificationStatus ?? '').toLowerCase() == 'approved';
-    final businessContactNumber = (profile.businessContactNumber ?? '').trim();
+    final businessContactString = (profile.businessContactNumber ?? '').trim();
+    final List<String> businessNumbers = businessContactString
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     final personalContactNumber = (profile.phoneNumber ?? '').trim();
-    final hasBusinessContact = businessContactNumber.isNotEmpty;
+    final hasBusinessContact = businessNumbers.isNotEmpty;
     final hasPersonalContact = personalContactNumber.isNotEmpty;
-    final primaryContactNumber = hasBusinessContact ? businessContactNumber : personalContactNumber;
+    final primaryContactNumber = hasBusinessContact ? businessNumbers.first : personalContactNumber;
 
     return PremiumPageLayout(
       title: profile.displayName,
@@ -1388,63 +1369,42 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
                     icon: Icons.contact_phone_outlined,
                   ),
                   if (hasBusinessContact)
-                    GestureDetector(
-                      onTap: () => _ProviderCard._launchTel(context, businessContactNumber),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.business_outlined, color: BoostDriveTheme.primaryColor, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: SelectableText(
-                              'Business: $businessContactNumber',
-                              style: const TextStyle(
-                                color: BoostDriveTheme.primaryColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                decoration: TextDecoration.underline,
+                    ...businessNumbers.map((number) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GestureDetector(
+                        onTap: () => _ProviderCard._launchTel(context, number),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.business_outlined, color: BoostDriveTheme.primaryColor, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: SelectableText(
+                                'Business: $number',
+                                style: const TextStyle(
+                                  color: BoostDriveTheme.primaryColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  decoration: TextDecoration.underline,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  if (hasBusinessContact && hasPersonalContact) const SizedBox(height: 8),
-                  if (hasPersonalContact)
-                    GestureDetector(
-                      onTap: () => _ProviderCard._launchTel(context, personalContactNumber),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.phone_android_outlined, color: BoostDriveTheme.primaryColor, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: SelectableText(
-                              'Personal: $personalContactNumber',
-                              style: const TextStyle(
-                                color: BoostDriveTheme.primaryColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    )),
                 ],
                 const SizedBox(height: 32),
                 Row(
                   children: [
-                    if (hasBusinessContact || hasPersonalContact)
+                    if (hasBusinessContact)
                       Expanded(
                         child: MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
                             onTap: () => _ProviderCard._showContactNumbersDialog(
                               context,
-                              businessNumber: hasBusinessContact ? businessContactNumber : null,
-                              personalNumber: hasPersonalContact ? personalContactNumber : null,
+                              businessNumbers: businessNumbers,
                             ),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 14),

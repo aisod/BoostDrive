@@ -1,0 +1,11 @@
+﻿          HeroSection(
+            title: 'Your Complete Automotive Ecosystem',
+            subtitle: 'The premier destination to buy, sell, and rent vehicles in Namibia. Drive your dreams forward with BoostDrive.',
+            // backgroundImage removed to prevent overlap with PremiumPageLayout global background
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PartsMarketplacePage())),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(200, 64),
+                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),

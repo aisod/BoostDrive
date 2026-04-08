@@ -149,9 +149,16 @@ class UserSupportView extends ConsumerWidget {
   }
 
   void _showCreateTicketDialog(BuildContext context, WidgetRef ref) {
+    // Map display labels -> exact DB values that pass the issue_type CHECK constraint
+    const typeMap = {
+      'General Inquiry': 'general',
+      'Billing Issue': 'billing',
+      'Technical Problem': 'technical',
+      'Dispute': 'dispute',
+    };
     String selectedType = 'General Inquiry';
     final subjectController = TextEditingController();
-    final types = ['General Inquiry', 'Billing Issue', 'Technical Problem', 'Dispute'];
+    final types = typeMap.keys.toList();
     bool isSubmitting = false;
 
     showDialog(
@@ -231,7 +238,7 @@ class UserSupportView extends ConsumerWidget {
                                 await ref.read(supportServiceProvider).createTicket(
                                   userId: userId,
                                   userType: userType,
-                                  issueType: selectedType.toLowerCase().replaceAll(' ', '_'),
+                                  issueType: typeMap[selectedType] ?? 'general',
                                   subject: text,
                                 );
                                 ref.invalidate(userTicketsProvider(userId));

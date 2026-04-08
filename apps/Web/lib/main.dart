@@ -12,9 +12,8 @@ import 'dart:html' as html;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Disable runtime fetching on Flutter Web — fonts are loaded via CSS in index.html instead.
-  // This prevents the "Failed to fetch" font crash in the browser.
-  GoogleFonts.config.allowRuntimeFetching = false;
+  // Enabling runtime fetching so Montserrat/Poppins can be fetched if not in assets.
+  GoogleFonts.config.allowRuntimeFetching = true;
 
   // Register the reCAPTCHA container once
   WebUtils.registerViewFactory('recaptcha-container', 'recaptcha-container');

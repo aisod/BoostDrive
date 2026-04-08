@@ -5,6 +5,7 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boost_drive_web/product_detail_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AllListingsPage extends ConsumerStatefulWidget {
   const AllListingsPage({super.key});
@@ -166,10 +167,10 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             'Explore Everything',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.montserrat(
               fontSize: 48, 
               fontWeight: FontWeight.w900, 
               color: Colors.white,
@@ -177,10 +178,10 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Cars, parts, and rentals—all in one place. Discover the best of BoostDrive.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 18),
+            style: GoogleFonts.montserrat(color: BoostDriveTheme.textDim, fontSize: 18),
           ),
           const SizedBox(height: 40),
           ConstrainedBox(
@@ -222,9 +223,9 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Product Filters',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               TextButton.icon(
                 onPressed: () {

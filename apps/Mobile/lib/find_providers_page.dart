@@ -187,11 +187,14 @@ class _ProviderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final roleLabel = _roleDisplayName(profile.role);
     final isVerified = profile.verificationStatus.toLowerCase() == 'approved';
-    final businessContactNumber = (profile.businessContactNumber ?? '').trim();
-    final personalContactNumber = profile.phoneNumber.trim();
-    final hasBusinessContact = businessContactNumber.isNotEmpty;
-    final hasPersonalContact = personalContactNumber.isNotEmpty;
-    final primaryContactNumber = hasBusinessContact ? businessContactNumber : personalContactNumber;
+    final businessContactString = (profile.businessContactNumber ?? '').trim();
+    final List<String> businessNumbers = businessContactString
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final hasBusinessContact = businessNumbers.isNotEmpty;
+    final primaryContactNumber = hasBusinessContact ? businessNumbers.first : '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -280,43 +283,28 @@ class _ProviderCard extends StatelessWidget {
                       ],
                     ],
                   ),
-                  if (hasBusinessContact || hasPersonalContact) ...[
+                  if (hasBusinessContact) ...[
                     const SizedBox(height: 8),
                     if (hasBusinessContact)
-                      GestureDetector(
-                        onTap: () => _launchTel(businessContactNumber),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.business_outlined, size: 14, color: BoostDriveTheme.primaryColor),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Business: $businessContactNumber',
-                                style: const TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600),
-                                overflow: TextOverflow.ellipsis,
+                      ...businessNumbers.map((number) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: GestureDetector(
+                          onTap: () => _launchTel(number),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.business_outlined, size: 14, color: BoostDriveTheme.primaryColor),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Business: $number',
+                                  style: const TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    if (hasBusinessContact && hasPersonalContact) const SizedBox(height: 4),
-                    if (hasPersonalContact)
-                      GestureDetector(
-                        onTap: () => _launchTel(personalContactNumber),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.phone_android_outlined, size: 14, color: BoostDriveTheme.primaryColor),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Personal: $personalContactNumber',
-                                style: const TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      )),
                   ],
                 ],
               ),

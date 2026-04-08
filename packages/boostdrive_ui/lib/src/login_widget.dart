@@ -229,48 +229,36 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            Color(0xFF2C3E50),
+                            Color(0xFF0F0F0F),
                             Color(0xFF000000),
                           ],
                         ),
                       ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.2),
-                              Colors.black.withValues(alpha: 0.7),
-                            ],
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'BoostDrive',
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
                           ),
-                        ),
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.speed, color: Colors.white, size: 32),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'BoostDrive',
-                                  style: TextStyle(fontFamily: 'Manrope', 
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ],
+                          const SizedBox(height: 16),
+                          Text(
+                            'Premium Mobility\nReimagined.',
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              height: 1.1,
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Your Complete Automotive Ecosystem',
-                              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                     
@@ -289,17 +277,27 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Welcome Back',
-                                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 28, 
+                                    fontWeight: FontWeight.w900, 
+                                    color: Colors.white,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Sign in to your premium account',
+                                  style: GoogleFonts.poppins(color: Colors.white38, fontSize: 13),
+                                ),
+                                const SizedBox(height: 32),
                                 
                                 _buildLabel('Email'),
                                 TextFormField(
                                   controller: _emailController,
-                                  decoration: _inputDecoration('Enter your email', Icons.mail_outline),
-                                  style: TextStyle(color: _inputTextColor),
+                                  decoration: _inputDecoration('name@example.com', Icons.alternate_email),
+                                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
                                   validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
                                 ),
                                 const SizedBox(height: 16),
@@ -308,8 +306,8 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 TextFormField(
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
-                                  decoration: _inputDecoration('Enter your password', Icons.lock_outline, isPassword: true),
-                                  style: TextStyle(color: _inputTextColor),
+                                  decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
+                                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
                                   validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
                                 ),
                                 
@@ -318,7 +316,14 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
                                     onPressed: widget.onForgotPassword,
-                                    child: const Text('Forgot Password?', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Forgot Password?', 
+                                      style: GoogleFonts.poppins(
+                                        color: BoostDriveTheme.primaryColor, 
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 
@@ -327,15 +332,24 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                   _buildErrorDisplay(widget.errorText!),
                                 ],
                                 
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 32),
                                 SizedBox(
                                   width: double.infinity,
-                                  height: 50,
+                                  height: 56,
                                   child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: BoostDriveTheme.primaryColor,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      elevation: 0,
+                                    ),
                                     onPressed: widget.isLoading ? null : _submit,
                                     child: widget.isLoading 
-                                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
-                                      : const Text('Login'),
+                                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                                      : Text(
+                                          'LOGIN',
+                                          style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1),
+                                        ),
                                   ),
                                 ),
                                 
@@ -380,37 +394,42 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
           );
         }
 
-        // Web-specific layout (Full Screen Gradient with Centered Card)
+        // Web-specific layout (Split-Screen Editorial)
         return _buildWebLayout(
           constraints: constraints,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 450),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1D1E).withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white10),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 40, offset: const Offset(0, 20)),
-                ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome Back',
+                style: GoogleFonts.montserrat(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1,
+                ),
               ),
-              padding: const EdgeInsets.all(40),
-              child: Form(
+              const SizedBox(height: 8),
+              Text(
+                'Sign in to your account',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.white54,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 48),
+              Form(
                 key: _loginFormKey,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Welcome Back',
-                      style: TextStyle(fontFamily: 'Manrope', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
-                    ),
-                    const SizedBox(height: 32),
-                    _buildLabel('EMAIL'),
+                    _buildLabel('EMAIL ADDRESS'),
                     TextFormField(
                       controller: _emailController,
-                      decoration: _inputDecoration('Enter your email', Icons.mail_outline),
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: _inputDecoration('name@example.com', Icons.alternate_email),
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
                       validator: (v) => v == null || v.isEmpty ? 'Email is required' : null,
                     ),
                     const SizedBox(height: 24),
@@ -418,8 +437,8 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
-                      decoration: _inputDecoration('Enter your password', Icons.lock_outline, isPassword: true),
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
                       validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
                     ),
                     const SizedBox(height: 12),
@@ -427,7 +446,14 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: widget.onForgotPassword,
-                        child: const Text('Forgot Password?', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'Forgot Password?',
+                          style: GoogleFonts.poppins(
+                            color: BoostDriveTheme.primaryColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
                     ),
                     if (widget.errorText != null) ...[
@@ -437,30 +463,39 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: 60,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: BoostDriveTheme.primaryColor,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
                         onPressed: widget.isLoading ? null : _submit,
                         child: widget.isLoading 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
-                          : const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                          : Text(
+                              'LOGIN',
+                              style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1),
+                            ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
                     Center(
                       child: Wrap(
                         alignment: WrapAlignment.center,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Text("Don't have an account?", style: TextStyle(color: Colors.white60)),
+                          Text(
+                            "Don't have an account?",
+                            style: GoogleFonts.poppins(color: Colors.white54, fontSize: 14),
+                          ),
                           TextButton(
                             onPressed: () => setState(() => _isSignUp = true),
-                            child: const Text('Sign Up', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'Sign Up',
+                              style: GoogleFonts.poppins(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w700, fontSize: 14),
+                            ),
                           ),
                         ],
                       ),
@@ -468,33 +503,60 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                   ],
                 ),
               ),
-            ),
+            ],
           ),
         );
       },
     );
   }
-
   Widget _buildSignUpView() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWeb = kIsWeb;
 
         // Mobile-specific or small screen layout
-        if (!isWeb || constraints.maxWidth <= 800) {
+        if (!isWeb || constraints.maxWidth <= 900) {
           return Container(
             color: BoostDriveTheme.backgroundDark,
             child: Column(
               children: [
                 Stack(
                   children: [
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: AppBar(
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        leading: const SizedBox.shrink(),
-                        title: const Text('Create Account', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF0F0F0F),
+                            Color(0xFF000000),
+                          ],
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'JOIN BOOSTDRIVE',
+                            style: GoogleFonts.montserrat(
+                              color: BoostDriveTheme.primaryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Create Your\nPremium Account.',
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Positioned(
@@ -502,10 +564,10 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       right: 12,
                       child: IconButton(
                         onPressed: _handleClose,
-                        icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                        icon: const Icon(Icons.close, color: Colors.white70, size: 24),
                         style: IconButton.styleFrom(
-                          backgroundColor: Colors.black26,
-                          shape: const CircleBorder(),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -517,17 +579,22 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                     child: Form(
                       key: _signUpFormKey,
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Join BoostDrive',
-                            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white),
+                          Text(
+                            'Select Account Type',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Choose your primary role to get started.',
-                            style: TextStyle(color: BoostDriveTheme.textDim, fontWeight: FontWeight.w500),
+                            style: GoogleFonts.poppins(color: Colors.white38, fontSize: 13),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
                           
                           // Role Grid
                           GridView.count(
@@ -655,17 +722,21 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           const SizedBox(height: 32),
                           SizedBox(
                             width: double.infinity,
-                            height: 56,
+                            height: 60,
                             child: ElevatedButton(
-                              onPressed: widget.isLoading ? null : _submit,
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('Create Account'),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward, size: 20),
-                                ],
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: BoostDriveTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: 0,
                               ),
+                              onPressed: widget.isLoading ? null : _submit,
+                              child: widget.isLoading 
+                                ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                                : Text(
+                                    'CREATE ACCOUNT',
+                                    style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1),
+                                  ),
                             ),
                           ),
                           
@@ -698,55 +769,51 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
           );
         }
 
-        // Web-specific layout (Full Screen Gradient)
+        // Web-specific layout (Split-Screen Editorial)
         return _buildWebLayout(
           constraints: constraints,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 550),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1D1E).withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white10),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 40, offset: const Offset(0, 20)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Create Account',
+                style: GoogleFonts.montserrat(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Join the premium automotive ecosystem',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.white54,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 32),
+              
+              // Role Selection
+              Row(
+                children: [
+                  Expanded(child: _buildWebRoleCard('Customer / Seller', 'Buy & sell vehicle parts', Icons.person)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildWebRoleCard('Service Provider', 'Registered Businesses', Icons.build)),
                 ],
               ),
-              padding: const EdgeInsets.all(40),
-              child: Form(
+                   Form(
                 key: _signUpFormKey,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Create Account',
-                      style: TextStyle(fontFamily: 'Manrope', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
-                    ),
-                    const SizedBox(height: 32),
-                    
-                    // Role Selection
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.2,
-                      children: [
-                        _buildWebRoleCard('Customer / Seller', 'Buy & sell vehicle parts', Icons.person),
-                        _buildWebRoleCard('Service Provider', 'Registered Businesses', Icons.build),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    
-
-
                     _buildLabel(_isServiceProviderSignUp ? 'BUSINESS TRADING NAME' : 'FULL NAME'),
                     TextFormField(
                       controller: _nameController,
-                      decoration: _inputDecoration('John Doe', Icons.person_outline),
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: _inputDecoration('e.g. John Doe', Icons.person_outline),
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
                       validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
                     ),
                     const SizedBox(height: 24),
@@ -758,9 +825,9 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                         keyboardType: TextInputType.phone,
                         decoration: _inputDecoration('61 555 0036', Icons.phone_outlined).copyWith(
                           prefixText: '+264 ',
-                          prefixStyle: const TextStyle(color: Colors.white70),
+                          prefixStyle: GoogleFonts.poppins(color: Colors.white70),
                         ),
-                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
                         validator: (v) {
                           final digits = (v ?? '').replaceAll(RegExp(r'[^0-9]'), '');
                           if (digits.isEmpty) return 'Phone number is required';
@@ -784,11 +851,12 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 label: Text(label),
                                 selected: selected,
                                 onSelected: (_) => setState(() => _primaryServiceCategoryKey = key),
-                                selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                                backgroundColor: Colors.white.withValues(alpha: 0.05),
-                                labelStyle: TextStyle(
+                                selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                                backgroundColor: Colors.white.withValues(alpha: 0.03),
+                                labelStyle: GoogleFonts.poppins(
                                   color: selected ? BoostDriveTheme.primaryColor : Colors.white70,
                                   fontWeight: FontWeight.w600,
+                                  fontSize: 13,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -801,72 +869,92 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       ),
                       const SizedBox(height: 24),
                     ],
-                    
+
                     _buildLabel('EMAIL ADDRESS'),
                     TextFormField(
                       controller: _emailController,
-                      decoration: _inputDecoration('john@example.com', Icons.mail_outline),
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: _inputDecoration('name@example.com', Icons.alternate_email),
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
                       validator: (v) => v == null || !v.contains('@') ? 'Invalid email' : null,
                     ),
                     const SizedBox(height: 24),
-                    
-                    _buildLabel('PASSWORD'),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                      decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
-                      validator: (v) => v == null || v.length < 6 ? 'Password too short' : null,
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('PASSWORD'),
+                              TextFormField(
+                                controller: _passwordController,
+                                obscureText: _obscurePassword,
+                                decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
+                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
+                                validator: (v) => v == null || v.length < 6 ? 'Too short' : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('CONFIRM'),
+                              TextFormField(
+                                controller: _confirmPasswordController,
+                                obscureText: _obscurePassword,
+                                decoration: _inputDecoration('••••••••', Icons.lock_clock_outlined, isPassword: true),
+                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 15),
+                                validator: (v) => v != _passwordController.text ? 'Mismatch' : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    
-                    _buildLabel('CONFIRM PASSWORD'),
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscurePassword,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                      decoration: _inputDecoration('••••••••', Icons.lock_outline, isPassword: true),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Passwords do not match';
-                        if (v != _passwordController.text) return 'Passwords do not match';
-                        return null;
-                      },
-                    ),
-                    
+
                     if (widget.errorText != null) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       _buildErrorDisplay(widget.errorText!),
                     ],
-                    
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
                     SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: 60,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: BoostDriveTheme.primaryColor,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
                         onPressed: widget.isLoading ? null : _submit,
                         child: widget.isLoading 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
-                          : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                          : Text(
+                              'CREATE ACCOUNT',
+                              style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1),
+                            ),
                       ),
                     ),
-                    
                     const SizedBox(height: 32),
                     Center(
                       child: Wrap(
                         alignment: WrapAlignment.center,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Text('Already have an account?', style: TextStyle(color: Colors.white60)),
+                          Text(
+                            "Already have an account?",
+                            style: GoogleFonts.poppins(color: Colors.white54, fontSize: 14),
+                          ),
                           TextButton(
                             onPressed: () => setState(() => _isSignUp = false),
-                            child: const Text('Login', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'Sign In',
+                              style: GoogleFonts.poppins(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w700, fontSize: 14),
+                            ),
                           ),
                         ],
                       ),
@@ -874,165 +962,61 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                   ],
                 ),
               ),
-            ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildLabel(String text) {
-    final isWeb = kIsWeb;
-    return Container(
-      width: double.infinity,
+  Widget _buildLabel(String label) {
+    return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
-        text.toUpperCase(),
-        style: TextStyle(fontFamily: 'Manrope', 
-          color: isWeb ? const Color(0xFF64748B) : BoostDriveTheme.textDim,
-          fontSize: isWeb ? 11 : 10,
-          fontWeight: isWeb ? FontWeight.w700 : FontWeight.w800,
-          letterSpacing: isWeb ? 1.2 : 1.0,
+        label.toUpperCase(),
+        style: GoogleFonts.poppins(
+          color: Colors.white54,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
         ),
       ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint, IconData icon, {bool isPassword = false}) {
-    final isWeb = kIsWeb;
-    if (!isWeb) {
-      // Mobile: no white overlay — transparent fill with subtle border so fields stay visible on dark background.
-      return InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white38),
-        prefixIcon: Icon(icon, color: Colors.white38),
-        filled: true,
-        fillColor: Colors.transparent,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.white24, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        suffixIcon: isPassword 
-          ? IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                color: Colors.white38,
-              ),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-            )
-          : null,
-      );
-    }
-
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-      prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
-      filled: true,
-      fillColor: const Color(0xFFF1F5F9),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      suffixIcon: isPassword 
-        ? IconButton(
-            icon: Icon(
-              _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-              color: const Color(0xFF94A3B8),
-              size: 20,
-            ),
-            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-          )
-        : null,
     );
   }
 
   Widget _buildRoleCard(String title, String subtitle, IconData icon) {
-    final isWeb = kIsWeb;
-    bool isSelected = _selectedRole == title;
-
-    if (!isWeb) {
-      // Mobile: no white overlay — transparent/dark tint only, border for visibility.
-      return GestureDetector(
-        onTap: () => setState(() => _selectedRole = title),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? BoostDriveTheme.primaryColor : Colors.white24,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.white38, fontSize: 10),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    bool isSelected = (_selectedRole == title);
 
     return GestureDetector(
       onTap: () => setState(() => _selectedRole = title),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutQuart,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+          color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
-            width: 2,
+            color: isSelected ? BoostDriveTheme.primaryColor : Colors.white.withValues(alpha: 0.1),
+            width: 1.5,
           ),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF64748B), size: 28),
-            const SizedBox(height: 8),
+            Icon(
+              icon, 
+              color: isSelected ? BoostDriveTheme.primaryColor : Colors.white38, 
+              size: 28
+            ),
+            const SizedBox(height: 12),
             Text(
               title,
-              style: TextStyle(
-                color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF1A1D1E),
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.montserrat(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
               ),
             ),
           ],
@@ -1047,41 +1031,40 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
     return GestureDetector(
       onTap: () => setState(() => _selectedRole = title),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutQuart,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? BoostDriveTheme.primaryColor : Colors.black.withValues(alpha: 0.1),
-            width: isSelected ? 3 : 1,
+            color: isSelected ? BoostDriveTheme.primaryColor : Colors.white.withValues(alpha: 0.1),
+            width: isSelected ? 2 : 1,
           ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF64748B), size: 40),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF1A1D1E),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
+            Icon(
+              icon, 
+              color: isSelected ? BoostDriveTheme.primaryColor : Colors.white38, 
+              size: 32
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: GoogleFonts.montserrat(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: GoogleFonts.poppins(
+                color: isSelected ? Colors.white54 : Colors.white24,
+                fontSize: 12,
               ),
             ),
           ],
@@ -1091,95 +1074,294 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
   }
 
   Widget _buildOtpView() {
-    return Container(
-      color: BoostDriveTheme.backgroundDark,
-      child: Column(
-        children: [
-          AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: widget.onCancelOtp,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWeb = kIsWeb;
+
+        // Mobile/Small layout
+        if (!isWeb || constraints.maxWidth <= 900) {
+          return Container(
+            color: BoostDriveTheme.backgroundDark,
+            child: Column(
+              children: [
+                Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF0F0F0F),
+                            Color(0xFF000000),
+                          ],
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'SECURE VERIFICATION',
+                            style: GoogleFonts.montserrat(
+                              color: BoostDriveTheme.primaryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Verify Your\nAccount.',
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: IconButton(
+                        onPressed: widget.onCancelOtp,
+                        icon: const Icon(Icons.arrow_back, color: Colors.white70, size: 24),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Form(
+                      key: _otpFormKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Enter 6-digit Code',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'We sent a verification code to your email address.',
+                            style: GoogleFonts.poppins(color: Colors.white38, fontSize: 13),
+                          ),
+                          const SizedBox(height: 32),
+                          
+                          TextFormField(
+                            controller: _otpController,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 12,
+                            ),
+                            decoration: _inputDecoration('000000', Icons.lock_person_outlined),
+                            validator: (v) => (v ?? '').length < 6 ? 'Invalid code' : null,
+                          ),
+                          
+                          if (widget.errorText != null) ...[
+                            const SizedBox(height: 16),
+                            _buildErrorDisplay(widget.errorText!),
+                          ],
+                          
+                          const SizedBox(height: 48),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 60,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: BoostDriveTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: 0,
+                              ),
+                              onPressed: widget.isLoading ? null : _submit,
+                              child: widget.isLoading 
+                                ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                                : Text(
+                                    'VERIFY CODE',
+                                    style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1),
+                                  ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 32),
+                          Center(
+                            child: TextButton(
+                              onPressed: _secondsRemaining == 0 ? widget.onResendOtp : null,
+                              child: Text(
+                                _secondsRemaining > 0
+                                    ? 'Resend code in ${_formatDuration(_secondsRemaining)}'
+                                    : 'Resend Verification Code',
+                                style: GoogleFonts.poppins(
+                                  color: _secondsRemaining == 0 ? BoostDriveTheme.primaryColor : Colors.white38,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            title: const Text('Verify Identity', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
+          );
+        }
+
+        // Web Split-Screen OTP
+        return _buildWebLayout(
+          constraints: constraints,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               IconButton(
+                onPressed: widget.onCancelOtp,
+                icon: const Icon(Icons.arrow_back, color: Colors.white54, size: 24),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Verify Email',
+                style: GoogleFonts.montserrat(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Confirm your secure access code',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.white54,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 48),
+              
+              Form(
                 key: _otpFormKey,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.mark_email_read_outlined, size: 80, color: BoostDriveTheme.primaryColor),
-                    const SizedBox(height: 32),
-                    const Text(
-                      'Enter Verification Code',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'We have sent a 6-digit code to your email.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'If you don\'t see it, please check your spam folder.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white38, fontSize: 12),
-                    ),
-                    const SizedBox(height: 40),
-                    
+                    _buildLabel('6-DIGIT VERIFICATION CODE'),
                     TextFormField(
                       controller: _otpController,
-                      textAlign: TextAlign.center,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 8, color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: '000000',
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.1)),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 24),
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.montserrat(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 20,
                       ),
-                      validator: (v) => v == null || v.length != 6 ? 'Enter 6-digit code' : null,
+                      decoration: _inputDecoration('000000', Icons.lock_person_outlined),
+                      validator: (v) => (v ?? '').length < 6 ? 'Invalid code' : null,
                     ),
-                    
+
                     if (widget.errorText != null) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       _buildErrorDisplay(widget.errorText!),
                     ],
                     
                     const SizedBox(height: 48),
                     SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: 60,
                       child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: BoostDriveTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 0,
+                        ),
                         onPressed: widget.isLoading ? null : _submit,
                         child: widget.isLoading 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
-                          : const Text('Verify & Continue'),
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                          : Text(
+                              'VERIFY & CONTINUE',
+                              style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1),
+                            ),
                       ),
                     ),
-                    
                     const SizedBox(height: 32),
-                    TextButton(
-                      onPressed: _secondsRemaining == 0 ? widget.onResendOtp : null,
-                      child: Text(
-                        _secondsRemaining > 0 
-                          ? 'Resend code in ${_formatDuration(_secondsRemaining)}'
-                          : 'Resend Verification Code',
-                        style: TextStyle(
-                          color: _secondsRemaining == 0 ? BoostDriveTheme.primaryColor : Colors.white38,
-                          fontWeight: FontWeight.bold,
+                    Center(
+                      child: TextButton(
+                        onPressed: _secondsRemaining == 0 ? widget.onResendOtp : null,
+                        child: Text(
+                          _secondsRemaining > 0
+                              ? 'Resend code in ${_formatDuration(_secondsRemaining)}'
+                              : 'Resend Verification Code',
+                          style: GoogleFonts.poppins(
+                            color: _secondsRemaining == 0 ? BoostDriveTheme.primaryColor : Colors.white38,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint, IconData icon, {bool isPassword = false}) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+      suffixIcon: isPassword
+          ? IconButton(
+              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white38, size: 20),
+              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            )
+          : null,
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.03),
+      hintStyle: GoogleFonts.poppins(color: Colors.white24, fontSize: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5)),
       ),
     );
   }
@@ -1219,60 +1401,111 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
     required Widget child,
   }) {
     return Material(
-      child: Container(
+      color: Colors.black,
+      child: SizedBox(
         width: constraints.maxWidth,
         height: constraints.maxHeight,
-        decoration: const BoxDecoration(
-          color: Colors.transparent,
-        ),
-        child: Stack(
+        child: Row(
           children: [
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+            // Left Side: Editorial Image & Quote
+            Expanded(
+              flex: 4,
+              child: Stack(
+                children: [
+                   Container(
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/images/landing-page-image.jpg'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(80.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Icon(Icons.speed, color: Colors.white, size: 40),
-                        const SizedBox(width: 16),
                         Text(
                           'BoostDrive',
-                          style: TextStyle(fontFamily: 'Manrope', 
-                            color: Colors.white,
-                            fontSize: 36,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 24,
                             fontWeight: FontWeight.w900,
+                            color: Colors.white,
                             letterSpacing: -1,
+                          ),
+                        ),
+                        const SizedBox(height: 48),
+                        Text(
+                          '"Drive Your Dreams\nForward."',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 64,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Container(
+                          width: 100,
+                          height: 6,
+                          color: BoostDriveTheme.primaryColor,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'EXPERIENCE PREMIUM MOBILITY IN NAMIBIA',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white70,
+                            letterSpacing: 2,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Your Complete Automotive Ecosystem',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-                    child,
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            Positioned(
-              top: 24,
-              right: 24,
-              child: IconButton(
-                onPressed: _handleClose,
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.white10,
-                  shape: const CircleBorder(),
+            
+            // Right Side: Auth Form
+            Expanded(
+              flex: 3,
+              child: Container(
+                color: const Color(0xFF0F0F0F),
+                child: Stack(
+                  children: [
+                    Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 40),
+                        child: child,
+                      ),
+                    ),
+                    Positioned(
+                      top: 40,
+                      right: 40,
+                      child: IconButton(
+                        onPressed: _handleClose,
+                        icon: const Icon(Icons.close, color: Colors.white54, size: 28),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

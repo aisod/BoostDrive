@@ -27,32 +27,6 @@ class AppFooter extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildAboutSection(),
-                const SizedBox(height: 48),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _FooterColumn(
-                        title: 'Marketplace',
-                        links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
-                        onTap: (link) => onLinkTap?.call('Marketplace', link),
-                      ),
-                    ),
-                    Expanded(
-                      child: _FooterColumn(
-                        title: 'Company',
-                        links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
-                        onTap: (link) => onLinkTap?.call('Company', link),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                _FooterColumn(
-                  title: 'Support',
-                  links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
-                  onTap: (link) => onLinkTap?.call('Support', link),
-                ),
               ],
             )
           else
@@ -65,24 +39,6 @@ class AppFooter extends StatelessWidget {
                   child: _buildAboutSection(),
                 ),
                 const Spacer(),
-                // Links Section
-                _FooterColumn(
-                  title: 'Marketplace',
-                  links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
-                  onTap: (link) => onLinkTap?.call('Marketplace', link),
-                ),
-                const SizedBox(width: 48),
-                _FooterColumn(
-                  title: 'Company',
-                  links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
-                  onTap: (link) => onLinkTap?.call('Company', link),
-                ),
-                const SizedBox(width: 48),
-                _FooterColumn(
-                  title: 'Support',
-                  links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
-                  onTap: (link) => onLinkTap?.call('Support', link),
-                ),
               ],
             ),
           const SizedBox(height: 80),
@@ -151,16 +107,7 @@ class AppFooter extends StatelessWidget {
           'The leading automotive platform in Namibia. Buy parts, rent vehicles, and sell cars with confidence.',
           style: TextStyle(color: BoostDriveTheme.textDim, height: 1.6),
         ),
-        SizedBox(height: 32),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            _SocialButton(icon: Icons.facebook),
-            _SocialButton(icon: Icons.camera_alt),
-            _SocialButton(icon: Icons.alternate_email),
-          ],
-        ),
+        // SOCIALS REMOVED
       ],
     );
   }

@@ -28,6 +28,7 @@ class SuperAdminDashboardPage extends ConsumerStatefulWidget {
 
 class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPage> {
   int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   static List<_AdminAlert> _buildDynamicAlerts({
     required int pendingVerifications,
@@ -88,7 +89,9 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
     }
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8F9FA),
+      drawer: _buildMobileDrawer(context),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 800;
@@ -103,6 +106,101 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Drawer that mirrors sidebar nav — shown via hamburger on narrow screens.
+  Widget _buildMobileDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.white,
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Brand header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.black12)),
+              ),
+              child: Text(
+                'BoostDrive Admin',
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: BoostDriveTheme.primaryColor,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildDrawerNavItem(context, 0, Icons.dashboard_outlined, 'Dashboard'),
+            _buildDrawerNavItem(context, 1, Icons.verified_user_outlined, 'Verification Queue'),
+            _buildDrawerNavItem(context, 2, Icons.map_outlined, 'Service Monitoring'),
+            _buildDrawerNavItem(context, 3, Icons.people_outline, 'User Management'),
+            _buildDrawerNavItem(context, 4, Icons.attach_money_outlined, 'Financials'),
+            _buildDrawerNavItem(context, 5, Icons.notifications_outlined, 'Notification Hub'),
+            _buildDrawerNavItem(context, 6, Icons.support_agent_outlined, 'Support Center'),
+            _buildDrawerNavItem(context, 7, Icons.account_circle_outlined, 'Admin Profile'),
+            const Spacer(),
+            const Divider(height: 1, color: Colors.black12),
+            InkWell(
+              onTap: () {
+                Navigator.pop(context); // close drawer first
+                ref.read(authServiceProvider).signOut();
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ShopHomePage()));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.redAccent, size: 20),
+                    SizedBox(width: 16),
+                    Text('Log Out', style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerNavItem(BuildContext context, int index, IconData icon, String title) {
+    final isSelected = _selectedIndex == index;
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context); // close drawer
+        setState(() => _selectedIndex = index);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.08) : Colors.transparent,
+          border: Border(
+            left: BorderSide(
+              color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
+              width: 4,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? BoostDriveTheme.primaryColor : Colors.black54, size: 20),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? BoostDriveTheme.primaryColor : Colors.black87,
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -247,22 +345,29 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
         Container(
           height: 70,
           color: Colors.white,
-          padding: EdgeInsets.symmetric(horizontal: isNarrow ? 16 : 32),
+          padding: EdgeInsets.symmetric(horizontal: isNarrow ? 8 : 32),
           child: Row(
             children: [
+              // Hamburger button on narrow screens
+              if (isNarrow)
+                IconButton(
+                  icon: const Icon(Icons.menu, color: Colors.black87),
+                  tooltip: 'Navigation menu',
+                  onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                ),
               if (_selectedIndex == 3 && selectedGroup != null) ...[
                 IconButton(
                   onPressed: () => ref.read(adminUserGroupProvider.notifier).state = null,
                   icon: const Icon(Icons.arrow_back, size: 20, color: Colors.black87),
                   tooltip: 'Go back to Selection',
                 ),
-                const SizedBox(width: 8),
+                if (!isNarrow) const SizedBox(width: 8),
               ],
               Expanded(
                 child: Text(
                   _getSectionTitle(selectedGroup),
                   style: TextStyle(fontFamily: 'Manrope', 
-                    fontSize: isNarrow ? 16 : 20, 
+                    fontSize: isNarrow ? 15 : 20, 
                     fontWeight: FontWeight.w800, 
                     color: Colors.black,
                   ),

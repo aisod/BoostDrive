@@ -15,3 +15,5 @@ export 'src/login_page.dart';
 export 'src/reset_password_page.dart';
 export 'src/profile_settings_page.dart';
 export 'src/notifications_overlay.dart';
+export 'src/geometric_hero_section.dart';
+export 'src/editorial_hero_section.dart';

@@ -87,7 +87,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   final _registrationNumberController = TextEditingController();
   final _yearsInOperationController = TextEditingController();
   String _primaryServiceCategory = 'mechanic'; // mechanic | towing | parts
-  final _businessContactNumberController = TextEditingController();
 
   // Notification & Alert
   List<String> _preferredCommunication = ['app_chat'];
@@ -113,10 +112,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
     if (cleaned.isEmpty) return false;
 
-    // Some accounts store the role as plain "provider".
-    if (cleaned == 'service_provider') return true;
+    // Standard variations for providers
+    if (cleaned == 'service_provider' || cleaned == 'provider') return true;
 
-    return cleaned.contains('service provider') ||
+    return cleaned.contains('provider') ||
+        cleaned.contains('service provider') ||
         cleaned.contains('service pro') ||
         cleaned.contains('mechanic') ||
         cleaned.contains('towing') ||
@@ -167,7 +167,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     _tradingNameController.dispose();
     _registrationNumberController.dispose();
     _yearsInOperationController.dispose();
-    _businessContactNumberController.dispose();
     super.dispose();
   }
 
@@ -2211,7 +2210,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   Widget _buildDocumentsVault(UserProfile profile) {
     final hasDocs = _galleryUrls.any((url) => url.trim().isNotEmpty);
-    final isApproved = _isProviderApproved(profile.verificationStatus);
     final isTowingProvider =
         (profile.role.toLowerCase() == 'towing') || (_primaryServiceCategory.toLowerCase() == 'towing');
     return Column(
@@ -2235,31 +2233,19 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               // Legal and identity documents
               _documentStatusRow(
                 'BIPA or CC1 business registration',
-                isApproved
-                    ? 'Approved'
-                    : hasDocs
-                        ? 'Submitted – pending review'
-                        : 'Pending upload',
+                _galleryUrls[0].trim().isNotEmpty ? 'Submitted – pending review' : 'Pending upload',
               ),
               _documentInputRow('BIPA or CC1 document', 0),
               const SizedBox(height: 12),
               _documentStatusRow(
                 'Certified copy of owner ID',
-                isApproved
-                    ? 'On file'
-                    : hasDocs
-                        ? 'Submitted – pending review'
-                        : '—',
+                _galleryUrls[1].trim().isNotEmpty ? 'Submitted – pending review' : 'Pending upload',
               ),
               _documentInputRow('Certified owner ID document', 1),
               const SizedBox(height: 12),
               _documentStatusRow(
                 'Municipal fitness certificate',
-                isApproved
-                    ? 'On file'
-                    : hasDocs
-                        ? 'Submitted – pending review'
-                        : '—',
+                _galleryUrls[2].trim().isNotEmpty ? 'Submitted – pending review' : 'Pending upload',
               ),
               _documentInputRow('Municipal fitness certificate document', 2),
               const SizedBox(height: 16),
@@ -2267,43 +2253,27 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               // Professional permits and compliance
               _documentStatusRow(
                 'NTA trade certificate',
-                isApproved
-                    ? 'On file'
-                    : hasDocs
-                        ? 'Submitted – pending review'
-                        : '—',
+                _galleryUrls[3].trim().isNotEmpty ? 'Submitted – pending review' : 'Pending upload',
               ),
               _documentInputRow('NTA trade certificate document', 3),
               const SizedBox(height: 12),
               if (isTowingProvider) ...[
                 _documentStatusRow(
                   'Road Carrier Permit (towing)',
-                  isApproved
-                      ? 'On file'
-                      : hasDocs
-                          ? 'Submitted – pending review'
-                          : '—',
+                  _galleryUrls[4].trim().isNotEmpty ? 'Submitted – pending review' : 'Pending upload',
                 ),
                 _documentInputRow('Road Carrier Permit document', 4),
                 const SizedBox(height: 12),
               ],
               _documentStatusRow(
                 'NamRA tax certificate',
-                isApproved
-                    ? 'On file'
-                    : hasDocs
-                        ? 'Submitted – pending review'
-                        : '—',
+                _galleryUrls[5].trim().isNotEmpty ? 'Submitted – pending review' : 'Pending upload',
               ),
               _documentInputRow('NamRA tax certificate document', 5),
               const SizedBox(height: 12),
               _documentStatusRow(
                 'Social Security good standing',
-                isApproved
-                    ? 'On file'
-                    : hasDocs
-                        ? 'Submitted – pending review'
-                        : '—',
+                _galleryUrls[6].trim().isNotEmpty ? 'Submitted – pending review' : 'Pending upload',
               ),
               _documentInputRow('Social Security good standing document', 6),
             ],
@@ -2932,15 +2902,15 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           _phoneController.text = profile.phoneNumber;
 
           // Initialize business contact numbers
-          final bizContacts = (profile.businessContactNumber ?? '').split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+          final bizContactString = profile.businessContactNumber ?? '';
+          final bizContacts = bizContactString.split(',')
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty)
+              .toList();
           
-          // Clear existing if any
-          for (var c in _businessPhoneControllers) {
-            c.dispose();
-          }
-          for (var f in _businessPhoneFocusNodes) {
-            f.dispose();
-          }
+          // Clear and rebuild controllers from profile data
+          for (var c in _businessPhoneControllers) { c.dispose(); }
+          for (var f in _businessPhoneFocusNodes) { f.dispose(); }
           _businessPhoneControllers.clear();
           _businessPhoneFocusNodes.clear();
 
@@ -2954,7 +2924,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             }
           }
           
-          _businessContactNumberController.text = profile.businessContactNumber ?? '';
           _emergencyNameController.text = profile.emergencyContactName;
           _emergencyPhoneController.text = profile.emergencyContactPhone;
           _serviceAreaController.text = profile.serviceAreaDescription;
@@ -3325,16 +3294,64 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 16),
               _providerLabel('Business contact number'),
               const SizedBox(height: 8),
-              TextField(
-                controller: _businessContactNumberController,
-                readOnly: !_isProviderEditMode,
-                enabled: _isProviderEditMode,
-                keyboardType: TextInputType.phone,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
-                decoration: _providerInputDecoration(
-                  hint: 'Office WhatsApp or landline',
+              if (_businessPhoneControllers.isEmpty)
+                const SizedBox()
+              else
+                ..._businessPhoneControllers.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final controller = entry.value;
+                  final focusNode = _businessPhoneFocusNodes[index];
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            readOnly: !_isProviderEditMode,
+                            enabled: _isProviderEditMode,
+                            keyboardType: TextInputType.phone,
+                            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                            decoration: _providerInputDecoration(
+                              hint: 'Office WhatsApp or landline',
+                            ),
+                          ),
+                        ),
+                        if (_isProviderEditMode && _businessPhoneControllers.length > 1) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () {
+                              if (_businessPhoneControllers.length > 1) {
+                                setState(() {
+                                  _businessPhoneControllers.removeAt(index).dispose();
+                                  _businessPhoneFocusNodes.removeAt(index).dispose();
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                            tooltip: 'Remove Number',
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
+              if (_isProviderEditMode)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _addBusinessPhoneField,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('ADD NEW CONTACT NUMBER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: BoostDriveTheme.primaryColor,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               _providerLabel('Business type'),
               const SizedBox(height: 8),

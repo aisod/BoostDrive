@@ -191,7 +191,7 @@ class ProviderPerformanceLeaderboard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
                 Text('${p.avgResponseTimeMinutes}m average response', style: const TextStyle(fontSize: 11, color: Colors.black54)),
               ],
             ),
@@ -202,7 +202,7 @@ class ProviderPerformanceLeaderboard extends ConsumerWidget {
               Row(
                 children: [
                   const Icon(Icons.star, color: Colors.orange, size: 12),
-                  Text(' ${p.avgRating}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(' ${p.avgRating}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
                 ],
               ),
               Text('${(p.completionRate * 100).toInt()}% Success', style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),

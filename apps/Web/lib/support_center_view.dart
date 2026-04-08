@@ -397,6 +397,7 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
         Expanded(
           child: TextField(
             controller: _messageController,
+            style: const TextStyle(color: Colors.black87),
             decoration: InputDecoration(
               hintText: 'Type internal response...',
               hintStyle: const TextStyle(fontSize: 13, color: Colors.black26),
@@ -525,6 +526,14 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
       senderId: profileId,
       message: text,
       isAdmin: true,
+    );
+
+    // Notify the ticket owner that they have a new reply
+    await ref.read(notificationServiceProvider).sendNotification(
+      userId: widget.ticket.userId,
+      title: 'New Reply on Your Support Ticket',
+      message: 'The BoostDrive support team has replied to your ticket: "${widget.ticket.subject}". Open the Help & Support section to view the response.',
+      type: 'support',
     );
 
     _messageController.clear();
