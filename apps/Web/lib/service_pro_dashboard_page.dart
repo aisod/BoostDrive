@@ -12,7 +12,7 @@ import 'suspension_overlay.dart';
 import 'add_staff_page.dart';
 import 'user_support_view.dart';
 import 'boostdrive_banner.dart';
-import 'provider_profile_page.dart';
+import 'boostdrive_banner.dart';
 
 class ServiceProDashboardPage extends ConsumerStatefulWidget {
   const ServiceProDashboardPage({super.key});
@@ -817,7 +817,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
         return MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProviderProfilePage(uid: uid))),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSettingsPage())),
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(

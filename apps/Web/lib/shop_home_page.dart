@@ -22,7 +22,6 @@ import 'package:boost_drive_web/find_providers_page.dart';
 import 'boostdrive_banner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'suspension_overlay.dart';
-import 'provider_profile_page.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
   const ShopHomePage({super.key});
@@ -984,7 +983,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           child: GestureDetector(
             onTap: () {
                if (profile.role == 'service_provider') {
-                 Navigator.push(context, MaterialPageRoute(builder: (_) => ProviderProfilePage(uid: uid)));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSettingsPage()));
                } else {
                  Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
                }
