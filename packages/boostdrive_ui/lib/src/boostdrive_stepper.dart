@@ -1,3 +1,4 @@
+import 'theme.dart';
 import 'package:flutter/material.dart';
 
 class BoostDriveStepper extends StatelessWidget {
@@ -49,7 +50,7 @@ class BoostDriveStepper extends StatelessWidget {
                               : FontWeight.normal,
                           color: index <= currentStep
                               ? Colors.black87
-                              : Colors.grey,
+                              : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                         ),
                       ),
                     ],

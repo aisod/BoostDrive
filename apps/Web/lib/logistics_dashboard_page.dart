@@ -60,7 +60,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF101828),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
@@ -88,12 +88,12 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
                 ),
                 child: Row(
                   children: [
-                    Icon(icon, color: isActive ? BoostDriveTheme.primaryColor : Colors.white24, size: 20),
+                    Icon(icon, color: isActive ? BoostDriveTheme.primaryColor : Color(0x22FF6600), size: 20),
                     const SizedBox(width: 12),
                     Text(
                       section,
                       style: TextStyle(
-                        color: isActive ? Colors.white : Colors.white24,
+                        color: isActive ? Colors.white : Color(0x22FF6600),
                         fontWeight: FontWeight.w900,
                         fontSize: 12,
                         letterSpacing: 0.5,
@@ -309,7 +309,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
                               '${deliveries.length}', 
                               'Total Requests', 
                               Icons.bar_chart, 
-                              Colors.blue,
+                              BoostDriveTheme.primaryColor,
                               isMobile
                             ),
                           ),
@@ -334,7 +334,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
     return Container(
       padding: EdgeInsets.all(isMobile ? 10 : 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF131D25),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
@@ -488,7 +488,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131D25).withValues(alpha: 0.9),
+                    color: const Color(0xFFFFFFFF).withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
@@ -711,7 +711,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
             Tab(text: 'Completed'),
           ],
         ),
-        const Divider(color: Colors.white10, height: 1),
+        const Divider(color: Color(0x22FF6600), height: 1),
       ],
     );
   }
@@ -783,7 +783,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFF131D25),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
@@ -820,14 +820,14 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
             style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          _buildLocationItem(Icons.radio_button_checked, Colors.blue, 'PICKUP', pickup),
+          _buildLocationItem(Icons.radio_button_checked, BoostDriveTheme.primaryColor, 'PICKUP', pickup),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.only(left: 11),
-            child: Container(width: 2, height: 30, color: Colors.white10),
+            child: Container(width: 2, height: 30, color: Color(0x22FF6600)),
           ),
           const SizedBox(height: 12),
-          _buildLocationItem(Icons.location_on, Colors.white24, 'DROP-OFF', dropoff),
+          _buildLocationItem(Icons.location_on, Color(0x22FF6600), 'DROP-OFF', dropoff),
           const SizedBox(height: 40),
           Row(
             children: [
@@ -835,7 +835,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
                  const Expanded(
                    child: Text(
                      'Finding nearest optimized route...',
-                     style: TextStyle(color: Colors.white24, fontSize: 14, fontStyle: FontStyle.italic),
+                     style: TextStyle(color: Color(0x22FF6600), fontSize: 14, fontStyle: FontStyle.italic),
                    ),
                  )
               else
@@ -865,7 +865,7 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
                    }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isAwaiting ? BoostDriveTheme.primaryColor : const Color(0xFF1D2939),
+                  backgroundColor: isAwaiting ? BoostDriveTheme.primaryColor : const Color(0xFF000000),
                   minimumSize: const Size(140, 56),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),

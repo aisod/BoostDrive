@@ -27,6 +27,24 @@ class AppFooter extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildAboutSection(),
+                const SizedBox(height: 48),
+                _FooterColumn(
+                  title: 'Marketplace',
+                  links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
+                  onTap: (val) => onLinkTap?.call('Marketplace', val),
+                ),
+                const SizedBox(height: 32),
+                _FooterColumn(
+                  title: 'Company',
+                  links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
+                  onTap: (val) => onLinkTap?.call('Company', val),
+                ),
+                const SizedBox(height: 32),
+                _FooterColumn(
+                  title: 'Support',
+                  links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
+                  onTap: (val) => onLinkTap?.call('Support', val),
+                ),
               ],
             )
           else
@@ -35,14 +53,38 @@ class AppFooter extends StatelessWidget {
               children: [
                 // Logo & About
                 Expanded(
-                  flex: 2,
+                  flex: 3,
                   child: _buildAboutSection(),
                 ),
                 const Spacer(),
+                Expanded(
+                  flex: 2,
+                  child: _FooterColumn(
+                    title: 'Marketplace',
+                    links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
+                    onTap: (val) => onLinkTap?.call('Marketplace', val),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: _FooterColumn(
+                    title: 'Company',
+                    links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
+                    onTap: (val) => onLinkTap?.call('Company', val),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: _FooterColumn(
+                    title: 'Support',
+                    links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
+                    onTap: (val) => onLinkTap?.call('Support', val),
+                  ),
+                ),
               ],
             ),
           const SizedBox(height: 80),
-          const Divider(color: Colors.white10),
+          const Divider(color: Color(0x22FF6600)),
           const SizedBox(height: 32),
           if (isMobile)
             const Column(
@@ -164,7 +206,7 @@ class _SocialButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Color(0x22FF6600)),
       ),
       child: Icon(icon, color: Colors.white, size: 18),
     );

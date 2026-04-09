@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 
-class UserSupportView extends ConsumerWidget {
+class UserSupportView extends ConsumerStatefulWidget {
   final String userId;
   final String userType;
 
@@ -14,8 +14,34 @@ class UserSupportView extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ticketsAsync = ref.watch(userTicketsProvider(userId));
+  ConsumerState<UserSupportView> createState() => _UserSupportViewState();
+}
+
+class _UserSupportViewState extends ConsumerState<UserSupportView> {
+  String? _lastAutoOpenedId;
+
+  @override
+  Widget build(BuildContext context) {
+    final ticketsAsync = ref.watch(userTicketsProvider(widget.userId));
+    final pendingTicketId = ref.watch(pendingSupportTicketIdProvider);
+
+    // Auto-open logic when tickets are loaded and pending ID is present
+    if (pendingTicketId != null && _lastAutoOpenedId != pendingTicketId && ticketsAsync.hasValue) {
+      final tickets = ticketsAsync.value!;
+      final ticket = tickets.cast<SupportTicket?>().firstWhere(
+        (t) => t?.id == pendingTicketId, 
+        orElse: () => null
+      );
+      
+      if (ticket != null) {
+        _lastAutoOpenedId = pendingTicketId;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showTicketDetails(context, ref, ticket);
+          // Clear it in state but we already have _lastAutoOpenedId to prevent loops
+          ref.read(pendingSupportTicketIdProvider.notifier).state = null;
+        });
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +90,7 @@ class UserSupportView extends ConsumerWidget {
                   children: [
                     Icon(Icons.support_agent, size: 64, color: BoostDriveTheme.textDim.withValues(alpha: 0.5)),
                     const SizedBox(height: 16),
-                    Text('No support tickets yet.', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16)),
+                    const Text('No support tickets yet.', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16)),
                   ],
                 ),
               );
@@ -90,7 +116,7 @@ class UserSupportView extends ConsumerWidget {
   Widget _buildTicketCard(BuildContext context, WidgetRef ref, SupportTicket ticket) {
     Color statusColor = Colors.orange;
     if (ticket.status == 'resolved') statusColor = Colors.green;
-    if (ticket.status == 'closed') statusColor = Colors.grey;
+    if (ticket.status == 'closed') statusColor = BoostDriveTheme.primaryColor.withValues(alpha: 0.1);
 
     return InkWell(
       onTap: () => _showTicketDetails(context, ref, ticket),
@@ -120,7 +146,7 @@ class UserSupportView extends ConsumerWidget {
                     children: [
                       Text('Ticket #${ticket.id.substring(0, 8).toUpperCase()}', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13)),
                       const SizedBox(width: 12),
-                      const Text('•', style: TextStyle(color: Colors.white24)),
+                      const Text('•', style: TextStyle(color: Color(0x22FF6600))),
                       const SizedBox(width: 12),
                       Text(ticket.issueType.toUpperCase(), style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
@@ -141,7 +167,7 @@ class UserSupportView extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 16),
-            const Icon(Icons.chevron_right, color: Colors.white24),
+            const Icon(Icons.chevron_right, color: Color(0x22FF6600)),
           ],
         ),
       ),
@@ -236,12 +262,12 @@ class UserSupportView extends ConsumerWidget {
                               setState(() => isSubmitting = true);
                               try {
                                 await ref.read(supportServiceProvider).createTicket(
-                                  userId: userId,
-                                  userType: userType,
+                                  userId: widget.userId,
+                                  userType: widget.userType,
                                   issueType: typeMap[selectedType] ?? 'general',
                                   subject: text,
                                 );
-                                ref.invalidate(userTicketsProvider(userId));
+                                ref.invalidate(userTicketsProvider(widget.userId));
                                 if (context.mounted) Navigator.pop(context);
                               } catch (e) {
                                 setState(() => isSubmitting = false);
@@ -295,7 +321,7 @@ class UserSupportView extends ConsumerWidget {
                 ),
                 Text(ticket.subject, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16)),
                 const SizedBox(height: 24),
-                const Divider(color: Colors.white10),
+                const Divider(color: Color(0x22FF6600)),
                 Expanded(
                   child: Consumer(
                     builder: (context, ref, child) {
@@ -307,7 +333,7 @@ class UserSupportView extends ConsumerWidget {
                             itemCount: msgs.length,
                             itemBuilder: (context, index) {
                               final m = msgs[index];
-                              final isMe = m.senderId == userId;
+                              final isMe = m.senderId == widget.userId;
                               return Align(
                                 alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                                 child: Container(
@@ -365,12 +391,12 @@ class UserSupportView extends ConsumerWidget {
                         try {
                           await ref.read(supportServiceProvider).addMessage(
                             ticketId: ticket.id,
-                            senderId: userId,
+                            senderId: widget.userId,
                             message: text,
                             isAdmin: false,
                           );
                           ref.invalidate(ticketMessagesProvider(ticket.id));
-                          ref.invalidate(userTicketsProvider(userId));
+                          ref.invalidate(userTicketsProvider(widget.userId));
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error sending message: $e')));

@@ -16,6 +16,7 @@ class _SupportCenterViewState extends ConsumerState<SupportCenterView> {
   String _statusFilter = 'all';
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _hasAutoOpened = false;
 
   @override
   void dispose() {
@@ -26,6 +27,25 @@ class _SupportCenterViewState extends ConsumerState<SupportCenterView> {
   @override
   Widget build(BuildContext context) {
     final ticketsAsync = ref.watch(allTicketsProvider);
+    final pendingTicketId = ref.watch(pendingSupportTicketIdProvider);
+
+    // Auto-open logic for Admin side
+    if (pendingTicketId != null && !_hasAutoOpened && ticketsAsync.hasValue) {
+      final tickets = ticketsAsync.value!;
+      final ticket = tickets.cast<SupportTicket?>().firstWhere(
+        (t) => t?.id == pendingTicketId, 
+        orElse: () => null
+      );
+      
+      if (ticket != null) {
+        _hasAutoOpened = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showTicketDetails(ticket);
+          // Clear the pending ID global state
+          ref.read(pendingSupportTicketIdProvider.notifier).state = null;
+        });
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,7 +183,7 @@ class _SupportCenterViewState extends ConsumerState<SupportCenterView> {
                 ],
               ),
             ),
-            trailing: const Icon(Icons.chevron_right, color: Colors.black26),
+            trailing: const Icon(Icons.chevron_right, color: Color(0x22FF6600)),
           );
         },
       ),
@@ -174,9 +194,9 @@ class _SupportCenterViewState extends ConsumerState<SupportCenterView> {
     Color color;
     switch (status) {
       case 'open': color = Colors.orange; break;
-      case 'pending': color = Colors.blue; break;
+      case 'pending': color = BoostDriveTheme.primaryColor; break;
       case 'resolved': color = Colors.green; break;
-      default: color = Colors.grey;
+      default: color = BoostDriveTheme.primaryColor.withValues(alpha: 0.1);
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -196,7 +216,7 @@ class _SupportCenterViewState extends ConsumerState<SupportCenterView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.support_agent, size: 64, color: Colors.black12),
+          const Icon(Icons.support_agent, size: 64, color: Color(0x22FF6600)),
           const SizedBox(height: 16),
           const Text(
             'No support tickets found',
@@ -322,6 +342,38 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
                 widget.ticket.subject,
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.black87),
               ),
+              const SizedBox(height: 4),
+              Consumer(
+                builder: (context, ref, _) {
+                  final profileAsync = ref.watch(userProfileProvider(widget.ticket.userId));
+                  return profileAsync.when(
+                    data: (profile) => Row(
+                      children: [
+                        const Icon(Icons.person_outline, size: 14, color: BoostDriveTheme.primaryColor),
+                        const SizedBox(width: 6),
+                        Text(
+                          profile?.displayName ?? 'Unknown User',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black54),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            (profile?.role ?? widget.ticket.userType).toUpperCase(),
+                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: BoostDriveTheme.primaryColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                    loading: () => const SizedBox(height: 16),
+                    error: (_, __) => const SizedBox(height: 16),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -358,6 +410,27 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
       child: Column(
         crossAxisAlignment: isAdmin ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
+          Consumer(
+            builder: (context, ref, child) {
+              final profileAsync = ref.watch(userProfileProvider(msg.senderId));
+              return profileAsync.when(
+                data: (profile) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4, left: 4, right: 4),
+                  child: Text(
+                    isAdmin ? 'Admin: ${profile?.displayName ?? "Support Agent"}' : (profile?.displayName ?? 'Customer'),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: isAdmin ? BoostDriveTheme.primaryColor : Colors.black45,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                loading: () => const SizedBox(height: 14),
+                error: (_, __) => const SizedBox(height: 14),
+              );
+            },
+          ),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -400,12 +473,16 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
             style: const TextStyle(color: Colors.black87),
             decoration: InputDecoration(
               hintText: 'Type internal response...',
-              hintStyle: const TextStyle(fontSize: 13, color: Colors.black26),
+              hintStyle: TextStyle(fontSize: 13, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
               filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
+              fillColor: const Color(0xFFF8F9FA),
+              enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.black12),
+                borderSide: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 2),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
@@ -439,12 +516,16 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
           style: const TextStyle(fontSize: 13, color: Colors.black87),
           decoration: InputDecoration(
             hintText: 'Hidden from user...',
-            hintStyle: const TextStyle(fontSize: 12, color: Colors.black26),
+            hintStyle: TextStyle(fontSize: 12, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
             filled: true,
-            fillColor: Colors.orange.withValues(alpha: 0.02),
-            border: OutlineInputBorder(
+            fillColor: const Color(0xFFFFF9F5),
+            enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.orange.withValues(alpha: 0.1)),
+              borderSide: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: BoostDriveTheme.primaryColor),
             ),
           ),
           onChanged: (v) => ref.read(supportServiceProvider).updateAdminNotes(widget.ticket.id, v),
@@ -484,8 +565,8 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
                 icon: const Icon(Icons.hourglass_empty),
                 label: const Text('PENDING'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.blue,
-                  side: const BorderSide(color: Colors.blue),
+                  foregroundColor: BoostDriveTheme.primaryColor,
+                  side: const BorderSide(color: BoostDriveTheme.primaryColor),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
@@ -531,9 +612,10 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
     // Notify the ticket owner that they have a new reply
     await ref.read(notificationServiceProvider).sendNotification(
       userId: widget.ticket.userId,
-      title: 'New Reply on Your Support Ticket',
-      message: 'The BoostDrive support team has replied to your ticket: "${widget.ticket.subject}". Open the Help & Support section to view the response.',
-      type: 'support',
+      title: 'New Support Message',
+      message: 'Management has replied to your ticket: "${widget.ticket.subject}".',
+      type: 'dashboard_alert',
+      metadata: {'ticket_id': widget.ticket.id, 'type': 'support'},
     );
 
     _messageController.clear();

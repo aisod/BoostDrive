@@ -241,7 +241,7 @@ class _FaqItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(answer, style: const TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.5)),
           const SizedBox(height: 16),
-          const Divider(color: Colors.white10),
+          const Divider(color: Color(0x22FF6600)),
         ],
       ),
     );

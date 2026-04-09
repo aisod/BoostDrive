@@ -35,7 +35,7 @@ class HeroSection extends StatelessWidget {
                     ? Image.network(
                         backgroundImage!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(color: Colors.black26),
+                        errorBuilder: (context, error, stackTrace) => Container(color: Color(0x22FF6600)),
                       )
                     : Image.asset(
                         backgroundImage!,

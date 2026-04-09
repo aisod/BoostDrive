@@ -149,7 +149,7 @@ class _NotificationHubViewState extends ConsumerState<NotificationHubView> {
             child: const Center(
               child: Column(
                 children: [
-                  Icon(Icons.notifications_none, size: 64, color: Colors.black26),
+                  Icon(Icons.notifications_none, size: 64, color: Color(0x22FF6600)),
                   SizedBox(height: 16),
                   Text(
                     'No notifications sent yet',
@@ -229,7 +229,7 @@ class _NotificationHubViewState extends ConsumerState<NotificationHubView> {
             child: const Center(
               child: Column(
                 children: [
-                  Icon(Icons.local_offer_outlined, size: 64, color: Colors.black26),
+                  Icon(Icons.local_offer_outlined, size: 64, color: Color(0x22FF6600)),
                   const SizedBox(height: 16),
                   Text(
                     'No promotions created yet',
@@ -260,8 +260,8 @@ class _NotificationHubViewState extends ConsumerState<NotificationHubView> {
               return ListTile(
                 contentPadding: const EdgeInsets.all(16),
                 leading: CircleAvatar(
-                  backgroundColor: (isActive ? Colors.orange : Colors.grey).withValues(alpha: 0.1),
-                  child: Icon(Icons.campaign, color: isActive ? Colors.orange : Colors.grey),
+                  backgroundColor: (isActive ? Colors.orange : BoostDriveTheme.primaryColor.withValues(alpha: 0.1)).withValues(alpha: 0.1),
+                  child: Icon(Icons.campaign, color: isActive ? Colors.orange : BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
                 ),
                 title: Row(
                   children: [
@@ -302,7 +302,7 @@ class _NotificationHubViewState extends ConsumerState<NotificationHubView> {
                 trailing: promo.targetCategory != null
                     ? Chip(
                         label: Text(promo.targetCategory!.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                        backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                        backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                         side: BorderSide.none,
                       )
                     : null,
@@ -367,7 +367,7 @@ class _NotificationDialogState extends ConsumerState<NotificationDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(0xFF1D2939),
+      backgroundColor: const Color(0xFF000000),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Container(
         width: 520,
@@ -538,9 +538,9 @@ class _NotificationDialogState extends ConsumerState<NotificationDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _previewRow('Audience', (_selectedGroup ?? 'N/A').replaceAll('_', ' ').toUpperCase(), Icons.people_outline),
-              const Divider(color: Colors.white10, height: 24),
+              const Divider(color: Color(0x22FF6600), height: 24),
               _previewRow('Subject', _titleController.text, Icons.title_outlined),
-              const Divider(color: Colors.white10, height: 24),
+              const Divider(color: Color(0x22FF6600), height: 24),
               _previewRow('Channels', _selectedMethods.map((m) => m.toUpperCase()).join(' & '), Icons.send_outlined),
             ],
           ),
@@ -644,7 +644,7 @@ class _NotificationDialogState extends ConsumerState<NotificationDialog> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.analytics_outlined, size: 16, color: Colors.blueAccent),
+          const Icon(Icons.analytics_outlined, size: 16, color: BoostDriveTheme.primaryColor),
           const SizedBox(width: 12),
           Text(
             'Estimated Reach: ${_estimatedReach ?? '...'} users',
@@ -659,13 +659,13 @@ class _NotificationDialogState extends ConsumerState<NotificationDialog> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blueAccent.withValues(alpha: 0.1),
+        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
+        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.blueAccent, size: 20),
+          Icon(icon, color: BoostDriveTheme.primaryColor, size: 20),
           const SizedBox(width: 12),
           Expanded(child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12))),
         ],
@@ -1049,7 +1049,7 @@ class _PromotionDialogState extends ConsumerState<PromotionDialog> {
                             decoration: _inputDecoration('0').copyWith(
                               suffixIcon: const Padding(
                                 padding: EdgeInsets.all(12),
-                                child: Text('%', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black26)),
+                                child: Text('%', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0x22FF6600))),
                               ),
                             ),
                             validator: (v) {
@@ -1084,7 +1084,7 @@ class _PromotionDialogState extends ConsumerState<PromotionDialog> {
                                   const SizedBox(width: 12),
                                   Text(
                                     _expiryDate == null ? 'Set Date' : '${_expiryDate!.day}/${_expiryDate!.month}/${_expiryDate!.year}',
-                                    style: TextStyle(color: _expiryDate == null ? Colors.black26 : Colors.black87, fontWeight: FontWeight.w600),
+                                    style: TextStyle(color: _expiryDate == null ? Color(0x22FF6600) : Colors.black87, fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),
@@ -1114,16 +1114,16 @@ class _PromotionDialogState extends ConsumerState<PromotionDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.05),
+        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          const Icon(Icons.analytics_outlined, size: 16, color: Colors.blue),
+          const Icon(Icons.analytics_outlined, size: 16, color: BoostDriveTheme.primaryColor),
           const SizedBox(width: 8),
           Text(
             'Est. Reach: $_estimatedReach targeted users',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor),
           ),
         ],
       ),
@@ -1150,7 +1150,7 @@ class _PromotionDialogState extends ConsumerState<PromotionDialog> {
         ),
         IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close, color: Colors.black26),
+          icon: const Icon(Icons.close, color: Color(0x22FF6600)),
         ),
       ],
     );
@@ -1182,7 +1182,7 @@ class _PromotionDialogState extends ConsumerState<PromotionDialog> {
           onPressed: () => Navigator.pop(context),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.black54,
-            side: const BorderSide(color: Colors.black12),
+            side: const BorderSide(color: Color(0x22FF6600)),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),

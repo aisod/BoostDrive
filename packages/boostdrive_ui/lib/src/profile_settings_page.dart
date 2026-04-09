@@ -522,7 +522,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE4E7EC),
+                    color: const Color(0xFFFFCCAA),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -532,7 +532,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF1D2939),
+                    color: const Color(0xFF000000),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -592,12 +592,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               decoration: BoxDecoration(
                 color: isDestructive 
                     ? Colors.red.withValues(alpha: 0.1) 
-                    : const Color(0xFFF9FAFB),
+                    : const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                color: isDestructive ? Colors.red : const Color(0xFF667085),
+                color: isDestructive ? Colors.red : const Color(0xFF000000),
                 size: 24,
               ),
             ),
@@ -611,7 +611,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: isDestructive ? Colors.red : const Color(0xFF1D2939),
+                      color: isDestructive ? Colors.red : const Color(0xFF000000),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -619,7 +619,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     subtitle,
                     style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 13,
-                      color: const Color(0xFF667085),
+                      color: const Color(0xFF000000),
                     ),
                   ),
                 ],
@@ -627,7 +627,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ),
             const Icon(
               Icons.chevron_right,
-              color: Color(0xFF98A2B3),
+              color: Color(0xFF000000),
               size: 20,
             ),
           ],
@@ -748,7 +748,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             'Change Password',
             style: TextStyle(fontFamily: 'Manrope', 
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF1D2939),
+              color: const Color(0xFF000000),
             ),
           ),
           content: Form(
@@ -791,7 +791,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           actions: [
             TextButton(
               onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF667085), fontWeight: FontWeight.w700)),
+              child: Text('Cancel', style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000), fontWeight: FontWeight.w700)),
             ),
             ElevatedButton(
               onPressed: isLoading ? null : () async {
@@ -862,19 +862,19 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           style: const TextStyle(fontFamily: 'Manrope', fontSize: 14, color: Colors.black),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF98A2B3)),
+            hintStyle: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
             filled: true,
-            fillColor: const Color(0xFFF9FAFB),
+            fillColor: const Color(0xFFFFFFFF),
             suffixIcon: IconButton(
               icon: Icon(
                 obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                color: const Color(0xFF98A2B3),
+                color: const Color(0xFF000000),
                 size: 20,
               ),
               onPressed: onToggleVisibility,
             ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFFFCCAA))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFFFCCAA))),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
@@ -889,7 +889,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Scaffold _buildProviderProfileScaffold(UserProfile profile, bool isWide) {
-    const bg = Color(0xFFF7F9FB);
+    const bg = Color(0xFFFFFFFF);
     final isEditOnlyPage = widget.initialProviderEditMode;
 
     return Scaffold(
@@ -957,7 +957,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     children: [
                       Text(
                         profile.displayName,
-                        style: TextStyle(fontFamily: 'Manrope', fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939)),
+                        style: TextStyle(fontFamily: 'Manrope', fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF000000)),
                       ),
                       if (_isProviderApproved(profile.verificationStatus)) ...[
                         const SizedBox(width: 8),
@@ -1032,7 +1032,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 40),
           Text(
             'BoostDrive Version 2.4.1 (1209)',
-            style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF98A2B3), fontSize: 11, fontWeight: FontWeight.w500),
+            style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000), fontSize: 11, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 40),
         ],
@@ -1149,12 +1149,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   },
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 48),
-                    side: const BorderSide(color: Color(0xFFD0D5DD)),
+                    side: const BorderSide(color: Color(0xFFFFCCAA)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
                     'Cancel',
-                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF344054)),
+                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF000000)),
                   ),
                 ),
               ),
@@ -1373,7 +1373,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       children: [
                         Positioned.fill(
                           child: CircleAvatar(
-                            backgroundColor: const Color(0xFFF2F4F7),
+                            backgroundColor: const Color(0xFFFFFFFF),
                             backgroundImage: _optimisticImage != null
                                 ? MemoryImage(_optimisticImage!) as ImageProvider
                                 : (profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null),
@@ -1392,7 +1392,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                         if (_isUploading)
                           const Positioned.fill(
                             child: ColoredBox(
-                              color: Colors.black26,
+                              color: Color(0x22FF6600),
                               child: Center(
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                               ),
@@ -1508,7 +1508,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E7EC)),
+        border: Border.all(color: const Color(0xFFFFCCAA)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -1529,7 +1529,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF667085),
+                  color: const Color(0xFF000000),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1539,7 +1539,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
               ),
             ],
@@ -1558,13 +1558,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.location_on_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Service area & working hours', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Service area & working hours', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
           ],
         ),
         const SizedBox(height: 8),
         Text(
           'Shown to customers on Find a Provider. E.g. "Within 50 km of Windhoek" and "Mon–Fri 8am–6pm".',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000)),
         ),
         const SizedBox(height: 16),
         _providerLabel('How far you\'re located / service area'),
@@ -1573,7 +1573,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           controller: _serviceAreaController,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
           decoration: _providerInputDecoration(hint: 'e.g. Within 50 km of Windhoek, City centre'),
         ),
         const SizedBox(height: 16),
@@ -1583,7 +1583,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           controller: _workingHoursController,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
           decoration: _providerInputDecoration(hint: 'e.g. Mon–Fri 8am–6pm, Sat 9am–1pm or 24/7'),
         ),
       ],
@@ -1607,13 +1607,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.build_circle_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Services you provide', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Services you provide', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
           ],
         ),
         const SizedBox(height: 8),
         Text(
           'Select at least 1 service. You can select multiple.',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000)),
         ),
         const SizedBox(height: 16),
         Wrap(
@@ -1637,10 +1637,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFF2F4F7),
+                  color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC),
+                    color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFFFCCAA),
                     width: selected ? 2 : 1,
                   ),
                 ),
@@ -1650,7 +1650,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     Icon(
                       selected ? Icons.check_circle : Icons.radio_button_unchecked,
                       size: 20,
-                      color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF98A2B3),
+                      color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF000000),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -1658,7 +1658,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       style: TextStyle(fontFamily: 'Manrope', 
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF475467),
+                        color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF000000),
                       ),
                     ),
                   ],
@@ -1676,7 +1676,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         Icon(icon, color: BoostDriveTheme.primaryColor, size: 22),
         const SizedBox(width: 10),
-        Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+        Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
       ],
     );
   }
@@ -1807,19 +1807,19 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFF2F4F7),
+              color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFFE4E7EC),
+                color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFFFFCCAA),
                 width: isSelected ? 2 : 1,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, size: 20, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF98A2B3)),
+                Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, size: 20, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF000000)),
                 const SizedBox(width: 8),
-                Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF475467))),
+                Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF000000))),
               ],
             ),
           ),
@@ -1835,12 +1835,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Operational & Business Details', Icons.business_center_outlined),
         const SizedBox(height: 12),
-        Text('Powers "Open Now" filter and SOS matching.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+        Text('Powers "Open Now" filter and SOS matching.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
         const SizedBox(height: 16),
         if (isTowingOrSos) ...[
           Row(
             children: [
-              Expanded(child: Text('Open 24/7', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)))),
+              Expanded(child: Text('Open 24/7', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF000000)))),
               Switch(
                 value: _businessHours24_7,
                 onChanged: _isProviderEditMode ? (v) => setState(() => _businessHours24_7 = v) : null,
@@ -1849,7 +1849,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text('When on, your profile shows "24/7" for Open Now. When off, use Working hours above.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF98A2B3))),
+          Text('When on, your profile shows "24/7" for Open Now. When off, use Working hours above.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
           const SizedBox(height: 16),
         ],
         _providerLabel('Service radius (km)'),
@@ -1859,13 +1859,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           keyboardType: TextInputType.number,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
           decoration: _providerInputDecoration(hint: 'Max distance you travel for jobs'),
         ),
         const SizedBox(height: 16),
         _providerLabel('Workshop address'),
         const SizedBox(height: 8),
-        TextField(controller: _workshopAddressController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
+        TextField(controller: _workshopAddressController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
         const SizedBox(height: 16),
       ],
     );
@@ -1903,7 +1903,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Service Specializations', Icons.build_circle_outlined),
         const SizedBox(height: 12),
-        Text('Used for search filters and matching.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+        Text('Used for search filters and matching.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
         const SizedBox(height: 16),
         _providerLabel('Brand expertise'),
         const SizedBox(height: 8),
@@ -1936,27 +1936,27 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Financial & Payout', Icons.account_balance_wallet_outlined),
         const SizedBox(height: 12),
-        Text('For automated payouts and customer price estimates.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+        Text('For automated payouts and customer price estimates.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
         const SizedBox(height: 16),
         _providerLabel('Bank name'),
         const SizedBox(height: 8),
-        TextField(controller: _bankNameController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
+        TextField(controller: _bankNameController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
         const SizedBox(height: 12),
         _providerLabel('Branch'),
         const SizedBox(height: 8),
-        TextField(controller: _bankBranchController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Branch name or code')),
+        TextField(controller: _bankBranchController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Branch name or code')),
         const SizedBox(height: 12),
         _providerLabel('Account number'),
         const SizedBox(height: 8),
-        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Bank account number')),
+        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Bank account number')),
         const SizedBox(height: 12),
         _providerLabel(r'Estimated hourly rate (N$)'),
         const SizedBox(height: 8),
-        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
+        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
         const SizedBox(height: 12),
         _providerLabel('Tax / VAT number'),
         const SizedBox(height: 8),
-        TextField(controller: _taxVatNumberController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'For legal invoices')),
+        TextField(controller: _taxVatNumberController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'For legal invoices')),
       ],
     );
   }
@@ -2082,7 +2082,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       children: [
         _buildSectionTitle('Trust & Experience', Icons.verified_user_outlined),
         const SizedBox(height: 12),
-        Text('Business bio and portfolio build customer trust.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+        Text('Business bio and portfolio build customer trust.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
         const SizedBox(height: 16),
         _providerLabel('Business bio (About us)'),
         const SizedBox(height: 8),
@@ -2092,20 +2092,20 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           maxLength: 1300,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
           decoration: _providerInputDecoration(hint: 'Your history and passion'),
         ),
         const SizedBox(height: 16),
         _providerLabel('Team size (qualified technicians)'),
         const SizedBox(height: 8),
-        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)), decoration: _providerInputDecoration(hint: 'Number on-site')),
+        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Number on-site')),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               'Gallery (${galleryImages.length}/$_galleryMaxImages photos)',
-              style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085)),
+              style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF000000)),
             ),
             if (galleryImages.isEmpty)
               Container(
@@ -2122,7 +2122,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 4),
         Text(
           'Workshop, tow truck, or completed repairs. Upload 1–10 photos.',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF98A2B3)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000)),
         ),
         const SizedBox(height: 12),
         if (_isUploadingDocuments)
@@ -2145,9 +2145,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     width: 90,
                     height: 90,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF9FAFB),
+                      color: const Color(0xFFFFFFFF),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFD0D5DD), style: BorderStyle.solid),
+                      border: Border.all(color: const Color(0xFFFFCCAA), style: BorderStyle.solid),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -2179,10 +2179,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F4F7),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.broken_image_outlined, color: Color(0xFF98A2B3)),
+              child: const Icon(Icons.broken_image_outlined, color: Color(0xFF000000)),
             ),
           ),
         ),
@@ -2221,12 +2221,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           'Upload your official business documents for verification, for example BIPA and tax certificates. '
           'Only upload one file per document type. If you have several versions or pages of the same document, '
           'please merge them into a single file and upload that one file only for that row.',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 16, color: const Color(0xFF667085)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 16, color: const Color(0xFF000000)),
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE4E7EC))),
+          decoration: BoxDecoration(color: const Color(0xFFFFFFFF), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFFCCAA))),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2507,7 +2507,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     final backendStatus = _documentStatuses[name];
     final rejectionReason = _documentRejectionReasons[name];
     
-    Color statusColor = const Color(0xFF667085);
+    Color statusColor = const Color(0xFF000000);
     String displayStatus = fallbackStatus;
     IconData? statusIcon;
 
@@ -2527,7 +2527,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(name, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
+            Text(name, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF000000))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -2606,7 +2606,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF667085),
+              color: const Color(0xFF000000),
             ),
           ),
           const SizedBox(height: 6),
@@ -2618,7 +2618,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE4E7EC)),
+                    border: Border.all(color: const Color(0xFFFFCCAA)),
                   ),
                   child: Text(
                     fileName,
@@ -2626,7 +2626,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 13,
-                      color: hasUrl ? const Color(0xFF344054) : const Color(0xFF98A2B3),
+                      color: hasUrl ? const Color(0xFF000000) : const Color(0xFF000000),
                     ),
                   ),
                 ),
@@ -2653,7 +2653,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: hasUrl ? const Color(0xFFB42318) : const Color(0xFF98A2B3),
+                      color: hasUrl ? const Color(0xFFB42318) : const Color(0xFF000000),
                     ),
                   ),
                 ),
@@ -2666,17 +2666,17 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _providerLabel(String text) {
-    return Text(text, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085)));
+    return Text(text, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF000000)));
   }
 
   InputDecoration _providerInputDecoration({String? hint}) {
     return InputDecoration(
       hintText: hint ?? '',
-      hintStyle: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF98A2B3)),
+      hintStyle: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000)),
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFFFCCAA))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 1.5)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
@@ -2691,7 +2691,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.local_shipping_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Shipping & Logistics', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Shipping & Logistics', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
           ],
         ),
         const SizedBox(height: 16),
@@ -2700,7 +2700,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE4E7EC)),
+            border: Border.all(color: const Color(0xFFFFCCAA)),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: Row(
@@ -2716,9 +2716,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('BaTLorriH Integration', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
+                    Text('BaTLorriH Integration', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF000000))),
                     const SizedBox(height: 2),
-                    Text('Automated freight dispatch.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+                    Text('Automated freight dispatch.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
                   ],
                 ),
               ),
@@ -2735,7 +2735,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _warehouseAddressController,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
           decoration: _providerInputDecoration(hint: 'Not set'),
         ),
       ],
@@ -2751,7 +2751,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.account_balance_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Payments & Payouts', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Payments & Payouts', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
           ],
         ),
         const SizedBox(height: 16),
@@ -2759,7 +2759,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           icon: Icons.credit_card_outlined,
           title: 'Bank Account',
           value: 'Not set',
-          trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF667085)),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF000000)),
         ),
         const SizedBox(height: 12),
         Row(
@@ -2774,14 +2774,14 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE4E7EC)),
+                  border: Border.all(color: const Color(0xFFFFCCAA)),
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Amount', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
-                    Text('—', style: TextStyle(fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+                    Text('Amount', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
+                    Text('—', style: TextStyle(fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
                   ],
                 ),
               ),
@@ -2798,20 +2798,20 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E7EC)),
+        border: Border.all(color: const Color(0xFFFFCCAA)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF667085), size: 22),
+          Icon(icon, color: const Color(0xFF000000), size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+                Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
                 const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939))),
+                Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF000000))),
               ],
             ),
           ),
@@ -2830,7 +2830,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Icon(Icons.business_center_outlined, color: BoostDriveTheme.primaryColor, size: 22),
             const SizedBox(width: 10),
-            Text('Business Registration', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF1D2939))),
+            Text('Business Registration', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
           ],
         ),
         const SizedBox(height: 16),
@@ -2839,7 +2839,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE4E7EC)),
+            border: Border.all(color: const Color(0xFFFFCCAA)),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: Column(
@@ -2850,19 +2850,19 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Text('Verification Status', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+                  Text('Verification Status', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
                   const Spacer(),
                   Row(
                     children: [
                       Icon(
                         profile.verificationStatus == 'verified' ? Icons.check_circle : Icons.pending_outlined,
                         size: 18,
-                        color: profile.verificationStatus == 'verified' ? Colors.green : const Color(0xFF667085),
+                        color: profile.verificationStatus == 'verified' ? Colors.green : const Color(0xFF000000),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         profile.verificationStatus.isEmpty ? '—' : profile.verificationStatus.toUpperCase(),
-                        style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939)),
+                        style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF000000)),
                       ),
                     ],
                   ),
@@ -2878,9 +2878,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   Widget _providerKeyValue(String key, String value) {
     return Row(
       children: [
-        Text(key, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085))),
+        Text(key, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
         const Spacer(),
-        Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
+        Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF000000))),
       ],
     );
   }
@@ -3015,7 +3015,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF7F9FB),
+          backgroundColor: const Color(0xFFFFFFFF),
           appBar: AppBar(
             backgroundColor: BoostDriveTheme.primaryColor,
             elevation: 0,
@@ -3067,7 +3067,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 Text(
                   'BoostDrive Version 2.4.1 (1209)',
                   style: TextStyle(fontFamily: 'Manrope', 
-                    color: const Color(0xFF98A2B3),
+                    color: const Color(0xFF000000),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -3080,7 +3080,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       },
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
-        backgroundColor: const Color(0xFFF7F9FB),
+        backgroundColor: const Color(0xFFFFFFFF),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -3089,12 +3089,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(height: 16),
               Text(
                 'Oops! Something went wrong',
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF000000)),
               ),
               const SizedBox(height: 8),
               Text(
                 e.toString(),
-                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF667085)),
+                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -3136,7 +3136,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     ],
                   ),
                   child: CircleAvatar(
-                    backgroundColor: const Color(0xFFE4E7EC),
+                    backgroundColor: const Color(0xFFFFCCAA),
                     backgroundImage: _optimisticImage != null
                         ? MemoryImage(_optimisticImage!) as ImageProvider
                         : (!_isOptimisticDelete && profile.profileImg.isNotEmpty)
@@ -3190,7 +3190,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           style: TextStyle(fontFamily: 'Manrope', 
             fontSize: 24,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF1D2939),
+            color: const Color(0xFF000000),
           ),
         ),
         if (isProvider) ...[
@@ -3211,12 +3211,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               const SizedBox(width: 4),
               Text(
                 '—',
-                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF1D2939), fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000), fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(width: 8),
               Text(
                 '(— reviews)',
-                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF667085), fontSize: 12),
+                style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000), fontSize: 12),
               ),
             ],
           ),
@@ -3228,7 +3228,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF667085),
+              color: const Color(0xFF000000),
             ),
           ),
       ],
@@ -3244,7 +3244,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           style: TextStyle(fontFamily: 'Manrope', 
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF667085),
+            color: const Color(0xFF000000),
             letterSpacing: 0.5,
           ),
         ),
@@ -3254,7 +3254,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFF2F4F7)),
+            border: Border.all(color: const Color(0xFFFFFFFF)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3264,7 +3264,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
               ),
               const SizedBox(height: 16),
@@ -3274,7 +3274,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _registeredBusinessNameController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(
                   hint: 'Official BIPA name e.g. Mubiana Mechanical Services CC',
                 ),
@@ -3286,7 +3286,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _tradingNameController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(
                   hint: 'Name customers see, e.g. The Turbo Doc',
                 ),
@@ -3314,7 +3314,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             readOnly: !_isProviderEditMode,
                             enabled: _isProviderEditMode,
                             keyboardType: TextInputType.phone,
-                            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                             decoration: _providerInputDecoration(
                               hint: 'Office WhatsApp or landline',
                             ),
@@ -3359,7 +3359,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 value: _businessType,
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
                 dropdownColor: Colors.white,
                 items: const [
@@ -3367,21 +3367,21 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     value: 'cc',
                     child: Text(
                       'Close Corporation (CC)',
-                      style: TextStyle(color: Color(0xFF1D2939)),
+                      style: TextStyle(color: Color(0xFF000000)),
                     ),
                   ),
                   DropdownMenuItem(
                     value: 'pty_ltd',
                     child: Text(
                       'Private Company (Pty Ltd)',
-                      style: TextStyle(color: Color(0xFF1D2939)),
+                      style: TextStyle(color: Color(0xFF000000)),
                     ),
                   ),
                   DropdownMenuItem(
                     value: 'sole_prop',
                     child: Text(
                       'Sole Proprietor',
-                      style: TextStyle(color: Color(0xFF1D2939)),
+                      style: TextStyle(color: Color(0xFF000000)),
                     ),
                   ),
                 ],
@@ -3398,7 +3398,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _registrationNumberController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(
                   hint: 'e.g. CC/2026/0123',
                 ),
@@ -3409,7 +3409,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
               ),
               const SizedBox(height: 16),
@@ -3420,7 +3420,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
                 keyboardType: TextInputType.number,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(hint: 'e.g. 5'),
               ),
               const SizedBox(height: 16),
@@ -3430,7 +3430,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 value: _primaryServiceCategory,
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
                 dropdownColor: Colors.white,
                 items: const [
@@ -3438,35 +3438,35 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     value: 'mechanic',
                     child: Text(
                       'Mechanics',
-                      style: TextStyle(color: Color(0xFF1D2939)),
+                      style: TextStyle(color: Color(0xFF000000)),
                     ),
                   ),
                   DropdownMenuItem(
                     value: 'towing',
                     child: Text(
                       'Towing',
-                      style: TextStyle(color: Color(0xFF1D2939)),
+                      style: TextStyle(color: Color(0xFF000000)),
                     ),
                   ),
                   DropdownMenuItem(
                     value: 'electrical',
                     child: Text(
                       'Electrical',
-                      style: TextStyle(color: Color(0xFF1D2939)),
+                      style: TextStyle(color: Color(0xFF000000)),
                     ),
                   ),
                   DropdownMenuItem(
                     value: 'tires',
                     child: Text(
                       'Tires',
-                      style: TextStyle(color: Color(0xFF1D2939)),
+                      style: TextStyle(color: Color(0xFF000000)),
                     ),
                   ),
                   DropdownMenuItem(
                     value: 'parts',
                     child: Text(
                       'Parts Supply',
-                      style: TextStyle(color: Color(0xFF1D2939)),
+                      style: TextStyle(color: Color(0xFF000000)),
                     ),
                   ),
                 ],
@@ -3483,7 +3483,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 keyboardType: TextInputType.number,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(hint: 'Number of staff on your team'),
               ),
               const SizedBox(height: 24),
@@ -3492,7 +3492,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
               ),
               const SizedBox(height: 16),
@@ -3502,7 +3502,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _workshopAddressController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(hint: 'Registered base of operations'),
               ),
               const SizedBox(height: 16),
@@ -3512,7 +3512,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _socialFacebookController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(hint: 'Facebook business page URL'),
               ),
               const SizedBox(height: 8),
@@ -3520,7 +3520,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _socialInstagramController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(hint: 'Instagram handle / URL'),
               ),
               const SizedBox(height: 8),
@@ -3528,7 +3528,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _websiteUrlController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939)),
+                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
                 decoration: _providerInputDecoration(hint: 'Website URL (optional)'),
               ),
             ],
@@ -3542,7 +3542,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
-          border: isLast ? null : const Border(right: BorderSide(color: Color(0xFFF2F4F7))),
+          border: isLast ? null : const Border(right: BorderSide(color: Color(0xFFFFFFFF))),
         ),
         child: Column(
           children: [
@@ -3551,7 +3551,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF98A2B3),
+                color: const Color(0xFF000000),
                 letterSpacing: 0.5,
               ),
             ),
@@ -3561,7 +3561,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF1D2939),
+                color: const Color(0xFF000000),
               ),
             ),
           ],
@@ -3585,7 +3585,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF667085),
+                color: const Color(0xFF000000),
                 letterSpacing: 0.5,
               ),
             ),
@@ -3610,7 +3610,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFF2F4F7)),
+            border: Border.all(color: const Color(0xFFFFFFFF)),
           ),
           child: Column(
             children: [
@@ -3635,14 +3635,14 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: Row(
                   children: [
-                    Icon(Icons.contact_phone_outlined, size: 16, color: const Color(0xFF667085)),
+                    Icon(Icons.contact_phone_outlined, size: 16, color: const Color(0xFF000000)),
                     const SizedBox(width: 8),
                     Text(
                       'CONTACT DETAILS',
                       style: TextStyle(fontFamily: 'Manrope', 
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF667085),
+                        color: const Color(0xFF000000),
                         letterSpacing: 0.6,
                       ),
                     ),
@@ -3711,12 +3711,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   },
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 48),
-                    side: const BorderSide(color: Color(0xFFD0D5DD)),
+                    side: const BorderSide(color: Color(0xFFFFCCAA)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
                     'Cancel',
-                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF344054)),
+                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF000000)),
                   ),
                 ),
               ),
@@ -3761,7 +3761,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF2F4F7),
+              color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 20),
@@ -3776,14 +3776,14 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   style: TextStyle(fontFamily: 'Manrope', 
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1D2939),
+                    color: const Color(0xFF000000),
                   ),
                 ),
                 if (isEditable)
                   TextField(
                     controller: controller,
                     focusNode: focusNode,
-                    style: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: const Color(0xFF667085)),
+                    style: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: const Color(0xFF000000)),
                     decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                   )
                 else
@@ -3792,7 +3792,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF667085),
+                      color: const Color(0xFF000000),
                     ),
                   ),
               ],
@@ -3800,7 +3800,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           ),
           if (trailingAction != null) trailingAction,
           if (trailingAction == null && isEditable)
-            const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFD0D5DD)),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFFFCCAA)),
         ],
       ),
     );
@@ -3858,7 +3858,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1D2939),
+                              color: const Color(0xFF000000),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -3867,7 +3867,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF667085),
+                              color: const Color(0xFF000000),
                             ),
                           ),
                         ],
@@ -3892,7 +3892,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             if (_isEditing)
                               TextField(
                                 controller: _emergencyNameController,
-                                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1D2939)),
+                                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF000000)),
                                 decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: 'Contact Name'),
                               )
                             else
@@ -3901,13 +3901,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                                 style: TextStyle(fontFamily: 'Manrope', 
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1D2939),
+                                  color: const Color(0xFF000000),
                                 ),
                               ),
                             if (_isEditing)
                               TextField(
                                 controller: _emergencyPhoneController,
-                                style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF667085)),
+                                style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF000000)),
                                 decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: 'Phone Number'),
                               )
                             else
@@ -3916,7 +3916,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                                 style: TextStyle(fontFamily: 'Manrope', 
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF667085),
+                                  color: const Color(0xFF000000),
                                 ),
                               ),
                           ],
@@ -3985,7 +3985,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               style: TextStyle(fontFamily: 'Manrope', 
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF667085),
+                color: const Color(0xFF000000),
                 letterSpacing: 0.5,
               ),
             ),
@@ -4001,7 +4001,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFF2F4F7)),
+            border: Border.all(color: const Color(0xFFFFFFFF)),
           ),
           child: Column(
             children: [
@@ -4053,7 +4053,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               minimumSize: const Size(0, 48),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: Text('Cancel', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF344054))),
+            child: Text('Cancel', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF000000))),
           ),
         ),
         const SizedBox(width: 12),
@@ -4083,7 +4083,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           style: TextStyle(fontFamily: 'Manrope', 
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF667085),
+            color: const Color(0xFF000000),
             letterSpacing: 0.5,
           ),
         ),
@@ -4091,7 +4091,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         Container(
           padding: const EdgeInsets.all(24), // Consistent Padding 24
           decoration: BoxDecoration(
-            color: const Color(0xFF1D2939),
+            color: const Color(0xFF000000),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -4166,7 +4166,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 24),
         Text(
           'BoostDrive Admin v1.0.4',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF98A2B3)),
+          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF000000)),
         ),
       ],
     );
@@ -4187,7 +4187,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           // Icon with centered vertical alignment and fixed 24px width
           SizedBox(
             width: 24,
-            child: Icon(icon, color: const Color(0xFF667085), size: 20),
+            child: Icon(icon, color: const Color(0xFF000000), size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -4195,15 +4195,15 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF667085))),
+                Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF000000))),
                 if (isEditable)
                   TextField(
                     controller: controller,
-                    style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939)),
+                    style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF000000)),
                     decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                   )
                 else
-                  Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
+                  Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF000000))),
               ],
             ),
           ),

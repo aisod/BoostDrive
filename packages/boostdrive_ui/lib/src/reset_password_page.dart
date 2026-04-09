@@ -162,12 +162,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   InputDecoration _inputDecoration(String hint, IconData icon, {bool isPassword = false}) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, color: Colors.white24),
+      prefixIcon: Icon(icon, color: Color(0x22FF6600)),
       suffixIcon: isPassword 
         ? IconButton(
             icon: Icon(
               _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-              color: Colors.white24,
+              color: Color(0x22FF6600),
             ),
             onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
           )

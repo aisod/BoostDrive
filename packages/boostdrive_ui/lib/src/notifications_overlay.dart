@@ -297,12 +297,12 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1D2939),
+                      color: const Color(0xFF000000),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Color(0xFF667085)),
+                    icon: const Icon(Icons.close, color: Color(0xFF000000)),
                   ),
                 ],
               ),
@@ -348,7 +348,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TabBar(
@@ -358,7 +358,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                   borderRadius: BorderRadius.circular(12),
                 ),
                 labelColor: Colors.white,
-                unselectedLabelColor: const Color(0xFF667085),
+                unselectedLabelColor: const Color(0xFF000000),
                 labelStyle: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14),
                 unselectedLabelStyle: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600, fontSize: 14),
                 dividerColor: Colors.transparent,
@@ -379,9 +379,9 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
               child: Container(
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
+                  color: const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE4E7EC)),
+                  border: Border.all(color: const Color(0xFFFFCCAA)),
                 ),
                 child: TextField(
                   controller: _searchController,
@@ -389,9 +389,9 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     hintText: 'Search notifications...',
                     hintStyle: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 14,
-                      color: const Color(0xFF98A2B3),
+                      color: const Color(0xFF000000),
                     ),
-                    prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF667085)),
+                    prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF000000)),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
@@ -411,7 +411,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 data: (convs) => unreadConvsAsync.when(
                   data: (unreadIds) => deliveriesAsync.when(
                     data: (dels) => sosAsync.when(
-                      data: (sos) => ref.watch(userNotificationsProvider(user.id)).when(
+                      data: (sos) => ref.watch(userNotificationsStreamProvider(user.id)).when(
                         data: (sys) {
                           final filtered = _processNotifications(user.id, convs, unreadIds, dels, sos, sys);
                           if (filtered.isEmpty) {
@@ -438,7 +438,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 // If Realtime WebSocket fails, gracefully show system notifications only
-                error: (e, _) => ref.watch(userNotificationsProvider(user.id)).when(
+                error: (e, _) => ref.watch(userNotificationsStreamProvider(user.id)).when(
                   data: (sys) {
                     final unread = sys.where((n) => n['is_read'] == false).toList();
                     final toShow = _getFilteredNotifications(sys);
@@ -468,13 +468,13 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_none, size: 64, color: Colors.grey[300]),
+          Icon(Icons.notifications_none, size: 64, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
           const SizedBox(height: 16),
           Text(
             'No notifications',
             style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 16,
-              color: const Color(0xFF98A2B3),
+              color: const Color(0xFF000000),
             ),
           ),
         ],
@@ -496,7 +496,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
               height: 40,
               decoration: BoxDecoration(
                 color: notification['isRead'] 
-                    ? const Color(0xFFF9FAFB) 
+                    ? const Color(0xFFFFFFFF) 
                     : (notification['iconColor'] != null 
                         ? (notification['iconColor'] as Color).withValues(alpha: 0.1)
                         : BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
@@ -506,7 +506,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 notification['icon'],
                 size: 20,
                 color: notification['isRead'] 
-                    ? const Color(0xFF667085) 
+                    ? const Color(0xFF000000) 
                     : (notification['iconColor'] ?? BoostDriveTheme.primaryColor),
               ),
             ),
@@ -523,7 +523,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                           style: TextStyle(fontFamily: 'Manrope', 
                             fontSize: 14,
                             fontWeight: notification['isRead'] ? FontWeight.w600 : FontWeight.w800,
-                            color: const Color(0xFF1D2939),
+                            color: const Color(0xFF000000),
                           ),
                         ),
                       ),
@@ -543,7 +543,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     notification['message'],
                     style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 13,
-                      color: const Color(0xFF667085),
+                      color: const Color(0xFF000000),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -553,7 +553,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     notification['time'],
                     style: TextStyle(fontFamily: 'Manrope', 
                       fontSize: 12,
-                      color: const Color(0xFF98A2B3),
+                      color: const Color(0xFF000000),
                     ),
                   ),
                 ],
@@ -568,7 +568,9 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
   void _handleNotificationTap(Map<String, dynamic> notification) async {
     final type = notification['type'] as String?;
     final id = notification['id'] as String;
-    final realId = id.split('_').last;
+    final metadata = notification['metadata'] as Map<String, dynamic>?;
+    final ticketId = metadata?['ticket_id'] as String?;
+    final realId = ticketId ?? id.split('_').last;
 
     final user = ref.read(currentUserProvider);
 
@@ -580,7 +582,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       } else if (type == 'system' || type == 'verification' || type == 'account_verification') {
         await ref.read(notificationServiceProvider).markAsRead(realId);
         if (user != null) {
-          ref.invalidate(userNotificationsProvider(user.id));
+          ref.invalidate(userNotificationsStreamProvider(user.id));
         }
       }
     } catch (e) {
@@ -589,11 +591,19 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
 
     if (!mounted) return;
     
-    // Show the detailed popup before closing the overlay
+    // Show the detailed popup only - NO deep linking or navigation
     _showNotificationDetailDialog(notification);
   }
 
   void _showNotificationDetailDialog(Map<String, dynamic> notification) {
+    final title = (notification['title'] ?? '').toString().toLowerCase();
+    final message = (notification['message'] ?? '').toString().toLowerCase();
+    final isSupport = notification['type'] == 'support' || 
+                      title.contains('support') || 
+                      message.contains('support') || 
+                      message.contains('help') ||
+                      title.contains('ticket');
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -626,17 +636,17 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                     children: [
                       Text(
                         notification['title'] ?? 'Notification',
-                        style: TextStyle(fontFamily: 'Manrope', 
+                        style: const TextStyle(fontFamily: 'Manrope', 
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF1D2939),
+                          color: Color(0xFF000000),
                         ),
                       ),
                       Text(
                         notification['time'] ?? 'Just now',
-                        style: TextStyle(fontFamily: 'Manrope', 
+                        style: const TextStyle(fontFamily: 'Manrope', 
                           fontSize: 12,
-                          color: const Color(0xFF98A2B3),
+                          color: Color(0xFF000000),
                         ),
                       ),
                     ],
@@ -644,49 +654,20 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Color(0xFF98A2B3)),
+                  icon: const Icon(Icons.close, color: Color(0xFF000000)),
                 ),
               ],
             ),
             const SizedBox(height: 24),
             Text(
               notification['message'] ?? '',
-              style: TextStyle(fontFamily: 'Manrope', 
+              style: const TextStyle(fontFamily: 'Manrope', 
                 fontSize: 15,
-                color: const Color(0xFF475467),
+                color: Color(0xFF000000),
                 height: 1.6,
               ),
             ),
-            if (notification['type'] == 'message') ...[
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context); // Close detail
-                    Navigator.pop(this.context); // Close overlay
-                    
-                    final type = notification['type'] as String?;
-                    final id = notification['id'] as String;
-                    final realId = id.split('_').last;
-                    
-                    if (widget.onNotificationTap != null) {
-                      widget.onNotificationTap!(type ?? '', realId);
-                    }
-                  },
-                  icon: const Icon(Icons.chat_bubble_outline, size: 20),
-                  label: const Text('Go to Chat'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                    textStyle: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ],
+            const SizedBox(height: 8), // Small buffer at the bottom
           ],
         ),
       ),
@@ -703,7 +684,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       await ref.read(notificationServiceProvider).markAllAsRead(userId);
       if (!mounted) return;
       ref.invalidate(unreadConversationsProvider(userId));
-      ref.invalidate(userNotificationsProvider(userId));
+      ref.invalidate(userNotificationsStreamProvider(userId));
       if (!mounted) return;
       setState(() => _isMarkingAllAsRead = false);
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(

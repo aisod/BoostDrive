@@ -384,7 +384,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                       onPressed: _handleClose,
                       icon: const Icon(Icons.close, color: Colors.white, size: 24),
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.black26,
+                        backgroundColor: Color(0x22FF6600),
                         shape: const CircleBorder(),
                       ),
                     ),
@@ -667,7 +667,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(20),
                                         side: BorderSide(
-                                          color: selected ? BoostDriveTheme.primaryColor : Colors.white24,
+                                          color: selected ? BoostDriveTheme.primaryColor : Color(0x22FF6600),
                                           width: 1,
                                         ),
                                       ),
@@ -744,7 +744,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                           const Text(
                             'By tapping "Create Account", you agree to our Terms of Service and Privacy Policy.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white24, fontSize: 11),
+                            style: TextStyle(color: Color(0x22FF6600), fontSize: 11),
                           ),
                           const SizedBox(height: 16),
                           Center(
@@ -860,7 +860,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(color: selected ? BoostDriveTheme.primaryColor : Colors.white10),
+                                  side: BorderSide(color: selected ? BoostDriveTheme.primaryColor : Color(0x22FF6600)),
                                 ),
                               ),
                             );
@@ -1063,7 +1063,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
             Text(
               subtitle,
               style: GoogleFonts.poppins(
-                color: isSelected ? Colors.white54 : Colors.white24,
+                color: isSelected ? Colors.white54 : Color(0x22FF6600),
                 fontSize: 12,
               ),
             ),
@@ -1345,7 +1345,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
           : null,
       filled: true,
       fillColor: Colors.white.withValues(alpha: 0.03),
-      hintStyle: GoogleFonts.poppins(color: Colors.white24, fontSize: 14),
+      hintStyle: GoogleFonts.poppins(color: Color(0x22FF6600), fontSize: 14),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

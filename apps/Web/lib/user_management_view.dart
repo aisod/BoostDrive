@@ -234,7 +234,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           width: 300,
           height: 40,
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F4F7),
+            color: const Color(0xFFFFFFFF),
             borderRadius: BorderRadius.circular(8),
           ),
           child: TextField(
@@ -269,7 +269,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F4F7),
+            color: const Color(0xFFFFFFFF),
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonHideUnderline(
@@ -292,7 +292,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F4F7),
+            color: const Color(0xFFFFFFFF),
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonHideUnderline(
@@ -342,7 +342,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
     return Column(
       children: [
         Container(
-          color: const Color(0xFFF2F4F7),
+          color: const Color(0xFFFFFFFF),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Row(
             children: [
@@ -423,8 +423,8 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                  child: Text(u.role == 'customer' ? 'CUSTOMER' : u.role.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.blue)),
+                  decoration: BoxDecoration(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                  child: Text(u.role == 'customer' ? 'CUSTOMER' : u.role.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
                 ),
               ],
             ),
@@ -481,7 +481,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
         const SizedBox(width: 10),
         IconButton(
           onPressed: () => _viewAuditLogs(u),
-          icon: const Icon(Icons.history, size: 18, color: Colors.blueGrey),
+          icon: const Icon(Icons.history, size: 18, color: BoostDriveTheme.textDim),
           tooltip: 'Security Audit Logs',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
@@ -489,7 +489,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
         const SizedBox(width: 10),
         IconButton(
           onPressed: () => _viewTransactionHistory(u),
-          icon: const Icon(Icons.receipt_long_outlined, size: 18, color: Color(0xFF667085)),
+          icon: const Icon(Icons.receipt_long_outlined, size: 18, color: Color(0xFF000000)),
           tooltip: 'Transaction History',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
@@ -512,7 +512,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
       case 'suspended':
       case 'banned': return Colors.red.shade700;
       case 'frozen': return Colors.orange.shade800;
-      default: return Colors.grey.shade700;
+      default: return BoostDriveTheme.primaryColor.withValues(alpha: 0.1);
     }
   }
 
@@ -569,7 +569,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                       const SizedBox(height: 32),
                       if (u.role.contains('provider')) ...[
                         _buildSectionTitle('EXPERTISE & SERVICES'),
-                        _buildChipSection('Primary Category', [u.primaryServiceCategory ?? 'Other'], color: Colors.blue),
+                        _buildChipSection('Primary Category', [u.primaryServiceCategory ?? 'Other'], color: BoostDriveTheme.primaryColor),
                         const SizedBox(height: 16),
                         _buildChipSection('Service Specialties', u.serviceTags, color: BoostDriveTheme.primaryColor),
                         const SizedBox(height: 16),
@@ -578,19 +578,21 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                         _buildChipSection('Towing Capabilities', u.towingCapabilities, color: Colors.orange),
                         const SizedBox(height: 32),
                       ],
-                      _buildSectionTitle('OPERATIONS & FINANCE'),
-                      Wrap(
-                        spacing: 40,
-                        runSpacing: 24,
-                        children: [
-                          _buildDetailItem('Working Hours', u.workingHours ?? 'N/A'),
-                          _buildDetailItem('24/7 Service', (u.businessHours24_7 ?? false) ? 'YES' : 'NO'),
-                          _buildDetailItem('Service Radius', u.serviceRadiusKm != null ? '${u.serviceRadiusKm} km' : 'N/A'),
-                          _buildDetailItem('Labor Rate', u.standardLaborRate != null ? 'N\$${u.standardLaborRate}/hr' : 'N/A'),
-                          _buildDetailItem('Team Size', u.teamSize?.toString() ?? 'N/A'),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
+                      if (u.role.contains('provider') || u.role.contains('mechanic') || u.role.contains('towing')) ...[
+                        _buildSectionTitle('OPERATIONS & FINANCE'),
+                        Wrap(
+                          spacing: 40,
+                          runSpacing: 24,
+                          children: [
+                            _buildDetailItem('Working Hours', u.workingHours ?? 'N/A'),
+                            _buildDetailItem('24/7 Service', (u.businessHours24_7 ?? false) ? 'YES' : 'NO'),
+                            _buildDetailItem('Service Radius', u.serviceRadiusKm != null ? '${u.serviceRadiusKm} km' : 'N/A'),
+                            _buildDetailItem('Labor Rate', u.standardLaborRate != null ? 'N\$${u.standardLaborRate}/hr' : 'N/A'),
+                            _buildDetailItem('Team Size', u.teamSize?.toString() ?? 'N/A'),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                      ],
                       if ((u.businessBio != null && u.businessBio!.isNotEmpty) || (u.storeBiography != null && u.storeBiography!.isNotEmpty)) ...[
                         _buildSectionTitle('BUSINESS BIO'),
                         Text(
@@ -615,7 +617,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF2F4F7),
+                        backgroundColor: const Color(0xFFFFFFFF),
                         foregroundColor: Colors.black87,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -636,7 +638,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
   Widget _buildDialogHeader(UserProfile u) {
     return Container(
       padding: const EdgeInsets.all(24),
-      color: const Color(0xFFF9FAFB),
+      color: const Color(0xFFFFFFFF),
       child: Row(
         children: [
           CircleAvatar(
@@ -654,7 +656,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    _buildBadge(u.role.toUpperCase(), Colors.blue),
+                    _buildBadge(u.role.toUpperCase(), BoostDriveTheme.primaryColor),
                     const SizedBox(width: 8),
                     _buildBadge(u.verificationStatus.toUpperCase(), u.verificationStatus == 'approved' ? Colors.green : Colors.orange),
                     const SizedBox(width: 8),
@@ -683,7 +685,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           const SizedBox(height: 4),
           Text(
             value.isEmpty ? 'N/A' : value,
-            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: isLink ? Colors.blue : Colors.black87, decoration: isLink ? TextDecoration.underline : null),
+            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: isLink ? BoostDriveTheme.primaryColor : Colors.black87, decoration: isLink ? TextDecoration.underline : null),
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -744,7 +746,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                   controller: controller,
                   decoration: InputDecoration(
                     hintText: 'e.g. Non-compliance with safety standards',
-                    hintStyle: const TextStyle(fontSize: 13, color: Colors.black26),
+                    hintStyle: const TextStyle(fontSize: 13, color: Color(0x22FF6600)),
                     filled: true,
                     fillColor: Colors.black.withValues(alpha: 0.05),
                     border: OutlineInputBorder(
@@ -761,7 +763,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+              child: Text('Cancel', style: TextStyle(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1), fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -823,7 +825,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
-          Container(height: 4, width: 40, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2))),
+          Container(height: 4, width: 40, decoration: BoxDecoration(color: Color(0x22FF6600), borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
           ListTile(
             leading: const Icon(Icons.email_outlined, color: Colors.black87),
@@ -872,7 +874,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                 style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   hintText: 'Type your message here...',
-                  hintStyle: const TextStyle(fontSize: 14, color: Colors.black26),
+                  hintStyle: const TextStyle(fontSize: 14, color: Color(0x22FF6600)),
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -1006,8 +1008,8 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
             ),
             const Spacer(),
             CircleAvatar(
-              backgroundColor: Colors.blue.withValues(alpha: 0.1),
-              child: const Icon(Icons.security, color: Colors.blue, size: 20),
+              backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+              child: const Icon(Icons.security, color: BoostDriveTheme.primaryColor, size: 20),
             ),
           ],
         ),
@@ -1019,7 +1021,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.history_toggle_off, size: 48, color: Colors.black12),
+                    Icon(Icons.history_toggle_off, size: 48, color: Color(0x22FF6600)),
                     SizedBox(height: 16),
                     Text('No compliance records found.', style: TextStyle(color: Colors.black38)),
                   ],
@@ -1053,7 +1055,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: (isSystem ? Colors.grey : BoostDriveTheme.primaryColor).withValues(alpha: 0.1),
+                                  color: (isSystem ? BoostDriveTheme.primaryColor.withValues(alpha: 0.1) : BoostDriveTheme.primaryColor).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -1080,7 +1082,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                           // Granular Field-Level Changes
                           if (metadata.isNotEmpty) ...[
                             const SizedBox(height: 8),
-                            const Divider(height: 1, color: Colors.black12),
+                            const Divider(height: 1, color: Color(0x22FF6600)),
                             const SizedBox(height: 8),
                             ...metadata.entries.map((e) {
                               final val = e.value;
@@ -1090,7 +1092,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                                   child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.arrow_right, size: 16, color: Colors.blueGrey),
+                                      const Icon(Icons.arrow_right, size: 16, color: BoostDriveTheme.textDim),
                                       Expanded(
                                         child: RichText(
                                           text: TextSpan(
@@ -1116,13 +1118,13 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                           // Security Context
                           Row(
                             children: [
-                              const Icon(Icons.fingerprint, size: 12, color: Colors.blueGrey),
+                              const Icon(Icons.fingerprint, size: 12, color: BoostDriveTheme.textDim),
                               const SizedBox(width: 4),
                               Text(
                                 log['admin_id'] != null 
                                   ? 'Staff: ${log['admin_id'].toString().substring(0, 8).toUpperCase()}' 
                                   : 'System Trigger',
-                                style: const TextStyle(fontSize: 10, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                                style: const TextStyle(fontSize: 10, color: BoostDriveTheme.textDim, fontWeight: FontWeight.bold),
                               ),
                               const Spacer(),
                               if (log['ip_address'] != null) ...[
@@ -1174,7 +1176,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          backgroundColor: const Color(0xFF1D2939), // Dark background for premium look
+          backgroundColor: const Color(0xFF000000), // Dark background for premium look
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           titlePadding: EdgeInsets.zero,
           contentPadding: EdgeInsets.zero,
@@ -1351,7 +1353,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          backgroundColor: const Color(0xFF1D2939),
+          backgroundColor: const Color(0xFF000000),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           content: Container(
             width: 400,
@@ -1449,7 +1451,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
                       ? 'RESEND CODE IN ${resendCooldown}s' 
                       : (isResending ? 'SENDING...' : 'RESEND CODE'),
                     style: TextStyle(
-                      color: resendCooldown > 0 ? Colors.white24 : BoostDriveTheme.primaryColor,
+                      color: resendCooldown > 0 ? Color(0x22FF6600) : BoostDriveTheme.primaryColor,
                       fontWeight: FontWeight.w900,
                       fontSize: 12,
                       letterSpacing: 0.5,
@@ -1473,7 +1475,7 @@ class _UserManagementViewState extends ConsumerState<UserManagementView> {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1D2939),
+        backgroundColor: const Color(0xFF000000),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -1514,7 +1516,7 @@ Please change your password immediately after your first login.
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1D2939),
+        backgroundColor: const Color(0xFF000000),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: Container(
           width: 400,
@@ -1530,7 +1532,7 @@ Please change your password immediately after your first login.
               const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: const Color(0xFFFFFFFF), borderRadius: BorderRadius.circular(12)),
                 child: Text(inviteText, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.black87)),
               ),
               const SizedBox(height: 24),
@@ -1546,7 +1548,7 @@ Please change your password immediately after your first login.
                       label: const Text('COPY INVITE', style: TextStyle(color: Colors.white70)),
                       style: OutlinedButton.styleFrom(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        side: const BorderSide(color: Colors.white24),
+                        side: const BorderSide(color: Color(0x22FF6600)),
                       ),
                     ),
                   ),
@@ -1559,7 +1561,7 @@ Please change your password immediately after your first login.
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white10,
+                    backgroundColor: Color(0x22FF6600),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
@@ -1581,11 +1583,11 @@ Please change your password immediately after your first login.
   InputDecoration _adminInputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 13, color: Colors.black26),
+      hintStyle: const TextStyle(fontSize: 13, color: Color(0x22FF6600)),
       filled: true,
-      fillColor: const Color(0xFFF9FAFB),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
+      fillColor: const Color(0xFFFFFFFF),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFFFCCAA))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFFFCCAA))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
@@ -1679,7 +1681,7 @@ Please change your password immediately after your first login.
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   const Text('Payment System', style: TextStyle(fontSize: 11, color: Colors.black54)),
-                                  Text(txn['payment_method']?.toString().toUpperCase() ?? 'N/A', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                                  Text(txn['payment_method']?.toString().toUpperCase() ?? 'N/A', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BoostDriveTheme.textDim)),
                                 ],
                               ),
                               const SizedBox(width: 24),

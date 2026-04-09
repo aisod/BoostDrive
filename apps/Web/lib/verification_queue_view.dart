@@ -289,7 +289,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                   controller: controller,
                   decoration: InputDecoration(
                     hintText: 'e.g. Suspicious documents or fraudulent activity',
-                    hintStyle: const TextStyle(fontSize: 14, color: Colors.black26),
+                    hintStyle: const TextStyle(fontSize: 14, color: Color(0x22FF6600)),
                     filled: true,
                     fillColor: Colors.black.withValues(alpha: 0.05),
                     border: OutlineInputBorder(
@@ -306,7 +306,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+              child: Text('Cancel', style: TextStyle(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1), fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -399,7 +399,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                 style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   hintText: 'Type your message here...',
-                  hintStyle: const TextStyle(fontSize: 14, color: Colors.black26),
+                  hintStyle: const TextStyle(fontSize: 14, color: Color(0x22FF6600)),
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -557,11 +557,11 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
             onChanged: (v) => setState(() => _searchQuery = v.trim()),
             decoration: InputDecoration(
               hintText: 'Search by name, email or role...',
-              hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF98A2B3)),
-              prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF667085)),
+              hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF000000)),
+              prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF000000)),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.close, size: 18, color: Color(0xFF667085)),
+                      icon: const Icon(Icons.close, size: 18, color: Color(0xFF000000)),
                       onPressed: () {
                         _searchController.clear();
                         setState(() => _searchQuery = '');
@@ -592,7 +592,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: isSelected ? Colors.white : const Color(0xFF667085),
+                        color: isSelected ? Colors.white : const Color(0xFF000000),
                       ),
                     ),
                     selected: isSelected,
@@ -600,7 +600,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                       _selectedRoleFilter = role == 'All' ? null : role;
                     }),
                     selectedColor: BoostDriveTheme.primaryColor,
-                    backgroundColor: const Color(0xFFF2F4F7),
+                    backgroundColor: const Color(0xFFFFFFFF),
                     checkmarkColor: Colors.white,
                     showCheckmark: false,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -657,7 +657,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.search_off, size: 40, color: Colors.grey.shade300),
+                                Icon(Icons.search_off, size: 40, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
                                 const SizedBox(height: 8),
                                 Text(
                                   pending.isEmpty ? 'No providers pending verification.' : 'No results match your search.',
@@ -672,7 +672,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black12),
+                        separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0x22FF6600)),
                         itemBuilder: (context, index) => _buildQueueItem(filtered[index]),
                       );
                     },
@@ -761,8 +761,8 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(p.role.replaceAll('_', ' ').toUpperCase(), style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+                    decoration: BoxDecoration(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text(p.role.replaceAll('_', ' ').toUpperCase(), style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -920,11 +920,11 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                             const Text('Business Contact', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
                             const SizedBox(height: 8),
                             Text(p.businessContactNumber ?? 'N/A', style: const TextStyle(fontSize: 16, color: Colors.black87)),
-                            const Divider(height: 32, color: Colors.black12),
+                            const Divider(height: 32, color: Color(0x22FF6600)),
                             const Text('Business Registration', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
                             const SizedBox(height: 8),
                             const Text('Not Provided', style: TextStyle(fontSize: 16, color: Colors.black87)),
-                            const Divider(height: 32, color: Colors.black12),
+                            const Divider(height: 32, color: Color(0x22FF6600)),
                             const Text('Primary Category', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
                             const SizedBox(height: 8),
                             Text(p.primaryServiceCategory ?? 'Auto Repair', style: const TextStyle(fontSize: 16, color: Colors.black87)),
@@ -952,8 +952,8 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                     OutlinedButton(
                       onPressed: () => _showMessageDialog(p),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.blueGrey,
-                        side: const BorderSide(color: Colors.blueGrey),
+                        foregroundColor: BoostDriveTheme.textDim,
+                        side: const BorderSide(color: BoostDriveTheme.textDim),
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                       ),
                       child: const Text('Message Provider', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -1046,7 +1046,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
               children: [
                 Icon(
                   hasDoc ? Icons.description : Icons.description_outlined,
-                  color: hasDoc ? BoostDriveTheme.primaryColor : Colors.black26,
+                  color: hasDoc ? BoostDriveTheme.primaryColor : Color(0x22FF6600),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1067,7 +1067,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                   IconButton(
                     icon: Icon(
                       (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'approved' ? Icons.check_circle : Icons.check_circle_outline,
-                      color: (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'approved' ? Colors.green : Colors.grey,
+                      color: (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'approved' ? Colors.green : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                       size: 20,
                     ),
                     onPressed: () => _updateDocStatus(label.trim(), 'approved'),
@@ -1077,7 +1077,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                   IconButton(
                     icon: Icon(
                       (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'rejected' ? Icons.cancel : Icons.cancel_outlined,
-                      color: (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'rejected' ? Colors.red : Colors.grey,
+                      color: (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'rejected' ? Colors.red : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                       size: 20,
                     ),
                     onPressed: () => _showRejectionDialog(label.trim(), label.trim()),
@@ -1085,7 +1085,7 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                   ),
                   if ((_documentStatuses[label.trim()]?? '').isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.history, size: 20, color: Colors.blueGrey),
+                      icon: const Icon(Icons.history, size: 20, color: BoostDriveTheme.textDim),
                       onPressed: () => _undoDocStatus(label.trim()),
                       tooltip: 'Undo/Reset Status',
                     ),

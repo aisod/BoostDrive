@@ -65,7 +65,7 @@ class _NewArrivalsPageState extends ConsumerState<NewArrivalsPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.timer_off_outlined, size: 80, color: Colors.white10),
+                        const Icon(Icons.timer_off_outlined, size: 80, color: Color(0x22FF6600)),
                         const SizedBox(height: 24),
                         Text(
                           'No new listings yet today.',

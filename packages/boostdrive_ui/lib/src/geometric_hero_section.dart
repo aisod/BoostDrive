@@ -189,7 +189,7 @@ class BoostDriveHeroPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final orange = const Color(0xFFFF5F00); // Official Orange
     final orangeLighter = const Color(0xFFFF5F00).withValues(alpha: 0.7);
-    final dark = const Color(0xFF1A1A1A);
+    final dark = const Color(0xFFFFFFFF);
     final darkGrey = const Color(0xFF2C2C2C);
 
     final paintOrange = Paint()..color = orange..style = PaintingStyle.fill;

@@ -1164,7 +1164,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: const Color(0xFFFFFFFF),
         title: const Text('Delete Conversation', style: TextStyle(color: Colors.white)),
         content: Text(
           'Are you sure you want to delete this conversation? This action cannot be undone.',
@@ -1253,7 +1253,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
 
         return ListView.separated(
           itemCount: sortedConversations.length,
-          separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.white10),
+          separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0x22FF6600)),
           itemBuilder: (context, index) {
             final conv = sortedConversations[index];
             final isSelected = conv['id'] == _selectedConversationId;
@@ -1293,8 +1293,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: ref.watch(userProfileProvider(otherUserId)).when(
                 data: (profile) => _buildOtherUserAvatar(profile, radius: 20, darkBg: true),
-                loading: () => const CircleAvatar(backgroundColor: Colors.white10, child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (_, _) => const CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.white24)),
+                loading: () => const CircleAvatar(backgroundColor: Color(0x22FF6600), child: CircularProgressIndicator(strokeWidth: 2)),
+                error: (_, _) => const CircleAvatar(backgroundColor: Color(0x22FF6600), child: Icon(Icons.person, color: Color(0x22FF6600))),
               ),
               title: Row(
                   children: [
@@ -1387,7 +1387,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         Text(
                           _formatMessageDate(conv['created_at']),
                           style: TextStyle(
-                            color: isUnread ? BoostDriveTheme.primaryColor : (isSelected ? Colors.black54 : Colors.white24),
+                            color: isUnread ? BoostDriveTheme.primaryColor : (isSelected ? Colors.black54 : Color(0x22FF6600)),
                             fontSize: 10,
                             fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
                           ),
@@ -1456,7 +1456,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: const BoxDecoration(
                 color: BoostDriveTheme.primaryColor,
-                border: Border(bottom: BorderSide(color: Colors.white10)),
+                border: Border(bottom: BorderSide(color: Color(0x22FF6600))),
               ),
               child: Row(
                 children: [
@@ -1534,7 +1534,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             error: (err, _) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
           ),
         ),
-        const Divider(height: 1, color: Colors.white10),
+        const Divider(height: 1, color: Color(0x22FF6600)),
         _buildMessageInputBar(isSuspended: isSuspended),
       ],
     );
@@ -1604,7 +1604,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                       offset: const Offset(0, 2),
                     )
                   ],
-                  border: isMe ? null : Border.all(color: Colors.black12),
+                  border: isMe ? null : Border.all(color: Color(0x22FF6600)),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
@@ -1724,10 +1724,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.done_rounded, size: tickSize, color: Colors.grey.shade500),
+          Icon(Icons.done_rounded, size: tickSize, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
           Transform.translate(
             offset: const Offset(-4, 2),
-            child: Icon(Icons.done_rounded, size: tickSize, color: Colors.grey.shade500),
+            child: Icon(Icons.done_rounded, size: tickSize, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
           ),
         ],
       );
@@ -1737,7 +1737,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     return Icon(
       Icons.done_rounded,
       size: tickSize,
-      color: Colors.grey.shade400,
+      color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
     );
   }
 
@@ -1798,7 +1798,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 64, color: Colors.white24),
+          Icon(Icons.chat_bubble_outline, size: 64, color: Color(0x22FF6600)),
           SizedBox(height: 16),
           Text(
             'Select a conversation to start messaging',

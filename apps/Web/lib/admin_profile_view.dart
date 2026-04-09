@@ -163,7 +163,7 @@ class AdminProfileView extends ConsumerWidget {
                   children: [
                     Positioned.fill(
                       child: CircleAvatar(
-                        backgroundColor: const Color(0xFFF2F4F7),
+                        backgroundColor: const Color(0xFFFFFFFF),
                         backgroundImage: profile.profileImg.isNotEmpty
                             ? NetworkImage(profile.profileImg)
                             : null,
@@ -182,7 +182,7 @@ class AdminProfileView extends ConsumerWidget {
                     if (isUploading)
                       const Positioned.fill(
                         child: ColoredBox(
-                          color: Colors.black26,
+                          color: Color(0x22FF6600),
                           child: Center(
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                           ),
@@ -264,7 +264,7 @@ class AdminProfileView extends ConsumerWidget {
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
               ),
             ],
@@ -298,7 +298,7 @@ class AdminProfileView extends ConsumerWidget {
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
               ),
             ],
@@ -350,7 +350,7 @@ class AdminProfileView extends ConsumerWidget {
                 style: TextStyle(fontFamily: 'Manrope', 
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1D2939),
+                  color: const Color(0xFF000000),
                 ),
               ),
             ],
@@ -421,7 +421,7 @@ class AdminProfileView extends ConsumerWidget {
       children: [
         _statCard('REVIEWS PENDING', pending.toString(), Colors.orange),
         _statCard('ACTIVE SOS', activeSos.toString(), Colors.redAccent),
-        _statCard('VERIFIED SHOPS', verifiedCount.toString(), Colors.blue), 
+        _statCard('VERIFIED SHOPS', verifiedCount.toString(), BoostDriveTheme.primaryColor), 
         _statCard('SYSTEM UPTIME', uptime, Colors.green),
       ],
     );
@@ -454,7 +454,7 @@ class AdminProfileView extends ConsumerWidget {
             style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1D2939),
+              color: const Color(0xFF000000),
             ),
           ),
         ],
@@ -470,7 +470,7 @@ class AdminProfileView extends ConsumerWidget {
         children: [
           SizedBox(
             width: 24, // Consistent icon width
-            child: Icon(icon, size: 20, color: const Color(0xFF667085)),
+            child: Icon(icon, size: 20, color: const Color(0xFF000000)),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -478,9 +478,9 @@ class AdminProfileView extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF667085), fontWeight: FontWeight.w600)),
+                Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000), fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF1D2939), fontWeight: FontWeight.w700)),
+                Text(value, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000), fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -497,10 +497,10 @@ class AdminProfileView extends ConsumerWidget {
         children: [
           SizedBox(
             width: 24,
-            child: Icon(icon, size: 20, color: const Color(0xFF667085)),
+            child: Icon(icon, size: 20, color: const Color(0xFF000000)),
           ),
           const SizedBox(width: 16),
-          Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF667085), fontWeight: FontWeight.w600)),
+          Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000), fontWeight: FontWeight.w600)),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -529,8 +529,8 @@ class AdminProfileView extends ConsumerWidget {
             decoration: const BoxDecoration(color: BoostDriveTheme.primaryColor, shape: BoxShape.circle),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: const Color(0xFF344054)))),
-          Text(time, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF98A2B3))),
+          Expanded(child: Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: const Color(0xFF000000)))),
+          Text(time, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
         ],
       ),
     );
@@ -549,11 +549,11 @@ class AdminProfileView extends ConsumerWidget {
             );
           },
           icon: const Icon(Icons.edit_outlined),
-          label: const Text('Edit Profile', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: Color(0xFF344054))),
+          label: const Text('Edit Profile', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: Color(0xFF000000))),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            side: const BorderSide(color: Color(0xFFD0D5DD)),
+            side: const BorderSide(color: Color(0xFFFFCCAA)),
           ),
         ),
       ],
@@ -571,7 +571,7 @@ class AdminProfileView extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
-          Container(height: 4, width: 40, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+          Container(height: 4, width: 40, decoration: BoxDecoration(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 24),
           const Text('Profile Photo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 24),

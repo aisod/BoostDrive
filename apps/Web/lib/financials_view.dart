@@ -633,7 +633,7 @@ class FinancialsView extends ConsumerWidget {
                 final colors = [
                   BoostDriveTheme.primaryColor,
                   Colors.purpleAccent,
-                  Colors.blueAccent,
+                  BoostDriveTheme.primaryColor,
                   Colors.tealAccent.shade700,
                   Colors.deepOrangeAccent,
                 ];
@@ -769,7 +769,7 @@ class FinancialsView extends ConsumerWidget {
                   ),
                   const SizedBox(height: 20),
                   _buildStatRow('With Banking Details', withBanking.toString(),
-                      Colors.blueAccent, Icons.account_balance_rounded),
+                      BoostDriveTheme.primaryColor, Icons.account_balance_rounded),
                   const SizedBox(height: 12),
                   _buildStatRow('With Labor Rate Set', withLaborRate.toString(),
                       Colors.purpleAccent, Icons.attach_money_rounded),
@@ -795,7 +795,7 @@ class FinancialsView extends ConsumerWidget {
                           backgroundColor:
                               Colors.black.withValues(alpha: 0.05),
                           valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.blueAccent),
+                              BoostDriveTheme.primaryColor),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -900,7 +900,7 @@ class FinancialsView extends ConsumerWidget {
                           child: Text(
                             c, 
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Color(0xFF1D2939), fontWeight: FontWeight.w600), // Fix: Ensure text visibility
+                            style: const TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.w600), // Fix: Ensure text visibility
                           ),
                         )).toList(),
                       ),
@@ -932,7 +932,7 @@ class FinancialsView extends ConsumerWidget {
                           value: s, 
                           child: Text(
                             s,
-                            style: const TextStyle(color: Color(0xFF1D2939), fontWeight: FontWeight.w600), // Fix: Ensure text visibility
+                            style: const TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.w600), // Fix: Ensure text visibility
                           ),
                         )).toList(),
                       ),
@@ -1183,7 +1183,7 @@ class FinancialsView extends ConsumerWidget {
                             decoration: BoxDecoration(
                               color: readyForPayout
                                   ? Colors.green.withValues(alpha: 0.1)
-                                  : Colors.grey.withValues(alpha: 0.1),
+                                  : BoostDriveTheme.primaryColor.withValues(alpha: 0.1).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -1456,7 +1456,7 @@ class FinancialsView extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 40, color: Colors.black12),
+            Icon(icon, size: 40, color: Color(0x22FF6600)),
             const SizedBox(height: 12),
             Text(title,
                 style: TextStyle(fontFamily: 'Manrope', 

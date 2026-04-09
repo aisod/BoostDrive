@@ -10,6 +10,9 @@ class Product {
   /// How many times the listing was opened/clicked. Null if DB has no column or value.
   final int? clickCount;
   
+  /// How many times the listing was saved/liked. Null if DB has no column or value.
+  final int? saveCount;
+  
   // REAL DATA FIELDS
   final String condition; // 'new', 'used', 'salvage'
   final String status; // 'active', 'sold', 'draft'
@@ -17,6 +20,7 @@ class Product {
   final String? sellerId;
   final DateTime? createdAt;
   final String description;
+  final String? rejectionReason;
 
   const Product({
     required this.id,
@@ -28,12 +32,14 @@ class Product {
     this.isFeatured = false,
     required this.category,
     this.clickCount,
+    this.saveCount,
     this.condition = 'used',
     this.status = 'active',
     this.fitment,
     this.sellerId,
     this.createdAt,
     this.description = '',
+    this.rejectionReason,
   });
 
   String get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : '';
@@ -60,6 +66,7 @@ class Product {
       isFeatured: data['is_featured'] ?? false,
       category: data['category'] ?? 'car',
       clickCount: _parseClickCount(data['click_count'] ?? data['clickCount']),
+      saveCount: _parseClickCount(data['save_count'] ?? data['saveCount']),
       condition: data['condition'] ?? 'used',
       status: data['status'] ?? 'active',
       fitment: data['fitment'] != null ? Map<String, dynamic>.from(data['fitment']) : null,
@@ -68,6 +75,7 @@ class Product {
           ? DateTime.tryParse(data['created_at'].toString()) 
           : null,
       description: data['description'] ?? '',
+      rejectionReason: data['rejection_reason'],
     );
   }
 
@@ -82,12 +90,14 @@ class Product {
       'is_featured': isFeatured,
       'category': category,
       if (clickCount != null) 'click_count': clickCount,
+      if (saveCount != null) 'save_count': saveCount,
       'condition': condition,
       'status': status,
       if (fitment != null) 'fitment': fitment,
       if (sellerId != null) 'seller_id': sellerId,
       'created_at': (createdAt ?? DateTime.now()).toIso8601String(),
       'description': description,
+      if (rejectionReason != null) 'rejection_reason': rejectionReason,
     };
   }
 
@@ -101,12 +111,14 @@ class Product {
     bool? isFeatured,
     String? category,
     int? clickCount,
+    int? saveCount,
     String? condition,
     String? status,
     Map<String, dynamic>? fitment,
     String? sellerId,
     DateTime? createdAt,
     String? description,
+    String? rejectionReason,
   }) {
     return Product(
       id: id ?? this.id,
@@ -118,12 +130,14 @@ class Product {
       isFeatured: isFeatured ?? this.isFeatured,
       category: category ?? this.category,
       clickCount: clickCount ?? this.clickCount,
+      saveCount: saveCount ?? this.saveCount,
       condition: condition ?? this.condition,
       status: status ?? this.status,
       fitment: fitment ?? this.fitment,
       sellerId: sellerId ?? this.sellerId,
       createdAt: createdAt ?? this.createdAt,
       description: description ?? this.description,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
     );
   }
 }

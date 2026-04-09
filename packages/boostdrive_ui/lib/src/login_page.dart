@@ -667,7 +667,7 @@ class _ForgotPasswordFlowState extends ConsumerState<_ForgotPasswordFlow> {
                   decoration: const InputDecoration(
                     hintText: 'Email Address',
                     hintStyle: TextStyle(color: Colors.white38),
-                    prefixIcon: Icon(Icons.email_outlined, color: Colors.white24),
+                    prefixIcon: Icon(Icons.email_outlined, color: Color(0x22FF6600)),
                   ),
                 )
               else
@@ -679,7 +679,7 @@ class _ForgotPasswordFlowState extends ConsumerState<_ForgotPasswordFlow> {
                   maxLength: 6,
                   decoration: const InputDecoration(
                     hintText: '000000',
-                    hintStyle: TextStyle(color: Colors.white10),
+                    hintStyle: TextStyle(color: Color(0x22FF6600)),
                     counterText: '',
                   ),
                 ),

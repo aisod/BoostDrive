@@ -144,7 +144,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                         _currentProduct.imageUrls[index],
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[900],
+                          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                           child: const Icon(Icons.broken_image, size: 100),
                         ),
                       );
@@ -264,7 +264,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                               minimumSize: const Size(double.infinity, 56),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                side: const BorderSide(color: Colors.white10),
+                                side: const BorderSide(color: Color(0x22FF6600)),
                               ),
                             ),
                           ),
@@ -311,7 +311,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    side: const BorderSide(color: Colors.white10),
+                                    side: const BorderSide(color: Color(0x22FF6600)),
                                   ),
                                 ),
                                 child: const Text(
@@ -540,7 +540,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Type your message...',
-                hintStyle: const TextStyle(color: Colors.white24),
+                hintStyle: const TextStyle(color: Color(0x22FF6600)),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
                 border: OutlineInputBorder(
@@ -663,7 +663,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        side: const BorderSide(color: Colors.white24),
+                        side: const BorderSide(color: Color(0x22FF6600)),
                       ),
                       child: const Text('Acknowledged'),
                     ),

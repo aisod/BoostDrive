@@ -43,7 +43,7 @@ class _BoostPaymentDialogState extends State<BoostPaymentDialog> {
         decoration: BoxDecoration(
           color: BoostDriveTheme.surfaceDark,
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: Color(0x22FF6600)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.5),

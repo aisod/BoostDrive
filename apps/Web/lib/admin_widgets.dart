@@ -22,7 +22,7 @@ class NamibiaSOSRadar extends StatelessWidget {
           height: 350,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F4F7),
+            color: const Color(0xFFFFFFFF),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
           ),
@@ -49,7 +49,7 @@ class NamibiaSOSRadar extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                        boxShadow: [BoxShadow(color: Color(0x22FF6600), blurRadius: 4)],
                       ),
                       child: Column(
                         children: [
@@ -224,7 +224,7 @@ class DynamicPricingMonitor extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF101828), // Dark contrast for "Dynamic" feel
+        color: const Color(0xFF000000), // Dark contrast for "Dynamic" feel
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -280,7 +280,7 @@ class DynamicPricingMonitor extends ConsumerWidget {
                 hasSurcharge ? '+\$${s.recommendedSurcharge.toInt()}' : 'NORMAL',
                 style: TextStyle(color: hasSurcharge ? Colors.orange : Colors.green, fontWeight: FontWeight.w900, fontSize: 16),
               ),
-              const Text('RECOM. SURCHARGE', style: TextStyle(color: Colors.white24, fontSize: 9)),
+              const Text('RECOM. SURCHARGE', style: TextStyle(color: Color(0x22FF6600), fontSize: 9)),
             ],
           ),
         ],

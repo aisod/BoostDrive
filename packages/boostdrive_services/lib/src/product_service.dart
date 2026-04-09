@@ -13,6 +13,10 @@ final productByIdProvider = FutureProvider.family<Product?, String>((ref, produc
   return ref.watch(productServiceProvider).getProductById(productId);
 });
 
+final pendingListingsProvider = StreamProvider<List<Product>>((ref) {
+  return ref.watch(productServiceProvider).streamPendingListings();
+});
+
 class ProductService {
   final _supabase = Supabase.instance.client;
 
@@ -209,6 +213,30 @@ class ProductService {
       return publicUrl;
     } catch (e) {
       print('Error uploading image: $e');
+      rethrow;
+    }
+  }
+
+  Stream<List<Product>> streamPendingListings() {
+    return _supabase
+        .from('products')
+        .stream(primaryKey: ['id'])
+        .eq('status', 'pending')
+        .order('created_at', ascending: false)
+        .map((data) => data.map((e) => Product.fromMap(e)).toList());
+  }
+
+  Future<void> updateListingStatus(String productId, String status, {String? rejectionReason}) async {
+    try {
+      await _supabase
+          .from('products')
+          .update({
+            'status': status,
+            'rejection_reason': rejectionReason,
+          })
+          .eq('id', productId);
+    } catch (e) {
+      print('Error updating listing status: $e');
       rethrow;
     }
   }

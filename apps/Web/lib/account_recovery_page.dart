@@ -19,7 +19,7 @@ class AccountRecoveryPage extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: const Color(0xFFFFFFFF),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
@@ -55,7 +55,7 @@ class AccountRecoveryPage extends StatelessWidget {
                 const SizedBox(height: 48),
                 _buildRecoverySteps(),
                 const SizedBox(height: 64),
-                const Divider(color: Colors.white10),
+                const Divider(color: Color(0x22FF6600)),
                 const SizedBox(height: 48),
                 _buildHeaderIcon(Icons.rule_rounded, Colors.orange),
                 const SizedBox(height: 24),
@@ -138,7 +138,7 @@ class AccountRecoveryPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
@@ -226,7 +226,7 @@ class AccountRecoveryPage extends StatelessWidget {
           title: 'Accurate Representation',
           description: 'Do not misrepresent your qualifications, business identity, certifications, or the specific services you provide.',
           icon: Icons.badge_outlined,
-          color: Colors.blueAccent,
+          color: BoostDriveTheme.primaryColor,
         ),
         const SizedBox(height: 16),
         _buildGuidelineItem(
@@ -250,7 +250,7 @@ class AccountRecoveryPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),

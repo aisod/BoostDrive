@@ -163,7 +163,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
       padding: const EdgeInsets.fromLTRB(40, 60, 40, 60),
       decoration: const BoxDecoration(
         color: BoostDriveTheme.surfaceDark,
-        border: Border(bottom: BorderSide(color: Colors.white10)),
+        border: Border(bottom: BorderSide(color: Color(0x22FF6600))),
       ),
       child: Column(
         children: [
@@ -192,7 +192,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Search the entire marketplace...',
-                hintStyle: const TextStyle(color: Colors.white24),
+                hintStyle: const TextStyle(color: Color(0x22FF6600)),
                 prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
@@ -304,7 +304,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
             decoration: BoxDecoration(
               color: BoostDriveTheme.backgroundDark,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: Color(0x22FF6600)),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
@@ -313,7 +313,7 @@ class _AllListingsPageState extends ConsumerState<AllListingsPage> {
                 dropdownColor: BoostDriveTheme.surfaceDark,
                 icon: const Icon(Icons.keyboard_arrow_down, color: BoostDriveTheme.textDim),
                 style: const TextStyle(color: Colors.white, fontSize: 14),
-                hint: Text('All $label', style: const TextStyle(color: Colors.white24, fontSize: 13)),
+                hint: Text('All $label', style: const TextStyle(color: Color(0x22FF6600), fontSize: 13)),
                 items: items.map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
                 onChanged: onChanged,
               ),

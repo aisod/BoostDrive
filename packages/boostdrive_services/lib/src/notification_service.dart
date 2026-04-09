@@ -10,6 +10,7 @@ class NotificationService {
     required String title,
     required String message,
     String type = 'system',
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       await _supabase.from('notifications').insert({
@@ -18,6 +19,7 @@ class NotificationService {
         'message': message,
         'type': type,
         'is_read': false,
+        if (metadata != null) 'metadata': metadata,
       });
     } catch (e) {
       print('Error sending notification: $e');
@@ -32,6 +34,7 @@ class NotificationService {
     required String documentType,
     required String status, // 'approved' or 'rejected'
     String? rejectionReason,
+    Map<String, dynamic>? metadata,
   }) async {
     final isApproved = status.toLowerCase() == 'approved';
     final title = isApproved ? 'Document Approved' : 'Document Rejected';
@@ -51,14 +54,19 @@ class NotificationService {
       print('Warning: could not delete old notification: $e');
     }
 
-    // Insert the fresh (latest) notification
-    await _supabase.from('notifications').insert({
-      'user_id': userId,
-      'title': title,
-      'message': message,
-      'type': 'verification',
-      'is_read': false,
-    });
+    try {
+      // Insert the fresh (latest) notification
+      await _supabase.from('notifications').insert({
+        'user_id': userId,
+        'title': title,
+        'message': message,
+        'type': 'verification',
+        'is_read': false,
+        if (metadata != null) 'metadata': metadata,
+      });
+    } catch (e) {
+      print('Error sending document status notification: $e');
+    }
   }
 
   /// Sends a general account verification notification (Approved/Rejected)
@@ -81,20 +89,13 @@ class NotificationService {
   }
 
 
-  /// Fetches notifications for a specific user (no Realtime required)
-  Future<List<Map<String, dynamic>>> getNotifications(String userId) async {
-    try {
-      final response = await _supabase
-          .from('notifications')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-      final list = response as List;
-      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-    } catch (e) {
-      print('Error fetching notifications: $e');
-      return [];
-    }
+  /// Fetches notifications for a specific user as a stream
+  Stream<List<Map<String, dynamic>>> streamNotifications(String userId) {
+    return _supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
   }
 
   /// Marks a specific notification as read
@@ -126,11 +127,21 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService();
 });
 
-final userNotificationsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
-  return ref.watch(notificationServiceProvider).getNotifications(userId);
+final userNotificationsStreamProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
+  try {
+    return ref.watch(notificationServiceProvider).streamNotifications(userId);
+  } catch (e) {
+    print('Failed to initialize notification stream: $e');
+    return Stream.value([]); // Return empty list on immediate setup error
+  }
 });
 
-final activeDashboardAlertsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, userId) async {
-  final allNotifs = await ref.watch(userNotificationsProvider(userId).future);
-  return allNotifs.where((n) => n['type'] == 'dashboard_alert' && n['is_read'] == false).toList();
+final activeDashboardAlertsStreamProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
+  return ref.watch(userNotificationsStreamProvider(userId).stream).map((allNotifs) {
+    return allNotifs.where((n) => n['type'] == 'dashboard_alert' && n['is_read'] == false).toList();
+  });
 });
+
+/// Global provider to track which support ticket should be automatically opened
+/// when navigating from a notification.
+final pendingSupportTicketIdProvider = StateProvider<String?>((ref) => null);

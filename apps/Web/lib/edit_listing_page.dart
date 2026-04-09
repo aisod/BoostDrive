@@ -120,7 +120,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
           decoration: BoxDecoration(
             color: BoostDriveTheme.surfaceDark,
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: Color(0x22FF6600)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -182,7 +182,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
               color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.9),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(32),
-                side: const BorderSide(color: Colors.white10),
+                side: const BorderSide(color: Color(0x22FF6600)),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(48.0),

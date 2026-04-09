@@ -157,56 +157,7 @@ class EditorialHeroSection extends StatelessWidget {
               ),
             ),
 
-          // 5. BOTTOM ASSET (Dark Box Highlight)
-          if (!isMobile)
-            Positioned(
-              bottom: 0,
-              left: size.width * 0.45,
-              child: Row(
-                children: [
-                   Container(
-                    width: 250,
-                    height: 140,
-                    color: BoostDriveTheme.primaryColor,
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Innovation at every turn",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                      ],
-                    ),
-                  ),
-                  // Small image preview box (Optional, matching image 3)
-                  Container(
-                    width: 200,
-                    height: 140,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(backgroundImage, package: 'boostdrive_ui'),
-                        fit: BoxFit.cover,
-                        colorFilter: ColorFilter.mode(
-                          Colors.black.withValues(alpha: 0.2), 
-                          BlendMode.darken
-                        ),
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.play_circle_outline, color: Colors.white, size: 48),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
         ],
       ),
     );

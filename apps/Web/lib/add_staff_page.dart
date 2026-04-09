@@ -198,7 +198,7 @@ class _AddStaffPageState extends ConsumerState<AddStaffPage> {
                         ? 'Resend code in ${resendCooldown}s' 
                         : (isResending ? 'Sending...' : 'Didn\'t receive a code? RESEND'),
                       style: TextStyle(
-                        color: resendCooldown > 0 ? Colors.white24 : BoostDriveTheme.primaryColor,
+                        color: resendCooldown > 0 ? Color(0x22FF6600) : BoostDriveTheme.primaryColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -407,9 +407,9 @@ class _AddStaffPageState extends ConsumerState<AddStaffPage> {
                   const SizedBox(height: 24),
                   
                   _buildToggleRow('View Fleet', 'Can view status of all vehicles in shop.', _canViewFleet, (val) => setState(() => _canViewFleet = val)),
-                  const Divider(color: Colors.white10, height: 32),
+                  const Divider(color: Color(0x22FF6600), height: 32),
                   _buildToggleRow('Accept SOS Tasks', 'Allowed to respond to roadside emergencies.', _canAcceptSos, (val) => setState(() => _canAcceptSos = val)),
-                  const Divider(color: Colors.white10, height: 32),
+                  const Divider(color: Color(0x22FF6600), height: 32),
                   _buildToggleRow('Financial Access', 'Can view \$0.00 Lifetime Earnings card and payouts.', _canViewFinance, (val) => setState(() => _canViewFinance = val)),
                   
                   const SizedBox(height: 48),
@@ -476,7 +476,7 @@ class _AddStaffPageState extends ConsumerState<AddStaffPage> {
       validator: validator,
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.white24),
+        hintStyle: const TextStyle(color: Color(0x22FF6600)),
         prefixIcon: Icon(prefixIcon, color: Colors.white54),
         filled: true,
         fillColor: BoostDriveTheme.surfaceDark,

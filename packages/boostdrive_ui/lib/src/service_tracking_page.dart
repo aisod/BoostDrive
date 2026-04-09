@@ -75,13 +75,13 @@ class ServiceTrackingPage extends ConsumerWidget {
   }
 
   Widget _stepperItem(String label, bool isDone, bool showCheck, {bool isLast = false}) {
-    final color = isDone ? BoostDriveTheme.primaryColor : Colors.white24;
+    final color = isDone ? BoostDriveTheme.primaryColor : Color(0x22FF6600);
     return Expanded(
       child: Column(
         children: [
           Row(
             children: [
-              Expanded(child: Container(height: 2, color: isDone ? color : Colors.white12)),
+              Expanded(child: Container(height: 2, color: isDone ? color : Color(0x22FF6600))),
               Container(
                 width: 24,
                 height: 24,
@@ -92,14 +92,14 @@ class ServiceTrackingPage extends ConsumerWidget {
                 ),
                 child: showCheck ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
               ),
-              Expanded(child: Container(height: 2, color: isLast ? Colors.transparent : (isDone ? color : Colors.white12))),
+              Expanded(child: Container(height: 2, color: isLast ? Colors.transparent : (isDone ? color : Color(0x22FF6600)))),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             label,
             style: TextStyle(fontFamily: 'Manrope', 
-              color: isDone ? Colors.white : Colors.white24,
+              color: isDone ? Colors.white : Color(0x22FF6600),
               fontSize: 9,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
@@ -141,7 +141,7 @@ class ServiceTrackingPage extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF131D25),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
@@ -178,7 +178,7 @@ class ServiceTrackingPage extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF131D25).withValues(alpha: 0.5),
+        color: const Color(0xFFFFFFFF).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
@@ -208,7 +208,7 @@ class ServiceTrackingPage extends ConsumerWidget {
             onPressed: () {},
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white12),
+              side: const BorderSide(color: Color(0x22FF6600)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Message'),
@@ -260,7 +260,7 @@ class ServiceTrackingPage extends ConsumerWidget {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: isActive ? BoostDriveTheme.primaryColor : Colors.white12,
+                  color: isActive ? BoostDriveTheme.primaryColor : Color(0x22FF6600),
                   shape: BoxShape.circle,
                 ),
               ),

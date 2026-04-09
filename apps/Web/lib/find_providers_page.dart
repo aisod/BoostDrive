@@ -436,7 +436,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
       decoration: BoxDecoration(
         color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Color(0x22FF6600)),
       ),
       child: Center(
         child: Column(
@@ -586,7 +586,7 @@ class _FilterChip extends StatelessWidget {
             color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isSelected ? BoostDriveTheme.primaryColor : Colors.white24,
+              color: isSelected ? BoostDriveTheme.primaryColor : Color(0x22FF6600),
               width: 1,
             ),
           ),
@@ -625,7 +625,7 @@ class _SortChip extends StatelessWidget {
             color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: selected ? BoostDriveTheme.primaryColor : Colors.white24,
+              color: selected ? BoostDriveTheme.primaryColor : Color(0x22FF6600),
               width: 1,
             ),
           ),
@@ -656,7 +656,7 @@ class _ListMapToggle extends StatelessWidget {
       decoration: BoxDecoration(
         color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white24),
+        border: Border.all(color: Color(0x22FF6600)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -758,7 +758,7 @@ class _ProviderCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: Color(0x22FF6600)),
         ),
         child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -852,7 +852,7 @@ class _ProviderCard extends ConsumerWidget {
                             Text('— ★', style: TextStyle(fontSize: 12, color: BoostDriveTheme.textDim)),
                             if (profile.yearsInOperation != null) ...[
                               const SizedBox(width: 6),
-                              Text('•', style: TextStyle(color: Colors.white24, fontSize: 12)),
+                              Text('•', style: TextStyle(color: Color(0x22FF6600), fontSize: 12)),
                               const SizedBox(width: 6),
                               Text('${profile.yearsInOperation} Yrs Exp', style: TextStyle(fontSize: 12, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600)),
                             ],
@@ -1015,7 +1015,7 @@ class _ProviderCard extends ConsumerWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1061,7 +1061,7 @@ class _ProviderCard extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Text(
                   'This number may be incomplete. The provider can update it in Profile Settings.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  style: TextStyle(fontSize: 12, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1), fontStyle: FontStyle.italic),
                 ),
               ],
             ],
@@ -1258,7 +1258,7 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white10),
+                              border: Border.all(color: Color(0x22FF6600)),
                               image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
                             ),
                           ),
@@ -1622,7 +1622,7 @@ class _TrustItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Color(0x22FF6600)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -4,12 +4,14 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 
-class DashboardAlertBanner extends ConsumerWidget {
+class BoostDriveBanner extends ConsumerWidget {
   final Map<String, dynamic> alert;
+  final ValueChanged<String?>? onAction;
 
-  const DashboardAlertBanner({
+  const BoostDriveBanner({
     super.key,
     required this.alert,
+    this.onAction,
   });
 
   @override
@@ -17,11 +19,18 @@ class DashboardAlertBanner extends ConsumerWidget {
     final title = alert['title'] ?? 'Alert';
     final message = alert['message'] ?? '';
     final id = alert['id'].toString();
+    final metadata = alert['metadata'] as Map<String, dynamic>?;
+    final ticketId = metadata?['ticket_id'] as String?;
+
+    final isSupport = title.toLowerCase().contains('support') || 
+                      message.toLowerCase().contains('help') ||
+                      message.toLowerCase().contains('support') ||
+                      title.toLowerCase().contains('ticket');
 
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        color: Color(0xFF1A1A1A),
+        color: Color(0xFFFFFFFF),
         border: Border(
           bottom: BorderSide(color: BoostDriveTheme.primaryColor, width: 2),
         ),
@@ -53,7 +62,7 @@ class DashboardAlertBanner extends ConsumerWidget {
                       Text(
                         message,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Colors.black87,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -62,22 +71,46 @@ class DashboardAlertBanner extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 24),
-                // DISMISS BUTTON
+                
+                if (isSupport && onAction != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: TextButton.icon(
+                      onPressed: () => onAction!(ticketId),
+                      icon: const Icon(Icons.chat_bubble_outline, size: 18, color: BoostDriveTheme.primaryColor),
+                      label: const Text(
+                        'SEE CONVERSATION',
+                        style: TextStyle(
+                          color: BoostDriveTheme.primaryColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.05),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+
                 TextButton.icon(
                   onPressed: () async {
                     await ref.read(notificationServiceProvider).markAsRead(id);
-                    // Invalidate the provider to refresh UI
                     final user = ref.read(currentUserProvider);
                     if (user != null) {
-                      ref.invalidate(activeDashboardAlertsProvider(user.id));
-                      ref.invalidate(userNotificationsProvider(user.id));
+                      ref.invalidate(activeDashboardAlertsStreamProvider(user.id));
+                      ref.invalidate(userNotificationsStreamProvider(user.id));
                     }
                   },
-                  icon: const Icon(Icons.close, size: 18, color: Colors.white38),
+                  icon: const Icon(Icons.close, size: 18, color: Colors.black54),
                   label: const Text(
                     'DISMISS',
                     style: TextStyle(
-                      color: Colors.white38,
+                      color: Colors.black54,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
@@ -87,14 +120,13 @@ class DashboardAlertBanner extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: Colors.white12),
+                      side: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          // Subtle progress-line-styled separator
           const LinearProgressIndicator(
             value: 1.0,
             backgroundColor: Colors.transparent,

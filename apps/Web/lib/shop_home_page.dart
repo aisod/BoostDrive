@@ -19,9 +19,10 @@ import 'package:boost_drive_web/seller_dashboard_page.dart';
 
 import 'package:boost_drive_web/provider_hub_page.dart';
 import 'package:boost_drive_web/find_providers_page.dart';
-import 'package:boost_drive_web/dashboard_alert_banner.dart';
+import 'boostdrive_banner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'suspension_overlay.dart';
+import 'provider_profile_page.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
   const ShopHomePage({super.key});
@@ -523,14 +524,24 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           if (user != null)
             Consumer(
               builder: (context, ref, _) {
-                final alertsAsync = ref.watch(activeDashboardAlertsProvider(user.id));
-                return alertsAsync.maybeWhen(
+                final alertsAsync = ref.watch(activeDashboardAlertsStreamProvider(user.id));
+                return alertsAsync.when(
                   data: (alerts) {
                     if (alerts.isEmpty) return const SizedBox.shrink();
                     // Just show the latest one to keep layout clean
-                    return DashboardAlertBanner(alert: alerts.first);
+                    return BoostDriveBanner(
+                      alert: alerts.first,
+                      onAction: (ticketId) {
+                        ref.read(pendingSupportTicketIdProvider.notifier).state = ticketId;
+                        final profile = ref.read(userProfileProvider(user.id)).value;
+                        if (profile != null) {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
+                        }
+                      },
+                    );
                   },
-                  orElse: () => const SizedBox.shrink(),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
                 );
               },
             ),
@@ -571,7 +582,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                         label: const Icon(Icons.arrow_forward, size: 16, color: BoostDriveTheme.primaryColor),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white.withValues(alpha: 0.05),
-                          side: const BorderSide(color: Colors.white24),
+                          side: const BorderSide(color: Color(0x22FF6600)),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ).copyWith(
@@ -612,7 +623,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                         label: const Icon(Icons.arrow_forward, size: 16, color: BoostDriveTheme.primaryColor),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white.withValues(alpha: 0.05),
-                          side: const BorderSide(color: Colors.white24),
+                          side: const BorderSide(color: Color(0x22FF6600)),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ).copyWith(
@@ -795,12 +806,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
               
               final isProvider = _isProviderRole(profile.role);
               if (isProvider) {
-                return Row(
-                  children: [
-                    _EditorialNavLink(text: 'SERVICES REQUESTED', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProviderHubPage())), isDark: true),
-                    _EditorialNavLink(text: 'FINANCE', onTap: () {}, isDark: true),
-                  ],
-                );
+                return const SizedBox.shrink();
               } else {
                 return Row(
                   children: [
@@ -822,9 +828,20 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             }, 
             isDark: true
           ),
+          
+          const SizedBox(width: 16),
+          Consumer(
+            builder: (context, ref, _) {
+              return Row(
+                children: [
+                  _buildNotificationBell(ref, user.id),
+                  const SizedBox(width: 16),
+                  _buildProfileIcon(ref, user.id),
+                ],
+              );
+            },
+          ),
         ],
-        
-        const Spacer(),
         
         // AUTH CTA (Pill Button)
         Container(
@@ -876,6 +893,113 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white),
         ),
       ),
+    );
+  }
+
+  Widget _buildNotificationBell(WidgetRef ref, String uid) {
+    final notificationsAsync = ref.watch(userNotificationsStreamProvider(uid));
+    
+    return notificationsAsync.when(
+      data: (list) {
+        final unreadCount = list.where((n) => n['is_read'] == false).length;
+        return Stack(
+          children: [
+            IconButton(
+              icon: Icon(
+                Icons.notifications,
+                color: Colors.white,
+                size: 28,
+              ),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => NotificationsOverlay(
+                    onNotificationTap: (type, id) {
+                      if (type == 'support') {
+                        ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+                        final profile = ref.read(userProfileProvider(uid)).value;
+                        if (profile != null) {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
+                        }
+                      }
+                    },
+                  ),
+                );
+              },
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    '$unreadCount',
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => IconButton(
+        icon: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+        onPressed: () => _showNotificationsOverlay(uid),
+      ),
+      error: (_, __) => IconButton(
+        icon: const Icon(Icons.notifications_off, color: Colors.white70),
+        onPressed: () => _showNotificationsOverlay(uid),
+      ),
+    );
+  }
+
+  void _showNotificationsOverlay(String uid) {
+    showDialog(
+      context: context,
+      builder: (context) => NotificationsOverlay(
+        onNotificationTap: (type, id) {
+          if (type == 'support') {
+            ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+            final profile = ref.read(userProfileProvider(uid)).value;
+            if (profile != null) {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
+            }
+          }
+        },
+      ),
+    );
+  }
+
+
+
+  Widget _buildProfileIcon(WidgetRef ref, String uid) {
+    return ref.watch(userProfileProvider(uid)).when(
+      data: (profile) {
+        if (profile == null) return const SizedBox.shrink();
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () {
+               if (profile.role == 'service_provider') {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => ProviderProfilePage(uid: uid)));
+               } else {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
+               }
+            },
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
+              child: profile.profileImg.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+      error: (_, _) => const CircleAvatar(radius: 18, backgroundColor: Colors.white24, child: Icon(Icons.person, color: Colors.white)),
     );
   }
 }

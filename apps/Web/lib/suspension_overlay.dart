@@ -27,7 +27,7 @@ class SuspensionOverlay extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 550),
               padding: const EdgeInsets.all(48),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(32),
                 border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3), width: 2),
                 boxShadow: [
@@ -117,7 +117,7 @@ class SuspensionOverlay extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
-              const Divider(color: Colors.white10),
+              const Divider(color: Color(0x22FF6600)),
               const SizedBox(height: 24),
               TextButton(
                 onPressed: () {

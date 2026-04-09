@@ -18,6 +18,8 @@ import 'package:boost_drive_web/notification_hub_view.dart';
 import 'admin_states.dart';
 import 'admin_widgets.dart';
 import 'support_center_view.dart';
+import 'listing_approval_view.dart';
+import 'boostdrive_banner.dart';
 
 class SuperAdminDashboardPage extends ConsumerStatefulWidget {
   const SuperAdminDashboardPage({super.key});
@@ -122,7 +124,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.black12)),
+                border: Border(bottom: BorderSide(color: Color(0x22FF6600))),
               ),
               child: Text(
                 'BoostDrive Admin',
@@ -144,8 +146,9 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
             _buildDrawerNavItem(context, 5, Icons.notifications_outlined, 'Notification Hub'),
             _buildDrawerNavItem(context, 6, Icons.support_agent_outlined, 'Support Center'),
             _buildDrawerNavItem(context, 7, Icons.account_circle_outlined, 'Admin Profile'),
+            _buildDrawerNavItem(context, 8, Icons.fact_check_outlined, 'Listing Approval'),
             const Spacer(),
-            const Divider(height: 1, color: Colors.black12),
+            const Divider(height: 1, color: Color(0x22FF6600)),
             InkWell(
               onTap: () {
                 Navigator.pop(context); // close drawer first
@@ -225,7 +228,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
               ),
             ),
           ),
-          const Divider(height: 1, color: Colors.black12),
+          const Divider(height: 1, color: Color(0x22FF6600)),
           const SizedBox(height: 16),
           _buildNavItem(0, Icons.dashboard_outlined, 'Dashboard'),
           _buildNavItem(1, Icons.verified_user_outlined, 'Verification Queue'),
@@ -235,8 +238,9 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
           _buildNavItem(5, Icons.notifications_outlined, 'Notification Hub'),
           _buildNavItem(6, Icons.support_agent_outlined, 'Support Center'),
           _buildNavItem(7, Icons.account_circle_outlined, 'Admin Profile'),
+          _buildNavItem(8, Icons.fact_check_outlined, 'Listing Approval'),
           const Spacer(),
-          const Divider(height: 1, color: Colors.black12),
+          const Divider(height: 1, color: Color(0x22FF6600)),
           _buildLogoutItem(context),
         ],
       ),
@@ -333,6 +337,9 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
       case 7:
         content = AdminProfileView(uid: uid);
         break;
+      case 8:
+        content = const ListingApprovalView();
+        break;
       default:
         content = const Center(child: Text('Select a module'));
     }
@@ -379,15 +386,40 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
             ],
           ),
         ),
-        const Divider(height: 1, color: Colors.black12),
+        const Divider(height: 1, color: Color(0x22FF6600)),
         // Main Content Region
         Expanded(
-          child: _selectedIndex == 4
-              ? content // FinancialsView handles its own padding & scrolling
-              : Padding(
-                  padding: EdgeInsets.all(isNarrow ? 16 : 32),
-                  child: content,
-                ),
+          child: Column(
+            children: [
+              Consumer(
+                builder: (context, ref, _) {
+                  final alertsAsync = ref.watch(activeDashboardAlertsStreamProvider(uid));
+                  return alertsAsync.when(
+                    data: (alerts) {
+                      if (alerts.isEmpty) return const SizedBox.shrink();
+                      return BoostDriveBanner(
+                        alert: alerts.first,
+                        onAction: (ticketId) {
+                          ref.read(pendingSupportTicketIdProvider.notifier).state = ticketId;
+                          setState(() => _selectedIndex = 6); // Support Center index
+                        },
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
+              ),
+              Expanded(
+                child: _selectedIndex == 4
+                    ? content // FinancialsView handles its own padding & scrolling
+                    : Padding(
+                        padding: EdgeInsets.all(isNarrow ? 16 : 32),
+                        child: content,
+                      ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -411,6 +443,8 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
         return 'Support Center';
       case 7:
         return 'Admin Profile';
+      case 8:
+        return 'Listing Approval';
       default:
         return 'Admin';
     }
@@ -515,13 +549,74 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
                       ? const Icon(Icons.person, color: BoostDriveTheme.primaryColor)
                       : null,
                 ),
+                const SizedBox(width: 16),
+                _buildNotificationBell(ref, uid),
               ],
             ),
           ),
         );
       },
-      loading: () => const CircularProgressIndicator(),
-      error: (_, _) => const Text('Error loading profile'),
+      loading: () => const CircularProgressIndicator(strokeWidth: 2),
+      error: (_, __) => IconButton(
+        icon: const Icon(Icons.notifications_off, color: Colors.black45),
+        onPressed: () => _showNotificationsOverlay(uid),
+      ),
+    );
+  }
+
+  Widget _buildNotificationBell(WidgetRef ref, String uid) {
+    final notificationsAsync = ref.watch(userNotificationsStreamProvider(uid));
+    
+    return notificationsAsync.when(
+      data: (list) {
+        final unreadCount = list.where((n) => n['is_read'] == false).length;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none_outlined, color: Colors.black87, size: 24),
+              onPressed: () => _showNotificationsOverlay(uid),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 4,
+                top: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    '$unreadCount',
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => IconButton(
+        icon: const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black54)),
+        onPressed: () => _showNotificationsOverlay(uid),
+      ),
+      error: (_, __) => IconButton(
+        icon: const Icon(Icons.notifications_off_outlined, color: Colors.black45),
+        onPressed: () => _showNotificationsOverlay(uid),
+      ),
+    );
+  }
+
+  void _showNotificationsOverlay(String uid) {
+    showDialog(
+      context: context,
+      builder: (context) => NotificationsOverlay(
+        onNotificationTap: (type, id) {
+          if (type == 'support') {
+            ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+            setState(() => _selectedIndex = 6); // Support Center
+          }
+        },
+      ),
     );
   }
 

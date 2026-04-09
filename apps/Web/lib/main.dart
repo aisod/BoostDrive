@@ -90,7 +90,7 @@ class BoostDriveWebApp extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: Colors.white10,
+                color: Color(0x22FF6600),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
               ),

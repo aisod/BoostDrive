@@ -99,7 +99,7 @@ class AboutPage extends StatelessWidget {
                 const SizedBox(height: 40),
                 const _ContactSection(),
                 const SizedBox(height: 48),
-                const Divider(color: Colors.white10),
+                const Divider(color: Color(0x22FF6600)),
                 const SizedBox(height: 32),
                 const _StatRow(),
               ],
@@ -743,7 +743,7 @@ class PartnerProgramPage extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      const Icon(Icons.handshake_outlined, size: 80, color: Colors.blueAccent),
+                      const Icon(Icons.handshake_outlined, size: 80, color: BoostDriveTheme.primaryColor),
                       const SizedBox(height: 32),
                       const Text(
                         'Grow with BoostDrive.',

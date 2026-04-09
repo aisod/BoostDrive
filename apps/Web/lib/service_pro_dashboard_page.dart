@@ -11,6 +11,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'suspension_overlay.dart';
 import 'add_staff_page.dart';
 import 'user_support_view.dart';
+import 'boostdrive_banner.dart';
+import 'provider_profile_page.dart';
 
 class ServiceProDashboardPage extends ConsumerStatefulWidget {
   const ServiceProDashboardPage({super.key});
@@ -43,6 +45,25 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Consumer(
+                  builder: (context, ref, _) {
+                    final alertsAsync = ref.watch(activeDashboardAlertsStreamProvider(user.id));
+                    return alertsAsync.when(
+                      data: (alerts) {
+                        if (alerts.isEmpty) return const SizedBox.shrink();
+                        return BoostDriveBanner(
+                          alert: alerts.first,
+                          onAction: (ticketId) {
+                            ref.read(pendingSupportTicketIdProvider.notifier).state = ticketId;
+                            setState(() => _currentSection = 'SUPPORT');
+                          },
+                        );
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
                 _buildProHeader(ref, user.id),
                 const SizedBox(height: 32),
                 _buildTopNavBar(),
@@ -84,14 +105,14 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
   Widget _buildTopNavBar() {
     // Services requested (REQUESTS/SOS) only on mobile; hidden on web
     final sections = kIsWeb
-        ? ['HOME', 'ROUTES', 'FLEET', 'FINANCE', 'SUPPORT']
+        ? ['HOME', 'ROUTES', 'FLEET', 'SUPPORT']
         : ['HOME', 'REQUESTS', 'ROUTES', 'FLEET', 'FINANCE', 'SUPPORT'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF101828), // Darker shade for the nav bar
+          color: const Color(0xFF000000), // Darker shade for the nav bar
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
@@ -121,12 +142,12 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                 ),
                 child: Row(
                   children: [
-                    Icon(icon, color: isActive ? BoostDriveTheme.primaryColor : Colors.white24, size: 20),
+                    Icon(icon, color: isActive ? BoostDriveTheme.primaryColor : Color(0x22FF6600), size: 20),
                     const SizedBox(width: 12),
                     Text(
                       _navLabel(section),
                       style: TextStyle(
-                        color: isActive ? Colors.white : Colors.white24,
+                        color: isActive ? Colors.white : Color(0x22FF6600),
                         fontWeight: FontWeight.w900,
                         fontSize: 12,
                         letterSpacing: 0.5,
@@ -597,7 +618,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             ],
           ),
           const Spacer(),
-          const Divider(color: Colors.white10),
+          const Divider(color: Color(0x22FF6600)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -671,7 +692,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             mainAxisSize: MainAxisSize.min,
             children: [
               _toggleItem(ref, profile, 'ONLINE', isOnline, Colors.green),
-              _toggleItem(ref, profile, 'OFFLINE', !isOnline, Colors.white24),
+              _toggleItem(ref, profile, 'OFFLINE', !isOnline, Color(0x22FF6600)),
             ],
           ),
         );
@@ -701,7 +722,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             Text(
               label,
               style: TextStyle(
-                color: active ? Colors.white : Colors.white24,
+                color: active ? Colors.white : Color(0x22FF6600),
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
               ),
@@ -718,6 +739,8 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
         if (profile == null) return const SizedBox();
         return Row(
           children: [
+            _buildProfileIcon(ref, uid),
+            const SizedBox(width: 24),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,6 +805,42 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
       },
       loading: () => const CircularProgressIndicator(),
       error: (_, _) => const Text('Error loading profile'),
+    );
+  }
+
+  Widget _buildProfileIcon(WidgetRef ref, String uid) {
+    final profileAsync = ref.watch(userProfileProvider(uid));
+    return profileAsync.when(
+      data: (profile) {
+        if (profile == null) return const SizedBox.shrink();
+        final hasImage = profile.profileImg.isNotEmpty;
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProviderProfilePage(uid: uid))),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white24,
+                  width: 2,
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 36,
+                backgroundColor: BoostDriveTheme.surfaceDark,
+                backgroundImage: hasImage ? NetworkImage(profile.profileImg) : null,
+                child: !hasImage
+                    ? const Icon(Icons.person, color: Colors.white, size: 32)
+                    : null,
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => const CircleAvatar(radius: 36, child: CircularProgressIndicator(strokeWidth: 2)),
+      error: (_, __) => const CircleAvatar(radius: 36, child: Icon(Icons.error_outline, color: Colors.red)),
     );
   }
 
@@ -1110,7 +1169,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
   }
 
   Widget _buildNotificationBell(WidgetRef ref, String uid) {
-    final notificationsAsync = ref.watch(userNotificationsProvider(uid));
+    final notificationsAsync = ref.watch(userNotificationsStreamProvider(uid));
     
     return notificationsAsync.when(
       data: (list) {
@@ -1118,12 +1177,24 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
         return Stack(
           children: [
             IconButton(
-              icon: Icon(
-                unreadCount > 0 ? Icons.notifications_active : Icons.notifications_none,
-                color: unreadCount > 0 ? BoostDriveTheme.primaryColor : Colors.white70,
+              icon: const Icon(
+                Icons.notifications,
+                color: Colors.white,
                 size: 28,
               ),
-              onPressed: () => _showNotificationsDialog(context, ref, uid, list),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => NotificationsOverlay(
+                    onNotificationTap: (type, id) {
+                      if (type == 'support') {
+                        ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+                        setState(() => _currentSection = 'SUPPORT');
+                      }
+                    },
+                  ),
+                );
+              },
             ),
             if (unreadCount > 0)
               Positioned(
@@ -1143,57 +1214,32 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
           ],
         );
       },
-      loading: () => const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2)),
-      error: (_, __) => const Icon(Icons.notifications_off, color: Colors.white24),
-    );
-  }
-
-  void _showNotificationsDialog(BuildContext context, WidgetRef ref, String uid, List<Map<String, dynamic>> list) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1D2939),
-        title: Row(
-          children: [
-            const Icon(Icons.notifications, color: BoostDriveTheme.primaryColor),
-            const SizedBox(width: 12),
-            Text('Notifications', style: TextStyle(fontFamily: 'Manrope', color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: SizedBox(
-          width: 400,
-          child: list.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text('No notifications yet.', style: TextStyle(color: Colors.white60)),
-                )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: list.length,
-                  separatorBuilder: (_, __) => const Divider(color: Colors.white12),
-                  itemBuilder: (context, index) {
-                    final n = list[index];
-                    return ListTile(
-                      title: Text(n['title'] ?? 'Notice', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      subtitle: Text(n['message'] ?? '', style: const TextStyle(color: Colors.white70)),
-                      trailing: n['is_read'] == false 
-                        ? const Icon(Icons.circle, color: BoostDriveTheme.primaryColor, size: 10) 
-                        : null,
-                      onTap: () {
-                        ref.read(notificationServiceProvider).markAsRead(n['id']);
-                        ref.invalidate(userNotificationsProvider(uid)); // Refresh the list
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-                ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close', style: TextStyle(color: Colors.white60))),
-        ],
+      loading: () => IconButton(
+        icon: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+        onPressed: () => _showNotificationsOverlay(uid),
+      ),
+      error: (_, __) => IconButton(
+        icon: const Icon(Icons.notifications_off, color: Colors.white70),
+        onPressed: () => _showNotificationsOverlay(uid),
       ),
     );
   }
+
+  void _showNotificationsOverlay(String uid) {
+    showDialog(
+      context: context,
+      builder: (context) => NotificationsOverlay(
+        onNotificationTap: (type, id) {
+          if (type == 'support') {
+            ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+            setState(() => _currentSection = 'SUPPORT');
+          }
+        },
+      ),
+    );
+  }
+
+
 
   Future<void> _handleDeleteStaff(String staffUserId) async {
     final confirmed = await showDialog<bool>(
@@ -1380,7 +1426,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
       style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
+        hintStyle: const TextStyle(color: Color(0x22FF6600), fontSize: 14),
         prefixIcon: Icon(icon, color: Colors.white54, size: 20),
         filled: true,
         fillColor: BoostDriveTheme.surfaceDark,

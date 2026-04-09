@@ -107,7 +107,7 @@ class _BoostImagePickerState extends State<BoostImagePicker> {
         decoration: BoxDecoration(
           color: BoostDriveTheme.surfaceDark,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10, style: BorderStyle.solid),
+          border: Border.all(color: Color(0x22FF6600), style: BorderStyle.solid),
         ),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,

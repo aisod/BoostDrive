@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart' as image_picker;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'user_support_view.dart';
+import 'boostdrive_banner.dart';
 
 class CustomerDashboardPage extends ConsumerWidget {
   const CustomerDashboardPage({super.key});
@@ -25,10 +26,34 @@ class CustomerDashboardPage extends ConsumerWidget {
           'Customer Dashboard',
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -1, color: Colors.white),
         ),
+        actions: [
+          _buildNotificationBell(context, ref, user.id),
+          const SizedBox(width: 16),
+        ],
       ),
       child: Column( // Still no extra SingleChildScrollView
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Consumer(
+            builder: (context, ref, _) {
+              final alertsAsync = ref.watch(activeDashboardAlertsStreamProvider(user.id));
+              return alertsAsync.when(
+                data: (alerts) {
+                  if (alerts.isEmpty) return const SizedBox.shrink();
+                  return BoostDriveBanner(
+                    alert: alerts.first,
+                    onAction: (ticketId) {
+                      ref.read(pendingSupportTicketIdProvider.notifier).state = ticketId;
+                      // No need to switch section as CustomerDashboard is unified, 
+                      // but we scroll to the bottom or let auto-open handle it.
+                    },
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              );
+            },
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
             child: Column(
@@ -427,7 +452,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.speed, color: Colors.white24, size: 14),
+              const Icon(Icons.speed, color: Color(0x22FF6600), size: 14),
               const SizedBox(width: 4),
               Text('${vehicle.mileage} KM', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
             ],
@@ -450,10 +475,10 @@ class CustomerDashboardPage extends ConsumerWidget {
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: () => _showAddVehicleDialog(context, ref, vehicle.ownerId, vehicle: vehicle),
-                    icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blueAccent),
+                    icon: const Icon(Icons.edit_outlined, size: 20, color: BoostDriveTheme.primaryColor),
                     tooltip: 'Edit Vehicle',
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.blue.withValues(alpha: 0.05),
+                      backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.05),
                       padding: const EdgeInsets.all(8),
                     ),
                   ),
@@ -559,7 +584,7 @@ class CustomerDashboardPage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(color: Colors.white10),
+          const Divider(color: Color(0x22FF6600)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -582,7 +607,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                         );
                         _showLogServiceDialog(context, ref, uid, item.vehicleId, record: item);
                       },
-                      icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.blueAccent),
+                      icon: const Icon(Icons.edit_outlined, size: 16, color: BoostDriveTheme.primaryColor),
                       tooltip: 'Edit Record',
                     ),
                     const SizedBox(width: 8),
@@ -983,7 +1008,7 @@ class CustomerDashboardPage extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Colors.white10),
+          side: const BorderSide(color: Color(0x22FF6600)),
         ),
       ),
     );
@@ -1421,7 +1446,7 @@ class CustomerDashboardPage extends ConsumerWidget {
           maxLines: maxLines,
           style: const TextStyle(color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: Colors.white24, size: 20),
+            prefixIcon: Icon(icon, color: Color(0x22FF6600), size: 20),
             filled: true,
             fillColor: Colors.white.withValues(alpha: 0.05),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -1488,7 +1513,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
-                const Icon(Icons.calendar_today, color: Colors.white24, size: 18),
+                const Icon(Icons.calendar_today, color: Color(0x22FF6600), size: 18),
               ],
             ),
           ),
@@ -1502,7 +1527,7 @@ class CustomerDashboardPage extends ConsumerWidget {
       backgroundColor: Colors.white.withValues(alpha: 0.05),
       foregroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0x22FF6600))),
     );
   }
 
@@ -1563,7 +1588,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.network(url, width: 120, height: 120, fit: BoxFit.cover, 
-                                  errorBuilder: (_, _, _) => Container(width: 120, height: 120, color: Colors.white10, child: const Icon(Icons.broken_image, color: Colors.white24))),
+                                  errorBuilder: (_, _, _) => Container(width: 120, height: 120, color: Color(0x22FF6600), child: const Icon(Icons.broken_image, color: Color(0x22FF6600)))),
                               ),
                             )),
                           ...selectedReceipts.asMap().entries.map((entry) => Padding(
@@ -1679,6 +1704,62 @@ class CustomerDashboardPage extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationBell(BuildContext context, WidgetRef ref, String uid) {
+    final notificationsAsync = ref.watch(userNotificationsStreamProvider(uid));
+    
+    return notificationsAsync.when(
+      data: (list) {
+        final unreadCount = list.where((n) => n['is_read'] == false).length;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
+              onPressed: () => _showNotificationsOverlay(context, ref, uid),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    '$unreadCount',
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => IconButton(
+        icon: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+        onPressed: () => _showNotificationsOverlay(context, ref, uid),
+      ),
+      error: (_, __) => IconButton(
+        icon: const Icon(Icons.notifications_off, color: Colors.white70),
+        onPressed: () => _showNotificationsOverlay(context, ref, uid),
+      ),
+    );
+  }
+
+  void _showNotificationsOverlay(BuildContext context, WidgetRef ref, String uid) {
+    showDialog(
+      context: context,
+      builder: (context) => NotificationsOverlay(
+        onNotificationTap: (type, id) {
+          if (type == 'support') {
+            ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+            // No navigation needed as support is integrated on this page
+          }
+        },
       ),
     );
   }

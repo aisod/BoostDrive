@@ -222,7 +222,7 @@ class _ServiceMonitoringViewState extends ConsumerState<ServiceMonitoringView> {
       case 'accepted':
       case 'assigned': return Colors.orange;
       case 'resolved': return Colors.green;
-      default: return Colors.grey;
+      default: return BoostDriveTheme.primaryColor.withValues(alpha: 0.1);
     }
   }
 
