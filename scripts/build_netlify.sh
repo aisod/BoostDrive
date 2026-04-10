@@ -29,6 +29,15 @@ echo "Using environment variables:"
 echo "SUPABASE_URL=${SUPABASE_URL}"
 echo "GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}"
 
+# Ensure .env asset exists for Flutter bundling in CI.
+# Values come from Netlify env vars; fall back to empty strings.
+cat > .env <<EOF
+SUPABASE_URL=${SUPABASE_URL:-}
+SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}
+GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+EOF
+echo "Generated apps/Web/.env for build asset bundling."
+
 flutter build web --release \
   --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
   --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
