@@ -34,7 +34,7 @@ class Product {
     this.clickCount,
     this.saveCount,
     this.condition = 'used',
-    this.status = 'active',
+    this.status = 'pending',
     this.fitment,
     this.sellerId,
     this.createdAt,
@@ -68,7 +68,7 @@ class Product {
       clickCount: _parseClickCount(data['click_count'] ?? data['clickCount']),
       saveCount: _parseClickCount(data['save_count'] ?? data['saveCount']),
       condition: data['condition'] ?? 'used',
-      status: data['status'] ?? 'active',
+      status: data['status'] ?? 'pending',
       fitment: data['fitment'] != null ? Map<String, dynamic>.from(data['fitment']) : null,
       sellerId: data['seller_id'],
       createdAt: data['created_at'] != null 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
@@ -386,7 +387,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           ],
         ),
         const SizedBox(height: 16),
-        StreamBuilder<List<Map<String, dynamic>>>(
+        StreamBuilder<List<SosRequest>>(
           stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
           builder: (context, snapshot) {
             final requests = snapshot.data ?? [];
@@ -409,12 +410,12 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _buildRequestCard(
                   ref: ref,
-                  tag: 'SOS - ${req['type']?.toString().toUpperCase() ?? 'EMERGENCY'}',
+                  tag: 'SOS - ${req.type.toUpperCase()}',
                   distance: '2.4 KM AWAY',
-                  title: req['user_note'] ?? 'No notes provided',
-                  user: 'Customer ID: ${req['user_id']?.toString().substring(0, 8)}',
-                  tagColor: req['type'] == 'emergency' ? Colors.redAccent : Colors.blueAccent,
-                  requestId: req['id']?.toString() ?? '',
+                  title: req.userNote.isNotEmpty ? req.userNote : 'No notes provided',
+                  user: 'Customer ID: ${req.userId.substring(0, 8)}',
+                  tagColor: req.type == 'emergency' ? Colors.redAccent : Colors.blueAccent,
+                  requestId: req.id,
                   userId: userId,
                 ),
               )).toList(),

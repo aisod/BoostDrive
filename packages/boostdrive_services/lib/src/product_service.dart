@@ -17,6 +17,10 @@ final pendingListingsProvider = StreamProvider<List<Product>>((ref) {
   return ref.watch(productServiceProvider).streamPendingListings();
 });
 
+final adminListingsProvider = StreamProvider<List<Product>>((ref) {
+  return ref.watch(productServiceProvider).streamAdminListings();
+});
+
 class ProductService {
   final _supabase = Supabase.instance.client;
 
@@ -52,6 +56,26 @@ class ProductService {
       return list.map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map))).toList();
     } catch (e) {
       print('Error fetching featured products: $e');
+      return [];
+    }
+  }
+
+  /// Returns all available marketplace listings (not just featured).
+  Future<List<Product>> getMarketplaceProducts() async {
+    try {
+      final response = await _supabase
+          .from('products')
+          .select()
+          .order('created_at', ascending: false);
+
+      final list = response as List;
+      final products = list
+          .map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      print('DEBUG: getMarketplaceProducts fetched ${products.length} rows');
+      return products;
+    } catch (e) {
+      print('Error fetching marketplace products: $e');
       return [];
     }
   }
@@ -226,15 +250,29 @@ class ProductService {
         .map((data) => data.map((e) => Product.fromMap(e)).toList());
   }
 
+  Stream<List<Product>> streamAdminListings() {
+    return _supabase
+        .from('products')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) => data.map((e) => Product.fromMap(e)).toList());
+  }
+
   Future<void> updateListingStatus(String productId, String status, {String? rejectionReason}) async {
     try {
-      await _supabase
+      final response = await _supabase
           .from('products')
           .update({
             'status': status,
             'rejection_reason': rejectionReason,
           })
-          .eq('id', productId);
+          .eq('id', productId)
+          .select()
+          .maybeSingle();
+          
+      if (response == null) {
+        throw Exception('Update failed: Listing not found or permission denied (RLS).');
+      }
     } catch (e) {
       print('Error updating listing status: $e');
       rethrow;

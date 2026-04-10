@@ -18,6 +18,15 @@ class MarketplacePage extends ConsumerStatefulWidget {
 class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   late String _selectedCategory;
 
+  bool _matchesSelectedCategory(String category) {
+    if (_selectedCategory == 'all') return true;
+    final c = category.trim().toLowerCase();
+    if (_selectedCategory == 'car') return c == 'car' || c == 'cars' || c == 'vehicle' || c == 'vehicles';
+    if (_selectedCategory == 'part') return c == 'part' || c == 'parts';
+    if (_selectedCategory == 'rental') return c == 'rental' || c == 'rentals';
+    return c == _selectedCategory;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -25,7 +34,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   }
   @override
   Widget build(BuildContext context) {
-    final productsAsync = ref.watch(featuredProductsProvider);
+    final productsAsync = ref.watch(marketplaceProductsProvider);
     final user = ref.watch(authStateProvider).value?.session?.user;
 
     // Redirect to Role Selection if logged in but no roles set
@@ -89,7 +98,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
             MaterialPageRoute(builder: (context) => const AddListingPage()),
           );
           // Refresh provider after adding listing
-          final _ = ref.refresh(featuredProductsProvider);
+          final _ = ref.refresh(marketplaceProductsProvider);
         },
         backgroundColor: BoostDriveTheme.primaryColor,
         icon: const Icon(Icons.add, color: Colors.white),
@@ -131,7 +140,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Text(
-              'Featured Items',
+              'Available Items',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -143,9 +152,8 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
           Expanded(
             child: productsAsync.when(
               data: (products) {
-                final filteredProducts = _selectedCategory == 'all'
-                    ? products
-                    : products.where((p) => p.category == _selectedCategory).toList();
+                final filteredProducts =
+                    products.where((p) => _matchesSelectedCategory(p.category)).toList();
 
                 if (filteredProducts.isEmpty) {
                   return const Center(
@@ -171,7 +179,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
                           MaterialPageRoute(builder: (context) => ProductDetailPage(product: filteredProducts[index]))
                         );
                         if (result == true) {
-                          final _ = ref.refresh(featuredProductsProvider);
+                          final _ = ref.refresh(marketplaceProductsProvider);
                         }
                       },
                     );

@@ -6,6 +6,7 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 
+import 'package:boost_drive_web/edit_listing_page.dart';
 import 'package:boost_drive_web/add_listing_page.dart';
 
 class SellerDashboardPage extends ConsumerStatefulWidget {
@@ -278,7 +279,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
   Widget _buildListingCard(Product p) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, // White cards on dark background as requested
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -292,7 +293,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // If rejected, show feedback loop banner at the very top of the card
+          // Rejected banner
           if (p.status == 'rejected')
             Container(
               width: double.infinity,
@@ -311,20 +312,21 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                 ],
               ),
             ),
-          
+
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Thumbnail Image
+                // Thumbnail
                 Container(
                   width: 200,
                   color: Colors.grey.shade200,
                   child: p.imageUrl.isNotEmpty
-                    ? Image.network(p.imageUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.car_crash, color: Colors.grey, size: 48))
-                    : const Icon(Icons.image_not_supported, color: Colors.grey, size: 48),
+                      ? Image.network(p.imageUrl, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.car_crash, color: Colors.grey, size: 48))
+                      : const Icon(Icons.image_not_supported, color: Colors.grey, size: 48),
                 ),
-                
+
                 // Content
                 Expanded(
                   child: Padding(
@@ -335,7 +337,6 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Category Badge
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
@@ -352,14 +353,10 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                                 ),
                               ),
                             ),
-                            
-                            // Status Tag
                             _buildStatusTag(p.status),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Title & Price
                         Text(
                           p.title,
                           style: GoogleFonts.montserrat(
@@ -379,57 +376,107 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        
                         const Spacer(),
                         const SizedBox(height: 16),
-                        
-                        // Performance Metrics (Views & Saves)
                         Row(
                           children: [
                             Icon(Icons.visibility, color: Colors.grey.shade400, size: 18),
                             const SizedBox(width: 6),
-                            Text(
-                              '${p.clickCount ?? 0} Views',
-                              style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
-                            ),
+                            Text('${p.clickCount ?? 0} Views',
+                                style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
                             const SizedBox(width: 24),
                             Icon(Icons.favorite, color: Colors.red.shade400, size: 18),
                             const SizedBox(width: 6),
-                            Text(
-                              '${p.saveCount ?? 0} Saved',
-                              style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
-                            ),
+                            Text('${p.saveCount ?? 0} Saved',
+                                style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ],
                     ),
                   ),
                 ),
-                
-                // Inline Action Menu
-                Container(
-                  width: 64,
-                  decoration: BoxDecoration(
-                    border: Border(left: BorderSide(color: Colors.grey.shade200)),
+              ],
+            ),
+          ),
+
+          // ── Inline Action Buttons ──────────────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                // Edit
+                Expanded(
+                  child: _actionBtn(
+                    icon: Icons.edit_outlined,
+                    label: 'Edit',
+                    color: Colors.blue.shade700,
+                    onTap: () => _handleEdit(p),
                   ),
-                  child: PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.black54),
-                    onSelected: (action) => _handleCardAction(action, p),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 12), Text('Edit')])),
-                      if (p.status != 'sold' && p.status != 'rented')
-                        const PopupMenuItem(value: 'sold', child: Row(children: [Icon(Icons.check_circle_outline, size: 20), SizedBox(width: 12), Text('Mark as Sold/Rented')])),
-                      if (p.status == 'active')
-                        const PopupMenuItem(value: 'promote', child: Row(children: [Icon(Icons.campaign, size: 20, color: BoostDriveTheme.primaryColor), SizedBox(width: 12), Text('Promote', style: TextStyle(color: BoostDriveTheme.primaryColor))])),
-                      const PopupMenuDivider(),
-                      const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 20, color: Colors.red), SizedBox(width: 12), Text('Delete', style: TextStyle(color: Colors.red))])),
-                    ],
+                ),
+                const SizedBox(width: 8),
+
+                // Promote — only for active listings
+                if (p.status == 'active') ...[  
+                  Expanded(
+                    child: _actionBtn(
+                      icon: Icons.campaign_outlined,
+                      label: 'Promote',
+                      color: BoostDriveTheme.primaryColor,
+                      onTap: () => _handlePromote(p),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // Mark Sold/Rented — only if not already sold/rented
+                if (p.status != 'sold' && p.status != 'rented') ...[  
+                  Expanded(
+                    child: _actionBtn(
+                      icon: Icons.check_circle_outline,
+                      label: 'Mark Sold',
+                      color: Colors.green.shade700,
+                      onTap: () => _handleMarkSold(p),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // Delete (compact icon button, always visible)
+                IconButton(
+                  tooltip: 'Delete Listing',
+                  onPressed: () => _handleDelete(p),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.red.shade50,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _actionBtn({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, fontSize: 13)),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color.withValues(alpha: 0.4)),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -481,9 +528,167 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
-  void _handleCardAction(String action, Product p) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Action "$action" triggered for ${p.title}. (Mocked action)')),
+  void _handleEdit(Product p) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => EditListingPage(product: p)),
     );
+  }
+
+  void _handlePromote(Product p) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.campaign, color: BoostDriveTheme.primaryColor),
+            const SizedBox(width: 12),
+            Text('Promote Listing', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.black87)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('"${p.title}"', style: GoogleFonts.montserrat(fontWeight: FontWeight.w600, color: BoostDriveTheme.primaryColor)),
+            const SizedBox(height: 16),
+            Text(
+              'Boost your listing to reach more buyers on BoostDrive. Promoted listings appear at the top of search results and on the featured section.',
+              style: TextStyle(color: Colors.black54, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: BoostDriveTheme.primaryColor, size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Promotion payments coming soon. You will be notified when this feature is live.',
+                      style: TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.black54)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleMarkSold(Product p) async {
+    final confirm = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Mark as Sold or Rented?', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.black87)),
+        content: Text(
+          'How was "${p.title}" fulfilled? This will remove it from the active marketplace.',
+          style: const TextStyle(color: Colors.black54),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.montserrat(color: Colors.black54, fontWeight: FontWeight.bold)),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, 'rented'),
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.blue.shade700, side: BorderSide(color: Colors.blue.shade300)),
+            child: Text('Mark Rented', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, 'sold'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600, foregroundColor: Colors.white),
+            child: Text('Mark Sold', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == null || !mounted) return;
+
+    try {
+      await ref.read(productServiceProvider).updateListingStatus(p.id, confirm);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('"${p.title}" marked as ${confirm}!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to update status: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
+  }
+
+  void _handleDelete(Product p) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Delete Listing?', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.red.shade700)),
+        content: Text(
+          'Are you sure you want to permanently delete "${p.title}"? This action cannot be undone.',
+          style: const TextStyle(color: Colors.black54),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.black54)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600, foregroundColor: Colors.white),
+            child: Text('Delete', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ref.read(productServiceProvider).deleteProduct(p.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('"${p.title}" deleted.'),
+          backgroundColor: Colors.black87,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to delete: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
   }
 }

@@ -9,5 +9,10 @@ final featuredProductsProvider = FutureProvider((ref) async {
   return productService.getFeaturedProducts();
 });
 
+final marketplaceProductsProvider = FutureProvider((ref) async {
+  final productService = ref.watch(productServiceProvider);
+  return productService.getMarketplaceProducts();
+});
+
 /// A global trigger to force dashboard refreshes after CRUD operations
 final dashboardRefreshProvider = StateProvider<int>((ref) => 0);

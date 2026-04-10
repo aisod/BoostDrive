@@ -10,6 +10,9 @@ import 'provider_hub.dart';
 import 'find_providers_page.dart';
 import 'emergency_hub_page.dart';
 import 'garage_page.dart';
+import 'admin_sos_hub_page.dart';
+import 'admin_verifications_page.dart';
+import 'admin_security_page.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -123,21 +126,19 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget _buildSuperAdminBody() {
     switch (_currentIndex) {
       case 0: return const SuperAdminDashboard();
-      case 1: return const Center(child: Text('Financials', style: TextStyle(color: Colors.white)));
-      case 2: return const Center(child: Text('Partners', style: TextStyle(color: Colors.white)));
-      case 3: return const Center(child: Text('SOS Feed', style: TextStyle(color: Colors.white)));
-      case 4: return const Center(child: Text('More', style: TextStyle(color: Colors.white)));
+      case 1: return const AdminSosHubPage();
+      case 2: return const AdminVerificationsPage();
+      case 3: return const AdminSecurityPage();
       default: return const SuperAdminDashboard();
     }
   }
 
   List<BottomNavigationBarItem> _buildSuperAdminNav() {
     return const [
-      BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'OVERVIEW'),
-      BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), activeIcon: Icon(Icons.analytics), label: 'FINANCIALS'),
-      BottomNavigationBarItem(icon: Icon(Icons.group_outlined), activeIcon: Icon(Icons.group), label: 'PARTNERS'),
-      BottomNavigationBarItem(icon: Icon(Icons.sos_outlined), activeIcon: Icon(Icons.sos), label: 'SOS FEED'),
-      BottomNavigationBarItem(icon: Icon(Icons.menu), activeIcon: Icon(Icons.menu), label: 'MORE'),
+      BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'HOME'),
+      BottomNavigationBarItem(icon: Icon(Icons.sos_outlined), activeIcon: Icon(Icons.sos), label: 'SOS HUB'),
+      BottomNavigationBarItem(icon: Icon(Icons.verified_user_outlined), activeIcon: Icon(Icons.verified_user), label: 'VERIFICATIONS'),
+      BottomNavigationBarItem(icon: Icon(Icons.security_outlined), activeIcon: Icon(Icons.security), label: 'SECURITY'),
     ];
   }
 }

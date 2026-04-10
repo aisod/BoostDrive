@@ -12,7 +12,23 @@ class SuperAdminDashboard extends ConsumerStatefulWidget {
   ConsumerState<SuperAdminDashboard> createState() => _SuperAdminDashboardState();
 }
 
-class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
+class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1500))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
@@ -31,13 +47,9 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
               const SizedBox(height: 32),
               _buildKPISection(ref),
               const SizedBox(height: 32),
-              _buildSystemHealthMap(ref),
-              const SizedBox(height: 32),
-              _buildManagementTabs(),
-              const SizedBox(height: 32),
-              _buildVerificationList(ref),
-              const SizedBox(height: 32),
               _buildLogisticsSummary(),
+              const SizedBox(height: 32),
+              _buildSystemHealthMap(ref),
               const SizedBox(height: 120),
             ],
           ),
@@ -114,32 +126,56 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           crossAxisSpacing: 12,
           childAspectRatio: 1.4,
           children: [
+            StreamBuilder<List<SosRequest>>(
+              stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
+              builder: (context, snapshot) {
+                final count = snapshot.data?.length ?? 0;
+                final isUrgent = count > 0;
+                return AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    final color = isUrgent ? Colors.red : Colors.green;
+                    final shadowColor = isUrgent 
+                        ? Colors.red.withOpacity(0.3 + (_pulseController.value * 0.4))
+                        : Colors.transparent;
+                    return Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          if (isUrgent) BoxShadow(color: shadowColor, blurRadius: 15 * _pulseController.value, spreadRadius: 2),
+                        ],
+                      ),
+                      child: _buildKPICard('Active SOS', count.toString(), 'LIVE', color, isUrgent ? 1.0 : 0.0, isUrgent: isUrgent),
+                    );
+                  },
+                );
+              },
+            ),
+            StreamBuilder<List<Product>>(
+              stream: ref.watch(productServiceProvider).streamPendingListings(),
+              builder: (context, snapshot) => _buildKPICard('Pending Listings', snapshot.hasData ? snapshot.data!.length.toString() : 'Loading...', 'AWAITING', BoostDriveTheme.primaryColor, 0.4),
+            ),
             StreamBuilder<double>(
               stream: ref.watch(deliveryServiceProvider).getGlobalVolume(),
               builder: (context, snapshot) => _buildKPICard('Marketplace Vol', snapshot.hasData ? '\$${snapshot.data!.toStringAsFixed(0)}' : 'Loading...', 'TOTAL', BoostDriveTheme.primaryColor, 0.55),
-            ),
-            StreamBuilder<List<Map<String, dynamic>>>(
-              stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
-              builder: (context, snapshot) => _buildKPICard('Active SOS', snapshot.hasData ? snapshot.data!.length.toString() : 'Loading...', 'LIVE', Colors.red, 0.4),
             ),
             StreamBuilder<int>(
               stream: ref.watch(userServiceProvider).getUserCount(),
               builder: (context, snapshot) => _buildKPICard('Active Users', snapshot.hasData ? snapshot.data!.toString() : 'Loading...', 'TOTAL', Colors.indigo, 0.85),
             ),
-            _buildKPICard('Platform Health', '99.9%', 'STABLE', Colors.green, 0.95),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildKPICard(String label, String value, String trend, Color color, double progress) {
+  Widget _buildKPICard(String label, String value, String trend, Color color, double progress, {bool isUrgent = false}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
+        color: BoostDriveTheme.surfaceDark.withOpacity(0.5),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: isUrgent ? color.withOpacity(0.5) : Colors.white.withOpacity(0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,7 +264,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
               Positioned(
                 bottom: 12,
                 left: 12,
-                child: StreamBuilder<List<Map<String, dynamic>>>(
+                child: StreamBuilder<List<SosRequest>>(
                   stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
                   builder: (context, snapshot) => Row(
                     children: [
@@ -250,7 +286,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.9),
+        color: color.withOpacity(0.9),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -264,140 +300,6 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
         ],
       ),
-    );
-  }
-
-  Widget _buildManagementTabs() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          _buildTabItem('Verification', isActive: true),
-          _buildTabItem('Disputes'),
-          _buildTabItem('Logistics'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabItem(String label, {bool isActive = false}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? BoostDriveTheme.surfaceDark : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: isActive ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)] : null,
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isActive ? BoostDriveTheme.primaryColor : BoostDriveTheme.textDim,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVerificationList(WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'PENDING VERIFICATIONS',
-              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
-            ),
-            TextButton(
-              onPressed: () {},
-              child: const Text('Review All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        StreamBuilder<List<UserProfile>>(
-          stream: ref.watch(userServiceProvider).getPendingVerifications(),
-          builder: (context, snapshot) {
-            final pendings = snapshot.data ?? [];
-            if (pendings.isEmpty) return Text('No pending verifications.', style: TextStyle(color: BoostDriveTheme.textDim));
-            return Column(
-              children: pendings.map((p) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildVerificationCard(p),
-              )).toList(),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVerificationCard(UserProfile profile) {
-    final title = profile.fullName;
-    final subtitle = 'Applied: recently • ${profile.role.toUpperCase()}';
-    final icon = profile.role == 'service_pro' ? Icons.build : Icons.store;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 48,
-            width: 48,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: Colors.white24, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(subtitle, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 10)),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () {
-              ref.read(userServiceProvider).updateProfile(
-                profile.copyWith(verificationStatus: 'approved', role: 'service_provider'),
-              );
-            },
-            child: _buildActionButton(Icons.check, Colors.green),
-          ),
-          const SizedBox(width: 8),
-          _buildActionButton(Icons.close, Colors.red),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, Color color) {
-    return Container(
-      height: 32,
-      width: 32,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(icon, color: color, size: 20),
     );
   }
 

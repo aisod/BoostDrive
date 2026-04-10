@@ -18,6 +18,14 @@ class FindProvidersPage extends ConsumerStatefulWidget {
 class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
   /// 'all' | 'mechanic' | 'towing' | 'parts' | 'rental'
   String _serviceFilter = 'all';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   String? _getServiceTypeForProvider() {
     switch (_serviceFilter) {
@@ -56,32 +64,67 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Verified service providers',
               style: TextStyle(
-                fontSize: 16,
-                color: BoostDriveTheme.textDim,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
                 height: 1.4,
               ),
             ),
             const SizedBox(height: 6),
             const Text(
               'Browse mechanics and towing providers verified by BoostDrive. Use filters to find the right help.',
-              style: TextStyle(fontSize: 13, color: BoostDriveTheme.textDim, height: 1.5),
+              style: TextStyle(fontSize: 13, color: Colors.white, height: 1.5),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white),
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val.toLowerCase().trim();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search by name, role, or service area...',
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                prefixIcon: const Icon(Icons.search, color: Colors.white),
+                filled: true,
+                fillColor: BoostDriveTheme.surfaceDark.withOpacity(0.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 16),
             _buildFilterChips(),
             const SizedBox(height: 20),
-            Expanded(
-              child: providersAsync.when(
-                data: (list) {
-                  if (list.isEmpty) {
-                    return _buildEmptyState();
-                  }
-                  return _buildProviderList(list);
-                },
-                loading: () => const Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
-                error: (err, _) => Center(
+            providersAsync.when(
+              data: (allData) {
+                final list = allData.where((p) {
+                  if (_searchQuery.isEmpty) return true;
+                  final matchName = p.fullName.toLowerCase().contains(_searchQuery);
+                  final matchRole = p.role.toLowerCase().contains(_searchQuery);
+                  final matchArea = p.serviceAreaDescription.toLowerCase().contains(_searchQuery);
+                  return matchName || matchRole || matchArea;
+                }).toList();
+                
+                if (list.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return _buildProviderList(list);
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.all(40.0),
+                child: Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
+              ),
+              error: (err, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(40.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -129,17 +172,17 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.person_search, size: 64, color: BoostDriveTheme.textDim.withValues(alpha: 0.5)),
+            Icon(Icons.person_search, size: 64, color: Colors.white.withOpacity(0.8)),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No providers match this filter yet.',
-              style: TextStyle(fontSize: 16, color: BoostDriveTheme.textDim),
+              style: TextStyle(fontSize: 16, color: Colors.white),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             const Text(
-              'Try "All" or check back as we onboard more providers.',
-              style: TextStyle(fontSize: 14, color: BoostDriveTheme.textDim),
+              'Try "All", adjust your search, or check back as we onboard more providers.',
+              style: TextStyle(fontSize: 14, color: Colors.white),
               textAlign: TextAlign.center,
             ),
           ],
@@ -150,6 +193,8 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
 
   Widget _buildProviderList(List<UserProfile> list) {
     return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: list.length,
       itemBuilder: (context, index) {
         final p = list[index];
@@ -172,7 +217,7 @@ class _FilterChip extends StatelessWidget {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.3),
+      selectedColor: BoostDriveTheme.primaryColor.withOpacity(0.3),
       checkmarkColor: BoostDriveTheme.primaryColor,
     );
   }

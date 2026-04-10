@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
@@ -86,10 +87,10 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> {
     final user = ref.watch(authStateProvider).value?.session?.user;
     final activeRequests = user != null
         ? ref.watch(userActiveSosRequestsProvider(user.id)).valueOrNull ?? []
-        : <Map<String, dynamic>>[];
+        : <SosRequest>[];
     final hasActiveRequest = activeRequests.isNotEmpty;
     final activeRequest = hasActiveRequest ? activeRequests.first : null;
-    final assignedProviderId = activeRequest?['assigned_provider_id'] as String?;
+    final assignedProviderId = activeRequest?.assignedProviderId;
 
     return Scaffold(
       backgroundColor: BoostDriveTheme.backgroundDark,
@@ -122,8 +123,8 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> {
                 request: activeRequest,
                 assignedProviderId: assignedProviderId,
                 onCancel: () async {
-                  final id = activeRequest['id'] as String?;
-                  if (id != null) {
+                  final id = activeRequest.id;
+                  if (id.isNotEmpty) {
                     await ref.read(sosServiceProvider).cancelRequest(id);
                     if (mounted) setState(() => _activeRequestId = null);
                   }
@@ -215,14 +216,14 @@ class _ActiveRequestCard extends ConsumerWidget {
     required this.onCancel,
   });
 
-  final Map<String, dynamic> request;
+  final SosRequest request;
   final String? assignedProviderId;
   final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final type = (request['type'] as String?) ?? 'assistance';
-    final status = (request['status'] as String?) ?? 'pending';
+    final type = request.type.isNotEmpty ? request.type : 'assistance';
+    final status = request.status.isNotEmpty ? request.status : 'pending';
     final providerProfile = assignedProviderId != null
         ? ref.watch(userProfileProvider(assignedProviderId!)).valueOrNull
         : null;

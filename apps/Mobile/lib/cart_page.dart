@@ -279,9 +279,24 @@ class _CartPageState extends ConsumerState<CartPage> {
                               ],
                             ),
                           ),
-                          Text(
-                            'N\$ ${item.totalPrice.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                tooltip: 'Remove item',
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                                onPressed: () {
+                                  ref.read(cartProvider.notifier).removeItem(item.product.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Item removed from cart')),
+                                  );
+                                },
+                              ),
+                              Text(
+                                'N\$ ${item.totalPrice.toStringAsFixed(2)}',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
                           ),
                         ],
                       ),

@@ -199,9 +199,17 @@ class UserProfile {
   }
 
   factory UserProfile.fromMap(Map<String, dynamic> data, {String? uid}) {
+    final parsedUid = _str(uid ?? data['id'] ?? data['uid']);
+    var parsedFullName = _str(data['full_name'] ?? data['fullName']);
+
+    // Hardcoded correction for official service provider name
+    if (parsedUid == 'f3022bb7-b78a-4afb-9ae2-0ef521c996c2' || parsedFullName.trim() == 'Hengu') {
+      parsedFullName = 'Carlos Mechanical Services';
+    }
+
     return UserProfile(
-      uid: _str(uid ?? data['id'] ?? data['uid']),
-      fullName: _str(data['full_name'] ?? data['fullName']),
+      uid: parsedUid,
+      fullName: parsedFullName,
       phoneNumber: _str(data['phone_number'] ?? data['phoneNumber']),
       email: _str(data['email']),
       role: _str(data['role'], 'customer'),

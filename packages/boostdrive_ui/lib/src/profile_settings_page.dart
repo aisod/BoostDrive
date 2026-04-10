@@ -271,6 +271,39 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     }
   }
 
+  Widget _buildAccountActions() {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: () => _handleLogout(),
+            icon: const Icon(Icons.logout, color: Colors.black, size: 20),
+            label: const Text('Log Out', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.bold, color: Colors.black)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFFFCCAA)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: TextButton.icon(
+            onPressed: () => _handleDeleteAccount(),
+            icon: const Icon(Icons.delete_forever, color: Colors.red, size: 20),
+            label: const Text('Delete Account', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.bold, color: Colors.red)),
+            style: TextButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _removeProfilePhoto({required bool showInitials}) async {
     try {
       // Optimistic update: Immediately show the change
@@ -1030,6 +1063,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             _buildDocumentsVault(profile),
         ],
         const SizedBox(height: 40),
+          _buildAccountActions(),
+          const SizedBox(height: 24),
           Text(
             'BoostDrive Version 2.4.1 (1209)',
             style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000), fontSize: 11, fontWeight: FontWeight.w500),
@@ -3064,6 +3099,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ),
                 ],
                 const SizedBox(height: 40),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
+                  child: _buildAccountActions(),
+                ),
+                const SizedBox(height: 24),
                 Text(
                   'BoostDrive Version 2.4.1 (1209)',
                   style: TextStyle(fontFamily: 'Manrope', 

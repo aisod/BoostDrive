@@ -165,21 +165,10 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
               const SizedBox(height: 20),
               TextFormField(
                 controller: _descriptionController,
-                maxLines: null,
-                minLines: 5,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration(
-                  labelText: 'Detailed Description',
-                  alignLabelWithHint: true,
-                  counterText: '${_descriptionController.text.length} / 500 minimum',
-                  counterStyle: TextStyle(
-                    color: _descriptionController.text.length < 500 ? Colors.orange : Colors.green,
-                  ),
-                ),
-                onChanged: (v) => setState(() {}),
+                maxLines: 8,
+                decoration: const InputDecoration(labelText: 'Description', alignLabelWithHint: true),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Description is required';
-                  if (v.length < 500) return 'Description must be at least 500 characters';
                   return null;
                 },
               ),

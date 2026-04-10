@@ -75,6 +75,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
         condition: _condition,
         location: _location,
         isFeatured: false,
+        status: 'pending',
         createdAt: DateTime.now(),
         description: _description,
         fitment: (_make != null && _model != null && _year != null)
@@ -217,21 +218,12 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                     const SizedBox(height: 32),
                     _buildSectionHeader('Detailed Description'),
                     TextFormField(
-                      decoration: _inputDecoration('Detailed Item Description (min. 500 chars)')
-                          .copyWith(
-                            alignLabelWithHint: true,
-                            counterText: '${_description.length} / 500 minimum',
-                            counterStyle: TextStyle(
-                              color: _description.length < 500 ? Colors.orange : Colors.green,
-                            ),
-                          ),
-                      maxLines: null,
-                      minLines: 6,
-                      keyboardType: TextInputType.multiline,
+                      maxLines: 8,
+                      decoration: _inputDecoration('Detailed Item Description'),
+                      style: const TextStyle(color: Colors.white),
                       onChanged: (v) => setState(() => _description = v),
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Description is required';
-                        if (v.length < 500) return 'Description must be at least 500 characters';
                         return null;
                       },
                       onSaved: (v) => _description = v!,

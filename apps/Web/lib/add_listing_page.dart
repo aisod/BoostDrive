@@ -88,6 +88,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
         location: _locationController.text,
         isFeatured: true,
         condition: _condition,
+        status: 'pending',
         createdAt: DateTime.now(),
         description: _descriptionController.text,
       );
@@ -316,19 +317,14 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                         maxLines: null,
                         minLines: 8,
                         keyboardType: TextInputType.multiline,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Detailed Description',
-                          hintText: 'Provide a comprehensive description of your item (min. 500 characters)...',
+                          hintText: 'Provide a comprehensive description of your item...',
                           alignLabelWithHint: true,
-                          counterText: '${_descriptionController.text.length} / 500 minimum',
-                          counterStyle: TextStyle(
-                            color: _descriptionController.text.length < 500 ? Colors.orange : Colors.green,
-                          ),
                         ),
                         onChanged: (v) => setState(() {}),
                         validator: (v) {
                           if (v == null || v.isEmpty) return 'Description is required';
-                          if (v.length < 500) return 'Description must be at least 500 characters';
                           return null;
                         },
                       ),
