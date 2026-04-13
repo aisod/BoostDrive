@@ -43,6 +43,9 @@ dependencies:
   google_fonts: ^6.2.1
   intl: ^0.19.0
   url_launcher: ^6.3.0
+  record: ^6.2.0
+  audioplayers: ^6.1.0
+  path_provider: ^2.1.5
 
   boostdrive_core:
     path: ../../packages/boostdrive_core

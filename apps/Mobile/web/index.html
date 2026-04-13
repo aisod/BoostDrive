@@ -2,40 +2,60 @@
 <html>
 
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="BoostDrive mobile experience on the web.">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="mobile">
+  <meta name="apple-mobile-web-app-title" content="BoostDrive">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png" />
-
-  <title>mobile</title>
+  <title>BoostDrive</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Load common UI fonts in the browser so google_fonts + CanvasKit are not the only path.
+    Montserrat / Poppins / Manrope / Outfit are used across boostdrive_ui and Mobile screens.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <!--
+    Google Maps JS is injected at runtime when you pass a real key, e.g.:
+    flutter run -d chrome --dart-define=GOOGLE_MAPS_WEB_API_KEY=YOUR_KEY
+  -->
 </head>
 
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <!--
+    Default web bootstrap uses CanvasKit, which often fails loading fonts (canvaskit/fonts.dart)
+    when gstatic/network is blocked or flaky. Force the HTML renderer first (same as apps/Web).
+    See https://github.com/flutter/flutter/issues/184683
+  -->
+  <script>
+    {{flutter_js}}
+    {{flutter_build_config}}
+
+    _flutter.loader.load({
+      onEntrypointLoaded: function (engineInitializer) {
+        engineInitializer
+          .initializeEngine({ renderer: "html" })
+          .catch(function () {
+            return engineInitializer.initializeEngine();
+          })
+          .then(function (appRunner) {
+            appRunner.runApp();
+          });
+      },
+    });
+  </script>
 </body>
 
 </html>

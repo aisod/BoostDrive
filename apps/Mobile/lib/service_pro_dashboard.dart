@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +9,10 @@ import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import 'boostdrive_google_map_gate.dart';
+import 'messages_page.dart';
+import 'sos_request_detail_page.dart';
 
 class ServiceProDashboard extends ConsumerStatefulWidget {
   const ServiceProDashboard({super.key});
@@ -18,11 +25,58 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
   LatLng? _currentPosition;
+  Timer? _sosLocationTimer;
+  Set<String> _trackedSosIds = {};
 
   @override
   void initState() {
     super.initState();
     _initLocation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final uid = ref.read(currentUserProvider)?.id;
+      if (uid == null) return;
+      final list = ref.read(providerAssignedRequestsProvider(uid)).valueOrNull ?? [];
+      if (list.isNotEmpty) {
+        _trackedSosIds = list.map((e) => e.id).toSet();
+        _syncSosLocationPulse(uid);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _sosLocationTimer?.cancel();
+    super.dispose();
+  }
+
+  void _syncSosLocationPulse(String providerId) {
+    _sosLocationTimer?.cancel();
+    _sosLocationTimer = null;
+
+    void tick() {
+      final asyncList = ref.read(providerAssignedRequestsProvider(providerId));
+      final list = asyncList.valueOrNull ?? [];
+      if (list.isEmpty) return;
+      unawaited(_pushProviderLocations(providerId, list));
+    }
+
+    tick();
+    _sosLocationTimer = Timer.periodic(const Duration(seconds: 20), (_) => tick());
+  }
+
+  Future<void> _pushProviderLocations(String providerId, List<SosRequest> list) async {
+    final pos = await ref.read(sosServiceProvider).getCurrentLocation();
+    if (pos == null || !mounted) return;
+    final sos = ref.read(sosServiceProvider);
+    for (final r in list) {
+      await sos.updateProviderTracking(
+        requestId: r.id,
+        providerId: providerId,
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+      );
+    }
   }
 
   Future<void> _initLocation() async {
@@ -51,6 +105,23 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     final user = ref.watch(currentUserProvider);
     if (user == null) return const Center(child: Text('Please log in'));
 
+    ref.listen<AsyncValue<List<SosRequest>>>(providerAssignedRequestsProvider(user.id), (previous, next) {
+      next.whenData((list) {
+        if (list.isEmpty) {
+          _sosLocationTimer?.cancel();
+          _sosLocationTimer = null;
+          _trackedSosIds = {};
+          return;
+        }
+        final ids = list.map((e) => e.id).toSet();
+        if (setEquals(ids, _trackedSosIds) && _sosLocationTimer != null) {
+          return;
+        }
+        _trackedSosIds = ids;
+        _syncSosLocationPulse(user.id);
+      });
+    });
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -58,7 +129,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
-            _buildHeader(ref, user.id),
+            _buildHeader(context, ref, user.id),
             const SizedBox(height: 24),
             _buildStatusToggle(ref, user.id),
             const SizedBox(height: 24),
@@ -68,9 +139,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
             const SizedBox(height: 32),
             _buildLiveRequests(ref),
             const SizedBox(height: 32),
-            _buildInProgressJobs(),
+            _buildInProgressJobs(ref, user.id),
             const SizedBox(height: 32),
-            _buildActiveServicesSection(),
+            _buildActiveServicesSection(ref, user.id),
             const SizedBox(height: 32),
             _buildJobCardTool(),
             const SizedBox(height: 120),
@@ -80,7 +151,8 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     );
   }
 
-  Widget _buildHeader(WidgetRef ref, String uid) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref, String uid) {
+    final liveAlerts = ref.watch(globalActiveSosRequestsProvider).valueOrNull ?? [];
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
@@ -93,25 +165,126 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
               child: profile.profileImg.isEmpty ? const Icon(Icons.person, color: BoostDriveTheme.primaryColor) : null,
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    profile.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    'PRO ID: @${profile.uid.length >= 8 ? profile.uid.substring(0, 8).toUpperCase() : profile.uid.toUpperCase()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  profile.fullName,
-                  style: GoogleFonts.manrope(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                ref.watch(userNotificationsStreamProvider(uid)).when(
+                  data: (list) {
+                    final unreadCount = list.where((n) => n['is_read'] == false).length;
+                    final hasLive = liveAlerts.isNotEmpty;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        GestureDetector(
+                          onTap: () => _showNotificationsOverlay(context, ref, uid),
+                          child: _buildHeaderIcon(Icons.notifications_none_rounded),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          )
+                        else if (hasLive)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: Container(
+                              height: 10,
+                              width: 10,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: BoostDriveTheme.backgroundDark, width: 2),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                  loading: () => GestureDetector(
+                    onTap: () => _showNotificationsOverlay(context, ref, uid),
+                    child: _buildHeaderIcon(Icons.notifications_none_rounded),
+                  ),
+                  error: (_, _) => GestureDetector(
+                    onTap: () => _showNotificationsOverlay(context, ref, uid),
+                    child: _buildHeaderIcon(Icons.notifications_off_outlined),
                   ),
                 ),
-                Text(
-                  'PRO ID: @${profile.uid.substring(0, 8).toUpperCase()}',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                const SizedBox(width: 12),
+                ref.watch(unreadConversationsProvider(uid)).when(
+                  data: (unreadConversationIds) {
+                    final unreadCount = unreadConversationIds.length;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        GestureDetector(
+                          onTap: () => _openMessages(context),
+                          child: _buildHeaderIcon(Icons.chat_bubble_outline_rounded),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                  loading: () => GestureDetector(
+                    onTap: () => _openMessages(context),
+                    child: _buildHeaderIcon(Icons.chat_bubble_outline_rounded),
+                  ),
+                  error: (_, _) => GestureDetector(
+                    onTap: () => _openMessages(context),
+                    child: _buildHeaderIcon(Icons.chat_bubble_outline_rounded),
+                  ),
                 ),
               ],
             ),
-            const Spacer(),
-            _buildHeaderIcon(Icons.notifications_none_rounded, hasNotification: true),
           ],
         );
       },
@@ -120,32 +293,33 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, {bool hasNotification = false}) {
-    return Stack(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
-        if (hasNotification)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: Container(
-              height: 10,
-              width: 10,
-              decoration: BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-                border: Border.all(color: BoostDriveTheme.backgroundDark, width: 2),
-              ),
-            ),
-          ),
-      ],
+  void _openMessages(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const MessagesPage()),
+    );
+  }
+
+  void _showNotificationsOverlay(BuildContext context, WidgetRef ref, String uid) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => NotificationsOverlay(
+        onNotificationTap: (type, id) {
+          if (type == 'support') {
+            ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildHeaderIcon(IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white, size: 22),
     );
   }
 
@@ -267,18 +441,23 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           clipBehavior: Clip.antiAlias,
           child: Stack(
             children: [
-              GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: _currentPosition ?? const LatLng(-22.5609, 17.0658),
-                  zoom: 14,
+              BoostdriveGoogleMapGate(
+                height: 220,
+                fallbackLat: _currentPosition?.latitude ?? -22.5609,
+                fallbackLng: _currentPosition?.longitude ?? 17.0658,
+                map: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: _currentPosition ?? const LatLng(-22.5609, 17.0658),
+                    zoom: 14,
+                  ),
+                  onMapCreated: (controller) => _mapController = controller,
+                  markers: _markers,
+                  myLocationEnabled: !kIsWeb,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapType: MapType.normal,
+                  style: _mapStyle,
                 ),
-                onMapCreated: (controller) => _mapController = controller,
-                markers: _markers,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                mapType: MapType.normal,
-                style: _mapStyle,
               ),
               Positioned(
                 bottom: 16,
@@ -323,16 +502,30 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Widget _buildStatsRow(WidgetRef ref, String uid) {
+    final jobsAsync = ref.watch(providerCompletedSosCountProvider(uid));
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
+        final jobsLabel = jobsAsync.when(
+          data: (n) => '$n',
+          loading: () => '…',
+          error: (_, _) => '—',
+        );
         return Row(
           children: [
             Expanded(child: _buildStatCard('Earnings', '\$${profile.totalEarnings.toStringAsFixed(0)}', 'LIFETIME', true)),
             const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('Jobs', '42', 'COMPLETED', false)),
+            Expanded(child: _buildStatCard('Jobs', jobsLabel, 'COMPLETED', false)),
             const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('Rating', '4.9', 'EXPERT', false)),
+            Expanded(
+              child: _buildStatCard(
+                'Rating',
+                '—',
+                'NO REVIEWS YET',
+                false,
+                subtextMuted: true,
+              ),
+            ),
           ],
         );
       },
@@ -341,7 +534,13 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, String subtext, bool isPositive) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    String subtext,
+    bool isPositive, {
+    bool subtextMuted = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -359,7 +558,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           Text(
             subtext,
             style: TextStyle(
-              color: isPositive ? Colors.green : BoostDriveTheme.primaryColor,
+              color: subtextMuted
+                  ? BoostDriveTheme.textDim
+                  : (isPositive ? Colors.green : BoostDriveTheme.primaryColor),
               fontSize: 9,
               fontWeight: FontWeight.w900,
             ),
@@ -370,6 +571,11 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Widget _buildLiveRequests(WidgetRef ref) {
+    final uid = ref.watch(currentUserProvider)?.id;
+    final providerTypes = uid != null
+        ? (ref.watch(userProfileProvider(uid)).valueOrNull?.providerServiceTypes ?? const <String>[])
+        : const <String>[];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -391,31 +597,53 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
           builder: (context, snapshot) {
             final requests = snapshot.data ?? [];
-            if (requests.isEmpty) {
+            final filtered = providerTypes.isEmpty
+                ? <SosRequest>[]
+                : requests.where((r) => sosRequestMatchesProviderServiceTypes(r, providerTypes)).toList();
+
+            if (providerTypes.isEmpty) {
               return Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.02),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Center(
-                child: Text('Scanning for nearby requests...', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, fontStyle: FontStyle.italic)),
-              ),
-            );
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: Center(
+                  child: Text(
+                    'Add service types in Account → Profile so you only see SOS requests you can fulfill.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, height: 1.35),
+                  ),
+                ),
+              );
             }
+
+            if (filtered.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: Center(
+                  child: Text(
+                    'No pending SOS requests match your services (${providerTypes.join(", ")}).',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, height: 1.35),
+                  ),
+                ),
+              );
+            }
+
             final userId = ref.read(currentUserProvider)?.id;
             return Column(
-              children: requests.map((req) => Padding(
+              children: filtered.map((req) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _buildRequestCard(
                   ref: ref,
-                  tag: 'SOS - ${req.type.toUpperCase()}',
-                  distance: '2.4 KM AWAY',
-                  title: req.userNote.isNotEmpty ? req.userNote : 'No notes provided',
-                  user: 'Customer ID: ${req.userId.substring(0, 8)}',
-                  tagColor: req.type == 'emergency' ? Colors.redAccent : Colors.blueAccent,
-                  requestId: req.id,
+                  request: req,
                   userId: userId,
                 ),
               )).toList(),
@@ -428,91 +656,138 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
 
   Widget _buildRequestCard({
     required WidgetRef ref,
-    required String tag,
-    required String distance,
-    required String title,
-    required String user,
-    required Color tagColor,
-    required String requestId,
+    required SosRequest request,
     required String? userId,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: tagColor.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: tagColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
+    final tag = 'SOS — ${request.type.toUpperCase()}';
+    final title = request.userNote.isNotEmpty ? request.userNote : 'No notes provided';
+    final userLine = 'Customer ID: ${request.userId.length >= 8 ? request.userId.substring(0, 8) : request.userId}';
+    final tagColor = request.type.toLowerCase() == 'towing' ? Colors.redAccent : Colors.blueAccent;
+    final requestId = request.id;
+
+    String distanceLabel = kIsWeb ? 'Allow location for distance' : 'Enable GPS for distance';
+    final me = _currentPosition;
+    if (me != null) {
+      final km = GeoEta.haversineKm(me.latitude, me.longitude, request.lat, request.lng);
+      distanceLabel = km < 1 ? '${(km * 1000).round()} m away' : '${km.toStringAsFixed(1)} km away';
+    }
+
+    Future<void> openDetail() async {
+      if (!mounted || requestId.isEmpty) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(builder: (_) => SosRequestDetailPage(request: request)),
+      );
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: tagColor.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: openDetail,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: tagColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(tag, style: TextStyle(color: tagColor, fontSize: 10, fontWeight: FontWeight.w900)),
+                        ),
+                        Text(distanceLabel, style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(userLine, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.touch_app, size: 16, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.9)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Tap to open — customer sees you are responding (before you accept).',
+                            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12, height: 1.25),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                child: Text(tag, style: TextStyle(color: tagColor, fontSize: 10, fontWeight: FontWeight.w900)),
               ),
-              Text(distance, style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          Text(user, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14)),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: (userId == null || requestId.isEmpty)
-                      ? null
-                      : () async {
-                          try {
-                            await ref.read(sosServiceProvider).acceptRequest(requestId, userId);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Request accepted. Customer will see you as assigned.')),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to accept: $e')),
-                              );
-                            }
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryColor,
-                    minimumSize: const Size(0, 56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: requestId.isEmpty ? null : openDetail,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white24),
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text('OPEN REQUEST', style: TextStyle(fontWeight: FontWeight.w800)),
                   ),
-                  child: const Text('ACCEPT REQUEST', style: TextStyle(fontWeight: FontWeight.w900)),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                height: 56,
-                width: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: (userId == null || requestId.isEmpty)
+                        ? null
+                        : () async {
+                            final sos = ref.read(sosServiceProvider);
+                            try {
+                              await sos.upsertProviderResponding(requestId);
+                              await sos.acceptRequest(requestId, userId);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Request accepted. Customer will see you as assigned.')),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to accept: $e')),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: BoostDriveTheme.primaryColor,
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text('ACCEPT', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
                 ),
-                child: const Center(child: Text('15s', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInProgressJobs() {
+  Widget _buildInProgressJobs(WidgetRef ref, String uid) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -521,32 +796,98 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.assignment_outlined, size: 48, color: BoostDriveTheme.textDim),
-                const SizedBox(height: 12),
-                Text(
-                  'No ongoing jobs',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+        ref.watch(providerAssignedRequestsProvider(uid)).when(
+              data: (list) {
+                if (list.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.assignment_outlined, size: 48, color: BoostDriveTheme.textDim),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No ongoing jobs',
+                            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: list.map((r) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Material(
+                        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: r.id.isEmpty
+                              ? null
+                              : () {
+                                  Navigator.of(context).push<void>(
+                                    MaterialPageRoute<void>(builder: (_) => SosRequestDetailPage(request: r)),
+                                  );
+                                },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Icon(Icons.local_shipping, color: BoostDriveTheme.primaryColor, size: 28),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        r.userNote.isNotEmpty ? r.userNote : 'SOS — ${r.type.toUpperCase()}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Status: ${r.status}',
+                                        style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right, color: Colors.white54),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
                 ),
-              ],
+              ),
+              error: (e, _) => Text('Could not load jobs: $e', style: TextStyle(color: Colors.red.shade200)),
             ),
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildActiveServicesSection() {
+  Widget _buildActiveServicesSection(WidgetRef ref, String uid) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -555,33 +896,59 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.settings_outlined, size: 48, color: BoostDriveTheme.textDim),
-                const SizedBox(height: 12),
-                Text(
-                  'No active services',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Services you offer will appear here when added.',
-                  style: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.8), fontSize: 13),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+        ref.watch(userProfileProvider(uid)).when(
+              data: (profile) {
+                if (profile == null) return const SizedBox();
+                final types = profile.providerServiceTypes;
+                if (types.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.settings_outlined, size: 48, color: BoostDriveTheme.textDim),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No services listed',
+                            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Add service types in your profile to show them here.',
+                            style: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.8), fontSize: 13),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: types
+                      .map(
+                        (t) => Chip(
+                          label: Text(
+                            UserProfile.getSpecializationLabel(t),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
+                          side: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+              loading: () => const SizedBox(),
+              error: (_, _) => const SizedBox(),
             ),
-          ),
-        ),
       ],
     );
   }

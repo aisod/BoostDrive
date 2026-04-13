@@ -32,6 +32,9 @@ firebase-debug.log
 .env
 .env.local
 
+# iOS Maps SDK key (see ios/Flutter/Maps.example.xcconfig)
+apps/Mobile/ios/Flutter/Maps.xcconfig
+
 # Build outputs
 *.apk
 *.ipa

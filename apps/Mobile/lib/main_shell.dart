@@ -4,7 +4,7 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'customer_dashboard.dart';
 import 'super_admin_dashboard.dart';
 import 'marketplace_page.dart';
-import 'providers.dart';
+import 'providers.dart' show mobileShellRoleProvider;
 
 import 'provider_hub.dart';
 import 'find_providers_page.dart';
@@ -13,6 +13,19 @@ import 'garage_page.dart';
 import 'admin_sos_hub_page.dart';
 import 'admin_verifications_page.dart';
 import 'admin_security_page.dart';
+import 'provider_inventory_page.dart';
+import 'provider_orders_page.dart';
+import 'provider_services_page.dart';
+
+/// Top-level (not on [State]) so Flutter Web hot reload does not leave a stale / undefined list.
+const List<Widget> _customerShellTabs = [
+  CustomerDashboard(),
+  EmergencyHubPage(),
+  GaragePage(),
+  MarketplacePage(),
+  FindProvidersPage(),
+  ProfileSettingsPage(),
+];
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -32,25 +45,39 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final activeRole = ref.watch(activeRoleProvider);
+    final activeRole = ref.watch(mobileShellRoleProvider);
     
-    Widget body;
-    List<BottomNavigationBarItem> navItems;
-    
+    final List<BottomNavigationBarItem> navItems;
     if (activeRole == 'service_pro' || activeRole == 'seller' || activeRole == 'logistics') {
-      body = _buildProviderBody();
       navItems = _buildProviderNav();
     } else if (activeRole == 'super_admin') {
-      body = _buildSuperAdminBody();
       navItems = _buildSuperAdminNav();
     } else {
-      body = _buildCustomerBody();
       navItems = _buildCustomerNav();
     }
 
-    // Protection against out-of-bounds when switching roles
-    if (_currentIndex >= navItems.length) {
-      _currentIndex = 0;
+    var displayIndex = _currentIndex;
+    if (displayIndex >= navItems.length) {
+      displayIndex = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _currentIndex >= navItems.length) {
+          setState(() => _currentIndex = 0);
+        }
+      });
+    }
+
+    final Widget body;
+    if (activeRole == 'service_pro' || activeRole == 'seller' || activeRole == 'logistics') {
+      body = _buildProviderBody();
+    } else if (activeRole == 'super_admin') {
+      body = _buildSuperAdminBody();
+    } else {
+      final tabCount = _customerShellTabs.length;
+      final safeIndex = tabCount <= 1 ? 0 : displayIndex.clamp(0, tabCount - 1);
+      body = IndexedStack(
+        index: safeIndex,
+        children: _customerShellTabs,
+      );
     }
 
     return Scaffold(
@@ -65,7 +92,7 @@ class _MainShellState extends ConsumerState<MainShell> {
           ),
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex,
+          currentIndex: displayIndex,
           onTap: _onTabTapped,
           backgroundColor: BoostDriveTheme.surfaceDark,
           selectedItemColor: BoostDriveTheme.primaryColor,
@@ -77,18 +104,6 @@ class _MainShellState extends ConsumerState<MainShell> {
         ),
       ),
     );
-  }
-
-  Widget _buildCustomerBody() {
-    switch (_currentIndex) {
-      case 0: return const CustomerDashboard();
-      case 1: return const EmergencyHubPage();
-      case 2: return const GaragePage();
-      case 3: return const MarketplacePage();
-      case 4: return const FindProvidersPage();
-      case 5: return const ProfileSettingsPage();
-      default: return const CustomerDashboard();
-    }
   }
 
   List<BottomNavigationBarItem> _buildCustomerNav() {
@@ -105,9 +120,9 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget _buildProviderBody() {
     switch (_currentIndex) {
       case 0: return const ProviderHub();
-      case 1: return const Center(child: Text('Inventory', style: TextStyle(color: Colors.white)));
-      case 2: return const Center(child: Text('Orders', style: TextStyle(color: Colors.white)));
-      case 3: return const Center(child: Text('Services', style: TextStyle(color: Colors.white)));
+      case 1: return const ProviderInventoryPage();
+      case 2: return const ProviderOrdersPage();
+      case 3: return const ProviderServicesPage();
       case 4: return const ProfileSettingsPage();
       default: return const ProviderHub();
     }

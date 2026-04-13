@@ -5,6 +5,9 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'emergency_hub_page.dart';
+import 'messages_page.dart';
+
+// Notifications use the same stream + overlay as the web customer dashboard.
 
 class CustomerDashboard extends ConsumerStatefulWidget {
   const CustomerDashboard({super.key});
@@ -79,58 +82,114 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               ],
             ),
             const Spacer(),
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    // TODO: Implement notifications overlay
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Notifications coming soon')),
-                    );
-                  },
-                  child: _buildHeaderIcon(Icons.notifications_none_rounded),
-                ),
-                ref.watch(unreadConversationsProvider(uid)).when(
-                  data: (unreadIds) {
-                    if (unreadIds.isEmpty) return const SizedBox();
-                    return Positioned(
-                      right: -4,
-                      top: -4,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: BoostDriveTheme.surfaceDark,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${unreadIds.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
+            ref.watch(userNotificationsStreamProvider(uid)).when(
+              data: (list) {
+                final unreadCount = list.where((n) => n['is_read'] == false).length;
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _showNotificationsOverlay(context, ref, uid),
+                      child: _buildHeaderIcon(Icons.notifications_none_rounded),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            '$unreadCount',
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
-                    );
-                  },
-                  loading: () => const SizedBox(),
-                  error: (_, _) => const SizedBox(),
-                ),
-              ],
+                  ],
+                );
+              },
+              loading: () => GestureDetector(
+                onTap: () => _showNotificationsOverlay(context, ref, uid),
+                child: _buildHeaderIcon(Icons.notifications_none_rounded),
+              ),
+              error: (_, _) => GestureDetector(
+                onTap: () => _showNotificationsOverlay(context, ref, uid),
+                child: _buildHeaderIcon(Icons.notifications_off_outlined),
+              ),
             ),
             const SizedBox(width: 12),
-            _buildHeaderIcon(Icons.settings_outlined),
+            ref.watch(unreadConversationsProvider(uid)).when(
+              data: (unreadConversationIds) {
+                final unreadCount = unreadConversationIds.length;
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _openMessages(context),
+                      child: _buildHeaderIcon(Icons.message_outlined),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+              loading: () => GestureDetector(
+                onTap: () => _openMessages(context),
+                child: _buildHeaderIcon(Icons.message_outlined),
+              ),
+              error: (_, _) => GestureDetector(
+                onTap: () => _openMessages(context),
+                child: _buildHeaderIcon(Icons.message_outlined),
+              ),
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const ProfileSettingsPage()),
+                );
+              },
+              child: _buildHeaderIcon(Icons.settings_outlined),
+            ),
           ],
         );
       },
       loading: () => const CircularProgressIndicator(),
       error: (_, _) => const Text('Error loading header'),
+    );
+  }
+
+  void _openMessages(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const MessagesPage()),
+    );
+  }
+
+  void _showNotificationsOverlay(BuildContext context, WidgetRef ref, String uid) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => NotificationsOverlay(
+        onNotificationTap: (type, id) {
+          if (type == 'support') {
+            ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+          }
+        },
+      ),
     );
   }
 

@@ -1415,7 +1415,10 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
                    Container(
                     decoration: const BoxDecoration(
                       image: DecorationImage(
-                        image: AssetImage('assets/images/landing-page-image.jpg'),
+                        image: AssetImage(
+                          'assets/images/landing-page-image.jpg',
+                          package: 'boostdrive_ui',
+                        ),
                         fit: BoxFit.cover,
                       ),
                     ),

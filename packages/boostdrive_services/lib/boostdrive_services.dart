@@ -1,6 +1,7 @@
 library boostdrive_services;
 
 export 'src/sos_service.dart';
+export 'src/emergency_directory_service.dart';
 export 'src/cart_service.dart';
 
 export 'src/product_service.dart';
@@ -16,3 +17,4 @@ export 'src/notification_service.dart';
 export 'src/notification_hub_service.dart';
 export 'src/analytics_service.dart';
 export 'src/support_service.dart';
+export 'src/provider_ops_service.dart';

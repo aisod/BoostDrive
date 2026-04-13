@@ -45,5 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>GMSApiKey</key>
+	<string>$(GOOGLE_MAPS_API_KEY)</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>BoostDrive uses your location for SOS dispatch and maps.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>When you accept an SOS, we periodically share your position with the customer until the job ends.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>BoostDrive can use Face ID when you enable biometric checks.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>BoostDrive needs microphone access to send voice messages in chat.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>BoostDrive needs camera access to attach photos in messages.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>BoostDrive needs photo library access to attach images in messages.</string>
 </dict>
 </plist>

@@ -1,0 +1,5 @@
+# Minimal Supabase CLI config. Extend as needed for local development.
+
+[functions.sos-push-notify]
+# Database webhooks do not send a user JWT; authenticate with x-boostdrive-sos-secret header instead.
+verify_jwt = false

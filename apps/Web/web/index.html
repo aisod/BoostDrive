@@ -46,7 +46,30 @@
 </head>
 
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <!--
+    Use the HTML renderer to avoid CanvasKit WebGL "context lost" crashes
+    (LateInitializationError on _handledContextLostEvent / CkOffscreenSurface).
+    See https://github.com/flutter/flutter/issues/184683
+    If your Flutter SDK no longer supports renderer "html", remove the option below
+    and run: flutter run -d chrome --web-renderer canvaskit (or upgrade Flutter when fixed).
+  -->
+  <script>
+    {{flutter_js}}
+    {{flutter_build_config}}
+
+    _flutter.loader.load({
+      onEntrypointLoaded: function (engineInitializer) {
+        engineInitializer
+          .initializeEngine({ renderer: "html" })
+          .catch(function () {
+            return engineInitializer.initializeEngine();
+          })
+          .then(function (appRunner) {
+            appRunner.runApp();
+          });
+      },
+    });
+  </script>
 </body>
 
 </html>

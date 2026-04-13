@@ -1,36 +1,106 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' show ClientException;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
+import 'dart:async';
+
+/// True when this SOS [type] or [emergencyCategory] matches any entry in [providerServiceTypes]
+/// (e.g. profile `provider_service_types`: `mechanic`, `towing`, `parts`). Case-insensitive.
+bool sosRequestMatchesProviderServiceTypes(SosRequest request, List<String> providerServiceTypes) {
+  if (providerServiceTypes.isEmpty) return false;
+  final caps = providerServiceTypes
+      .map((e) => e.toLowerCase().trim())
+      .where((e) => e.isNotEmpty)
+      .toSet();
+  final t = request.type.toLowerCase().trim();
+  if (t.isNotEmpty && caps.contains(t)) return true;
+  final cat = request.emergencyCategory?.toLowerCase().trim();
+  if (cat != null && cat.isNotEmpty && caps.contains(cat)) return true;
+  return false;
+}
+
+/// One provider heartbeat on a pending SOS (viewing / responding before accept).
+class SosRespondingHeartbeat {
+  const SosRespondingHeartbeat({
+    required this.sosRequestId,
+    required this.providerId,
+    required this.lastSeenAt,
+  });
+
+  final String sosRequestId;
+  final String providerId;
+  final DateTime lastSeenAt;
+}
+
+bool _looksLikeTransportFailure(Object e) {
+  if (e is ClientException) return true;
+  final s = e.toString();
+  return s.contains('Failed to fetch') ||
+      s.contains('SocketException') ||
+      s.contains('Connection refused') ||
+      s.contains('Connection reset') ||
+      s.contains('HandshakeException') ||
+      s.contains('Network is unreachable');
+}
 
 class SosService {
   final _supabase = Supabase.instance.client;
   static const String emergencyNumber = "+264811234567"; // Namibia dispatch placeholder
 
   Future<Position?> getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return null;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return null;
+    try {
+      // Browser / some emulators report location services oddly; web uses the Geolocation API directly.
+      if (!kIsWeb) {
+        final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) return null;
       }
-    }
-    
-    if (permission == LocationPermission.deniedForever) {
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return null;
+      }
+      if (permission == LocationPermission.deniedForever) return null;
+
+      final lastKnown = await Geolocator.getLastKnownPosition();
+
+      Future<Position?> tryFix({
+        required LocationAccuracy accuracy,
+        required Duration timeLimit,
+      }) async {
+        try {
+          return await Geolocator.getCurrentPosition(
+            desiredAccuracy: accuracy,
+            timeLimit: timeLimit,
+          );
+        } catch (_) {
+          return null;
+        }
+      }
+
+      // Web: "high" accuracy often times out or fails; last-known is usually unavailable. Step down.
+      if (kIsWeb) {
+        return await tryFix(accuracy: LocationAccuracy.medium, timeLimit: const Duration(seconds: 30)) ??
+            await tryFix(accuracy: LocationAccuracy.low, timeLimit: const Duration(seconds: 25)) ??
+            await tryFix(accuracy: LocationAccuracy.lowest, timeLimit: const Duration(seconds: 20)) ??
+            lastKnown;
+      }
+
+      try {
+        return await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 20),
+        );
+      } catch (_) {
+        return await tryFix(accuracy: LocationAccuracy.medium, timeLimit: const Duration(seconds: 15)) ??
+            lastKnown;
+      }
+    } catch (_) {
       return null;
     }
-
-    return await Geolocator.getCurrentPosition();
   }
 
   Future<String?> recordSosRequest({
@@ -38,9 +108,13 @@ class SosService {
     required Position position,
     required String type,
     String? userNote,
+    String? vehicleId,
+    String? emergencyCategory,
   }) async {
     try {
-      final response = await _supabase.from('sos_requests').insert({
+      final note = (userNote ?? '').trim();
+
+      final row = <String, dynamic>{
         'user_id': userId,
         'type': type,
         'status': 'pending',
@@ -48,9 +122,17 @@ class SosService {
           'lat': position.latitude,
           'lng': position.longitude,
         },
-        'user_note': userNote ?? '',
+        'user_note': note,
         'created_at': DateTime.now().toIso8601String(),
-      }).select('id').single();
+      };
+      if (vehicleId != null && vehicleId.isNotEmpty) {
+        row['vehicle_id'] = vehicleId;
+      }
+      if (emergencyCategory != null && emergencyCategory.isNotEmpty) {
+        row['emergency_category'] = emergencyCategory;
+      }
+
+      final response = await _supabase.from('sos_requests').insert(row).select('id').single();
       
       return response['id'].toString();
     } catch (e) {
@@ -83,15 +165,44 @@ class SosService {
         .eq('user_id', userId)
         .order('created_at', ascending: false)
         .map((data) => data
-            .where((item) => ['pending', 'accepted', 'assigned'].contains(item['status']))
+            .where((item) {
+              final st = (item['status']?.toString() ?? '').toLowerCase().trim();
+              return const {'pending', 'accepted', 'assigned', 'active'}.contains(st);
+            })
             .map((json) => SosRequest.fromMap(json))
             .toList());
   }
 
+  /// Cancels the customer-owned SOS via RPC when available; otherwise RLS UPDATE.
+  /// Also falls back on transport errors (`ClientException`, "Failed to fetch") so cancel
+  /// still works if the RPC POST fails (CORS, proxy, flaky mobile/WASM networking).
   Future<void> cancelRequest(String requestId) async {
-    await _supabase.from('sos_requests').update({
-      'status': 'cancelled',
-    }).eq('id', requestId);
+    Future<void> directCancel() async {
+      await _supabase.from('sos_requests').update({'status': 'cancelled'}).eq('id', requestId);
+    }
+
+    try {
+      await _supabase.rpc<void>(
+        'cancel_my_sos_request',
+        params: <String, dynamic>{'p_request_id': requestId},
+      );
+      return;
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        await directCancel();
+        return;
+      }
+      rethrow;
+    } on ClientException catch (_) {
+      await directCancel();
+      return;
+    } catch (e) {
+      if (_looksLikeTransportFailure(e)) {
+        await directCancel();
+        return;
+      }
+      rethrow;
+    }
   }
 
   Future<void> callEmergencyServices(String number) async {
@@ -111,22 +222,85 @@ class SosService {
     return _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
-        .eq('status', 'pending')
         .order('created_at', ascending: false)
-        .map((data) => data.map((json) => SosRequest.fromMap(json)).toList());
+        .map((data) => data
+            .where((row) => (row['status']?.toString() ?? '').toLowerCase().trim() == 'pending')
+            .map((json) => SosRequest.fromMap(json))
+            .toList());
+  }
+
+  /// Provider marks themselves as viewing a pending SOS (heartbeat for customer map).
+  Future<void> upsertProviderResponding(String requestId) async {
+    final uid = _supabase.auth.currentUser?.id;
+    if (uid == null) return;
+    await _supabase.from('sos_provider_responding').upsert(
+      <String, dynamic>{
+        'sos_request_id': requestId,
+        'provider_id': uid,
+        'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      onConflict: 'sos_request_id,provider_id',
+    );
+  }
+
+  /// Stop sending heartbeats when leaving the request screen without accepting.
+  Future<void> deleteMyProviderResponding(String requestId) async {
+    final uid = _supabase.auth.currentUser?.id;
+    if (uid == null) return;
+    await _supabase
+        .from('sos_provider_responding')
+        .delete()
+        .eq('sos_request_id', requestId)
+        .eq('provider_id', uid);
+  }
+
+  /// Customer (or provider) listens for responding heartbeats on this SOS id.
+  Stream<List<SosRespondingHeartbeat>> streamProviderRespondingForRequest(String requestId) {
+    if (requestId.isEmpty) {
+      return Stream.value(<SosRespondingHeartbeat>[]);
+    }
+    return _supabase
+        .from('sos_provider_responding')
+        .stream(primaryKey: ['sos_request_id', 'provider_id'])
+        .eq('sos_request_id', requestId)
+        .map((rows) {
+          return rows.map((r) {
+            return SosRespondingHeartbeat(
+              sosRequestId: r['sos_request_id']?.toString() ?? '',
+              providerId: r['provider_id']?.toString() ?? '',
+              lastSeenAt: DateTime.tryParse(r['last_seen_at']?.toString() ?? '') ?? DateTime.utc(1970),
+            );
+          }).toList();
+        });
   }
 
   /// Requests assigned to this provider (accepted by them).
   Stream<List<SosRequest>> streamProviderAssignedRequests(String providerId) {
-    return _supabase
+    if (providerId.isEmpty) return Stream.value(<SosRequest>[]);
+    return _pollProviderAssignedRequests(providerId);
+  }
+
+  Future<List<SosRequest>> _fetchProviderAssignedRequests(String providerId) async {
+    final rows = await _supabase
         .from('sos_requests')
-        .stream(primaryKey: ['id'])
+        .select()
         .eq('assigned_provider_id', providerId)
-        .order('created_at', ascending: false)
-        .map((data) => data
-            .where((r) => ['accepted', 'assigned'].contains(r['status']?.toString()))
-            .map((json) => SosRequest.fromMap(json))
-            .toList());
+        .order('created_at', ascending: false);
+    return (rows as List<dynamic>)
+        .where((r) {
+          final st = (r['status']?.toString() ?? '').toLowerCase().trim();
+          return const {'accepted', 'assigned'}.contains(st);
+        })
+        .map((json) => SosRequest.fromMap(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  Stream<List<SosRequest>> _pollProviderAssignedRequests(String providerId) async* {
+    yield await _fetchProviderAssignedRequests(providerId);
+    while (true) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      yield await _fetchProviderAssignedRequests(providerId);
+    }
   }
 
   /// Provider accepts a pending SOS request (sets assigned_provider_id, responded_at, status).
@@ -145,6 +319,153 @@ class SosService {
       'responded_at': DateTime.now().toIso8601String(),
       'status': 'assigned',
     }).eq('id', requestId).eq('status', 'pending');
+
+    final pos = await getCurrentLocation();
+    if (pos != null) {
+      await updateProviderTracking(
+        requestId: requestId,
+        providerId: providerId,
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+      );
+    }
+  }
+
+  Future<void> completeAssignment({
+    required String requestId,
+    String? completionNote,
+    int requiredDistanceMeters = 300,
+  }) async {
+    final uid = _supabase.auth.currentUser?.id;
+    if (uid == null) throw Exception('Not authenticated');
+    final pos = await getCurrentLocation();
+    if (pos == null) {
+      throw Exception(
+        kIsWeb
+            ? 'Could not get your live location to close this SOS. Allow browser location and retry.'
+            : 'Could not get GPS location. Enable location and retry.',
+      );
+    }
+    await _supabase.rpc<void>(
+      'complete_sos_assignment',
+      params: <String, dynamic>{
+        'p_request_id': requestId,
+        'p_provider_lat': pos.latitude,
+        'p_provider_lng': pos.longitude,
+        'p_completion_note': (completionNote ?? '').trim().isEmpty ? null : completionNote!.trim(),
+        'p_required_distance_meters': requiredDistanceMeters,
+      },
+    );
+  }
+
+  Future<void> cancelAssignmentByProvider({
+    required String requestId,
+    String? reason,
+  }) async {
+    if (requestId.isEmpty) throw Exception('Invalid SOS request');
+    await _supabase.rpc<void>(
+      'cancel_sos_assignment_by_provider',
+      params: <String, dynamic>{
+        'p_request_id': requestId,
+        'p_reason': (reason ?? '').trim().isEmpty ? null : reason!.trim(),
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingReviewPrompts(String customerId) async {
+    if (customerId.isEmpty) return <Map<String, dynamic>>[];
+    final rows = await _supabase
+        .from('sos_provider_reviews')
+        .select()
+        .eq('customer_id', customerId)
+        .isFilter('submitted_at', null)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(rows as List<dynamic>);
+  }
+
+  Future<void> submitProviderReview({
+    required String reviewId,
+    required int rating,
+    String? reviewText,
+  }) async {
+    await _supabase.from('sos_provider_reviews').update({
+      'rating': rating.clamp(1, 5),
+      'review_text': (reviewText ?? '').trim(),
+      'submitted_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', reviewId);
+  }
+
+  /// Updates live provider position and heuristic ETA for the assigned SOS row.
+  Future<bool> updateProviderTracking({
+    required String requestId,
+    required String providerId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final row = await _supabase
+          .from('sos_requests')
+          .select('assigned_provider_id, location')
+          .eq('id', requestId)
+          .maybeSingle();
+      if (row == null) return false;
+      if (row['assigned_provider_id']?.toString() != providerId) return false;
+
+      final loc = row['location'] as Map<String, dynamic>? ?? {};
+      final userLat = (loc['lat'] as num?)?.toDouble() ?? 0;
+      final userLng = (loc['lng'] as num?)?.toDouble() ?? 0;
+      final eta = GeoEta.etaMinutesBetweenPoints(latitude, longitude, userLat, userLng);
+
+      await _supabase.from('sos_requests').update({
+        'provider_last_lat': latitude,
+        'provider_last_lng': longitude,
+        'provider_location_updated_at': DateTime.now().toUtc().toIso8601String(),
+        'eta_minutes': eta,
+      }).eq('id', requestId).eq('assigned_provider_id', providerId);
+
+      return true;
+    } catch (e) {
+      print('updateProviderTracking: $e');
+      return false;
+    }
+  }
+
+  /// SOS requests assigned to this provider that reached `completed` status.
+  Future<int> countProviderCompletedSos(String providerId) async {
+    if (providerId.isEmpty) return 0;
+    try {
+      final response = await _supabase
+          .from('sos_requests')
+          .select('id')
+          .eq('assigned_provider_id', providerId)
+          .inFilter('status', ['completed', 'resolved']);
+      return (response as List).length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Approximate count of verified provider profiles (for SOS “providers available” confidence UI).
+  Future<int> countVerifiedProviders() async {
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('id')
+          .eq('verification_status', 'approved')
+          .inFilter('role', [
+            'provider',
+            'service_provider',
+            'service_pro',
+            'mechanic',
+            'towing',
+            'logistics',
+            'rental',
+          ]);
+      return (response as List).length;
+    } catch (e) {
+      print('DEBUG: countVerifiedProviders: $e');
+      return 0;
+    }
   }
 }
 
@@ -158,7 +479,30 @@ final userActiveSosRequestsProvider = StreamProvider.family<List<SosRequest>, St
   return ref.watch(sosServiceProvider).streamActiveRequest(userId);
 });
 
+final verifiedProviderCountProvider = FutureProvider<int>((ref) {
+  return ref.watch(sosServiceProvider).countVerifiedProviders();
+});
+
 /// For service providers: requests they have accepted (assigned to them).
 final providerAssignedRequestsProvider = StreamProvider.family<List<SosRequest>, String>((ref, providerId) {
   return ref.watch(sosServiceProvider).streamProviderAssignedRequests(providerId);
+});
+
+/// Completed SOS count for provider dashboard stats.
+final providerCompletedSosCountProvider = FutureProvider.family<int, String>((ref, providerId) {
+  return ref.watch(sosServiceProvider).countProviderCompletedSos(providerId);
+});
+
+/// Live heartbeats: providers viewing this pending SOS (for customer map indicators).
+final sosRespondingForRequestProvider =
+    StreamProvider.family<List<SosRespondingHeartbeat>, String>((ref, requestId) {
+  if (requestId.isEmpty) {
+    return Stream.value(<SosRespondingHeartbeat>[]);
+  }
+  return ref.watch(sosServiceProvider).streamProviderRespondingForRequest(requestId);
+});
+
+final pendingSosReviewPromptsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, customerId) {
+  return ref.watch(sosServiceProvider).getPendingReviewPrompts(customerId);
 });

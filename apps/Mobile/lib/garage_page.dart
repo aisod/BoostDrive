@@ -5,7 +5,7 @@ import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 
-/// Dedicated Garage tab: My Garage, Active Orders, Service History, and Shop promo.
+/// Mobile Garage tab — same sections, layout patterns, and dialogs as the web customer dashboard garage.
 class GaragePage extends ConsumerWidget {
   const GaragePage({super.key});
 
@@ -17,6 +17,8 @@ class GaragePage extends ConsumerWidget {
         body: Center(child: Text('Please log in', style: TextStyle(color: Colors.white))),
       );
     }
+
+    final uid = user.id;
 
     return PremiumPageLayout(
       showBackground: true,
@@ -30,26 +32,29 @@ class GaragePage extends ConsumerWidget {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () => showCustomerAddVehicleDialog(context, ref, uid),
             icon: const Icon(Icons.add_circle, size: 20, color: Colors.white),
             label: const Text('Add Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
-              _MyGarageSection(uid: user.id),
-              const SizedBox(height: 32),
-              _ActiveOrdersSection(uid: user.id),
-              const SizedBox(height: 32),
-              _ServiceHistorySection(uid: user.id),
-              const SizedBox(height: 32),
-              _PromoBanner(),
+              const CustomerGarageSectionHeader(title: 'My Garage', icon: Icons.directions_car),
+              const SizedBox(height: 24),
+              _GarageVehiclesBlock(uid: uid),
+              const SizedBox(height: 48),
+              const CustomerGarageSectionHeader(title: 'Active Orders', icon: Icons.local_shipping),
+              const SizedBox(height: 24),
+              _GarageOrdersBlock(uid: uid),
+              const SizedBox(height: 48),
+              const CustomerGarageSectionHeader(title: 'Service History', icon: Icons.history),
+              const SizedBox(height: 24),
+              _GarageServiceHistoryBlock(uid: uid),
               const SizedBox(height: 100),
             ],
           ),
@@ -59,8 +64,8 @@ class GaragePage extends ConsumerWidget {
   }
 }
 
-class _MyGarageSection extends ConsumerWidget {
-  const _MyGarageSection({required this.uid});
+class _GarageVehiclesBlock extends ConsumerWidget {
+  const _GarageVehiclesBlock({required this.uid});
 
   final String uid;
 
@@ -69,405 +74,179 @@ class _MyGarageSection extends ConsumerWidget {
     return ref.watch(userVehiclesProvider(uid)).when(
           data: (vehicles) {
             if (vehicles.isEmpty) {
-              return Text('No vehicles in your garage.', style: TextStyle(color: BoostDriveTheme.textDim));
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('No vehicles found in your garage.', style: TextStyle(color: BoostDriveTheme.textDim)),
+                  const SizedBox(height: 16),
+                  CustomerGarageAddButton(
+                    label: 'Add Vehicle',
+                    onPressed: () => showCustomerAddVehicleDialog(context, ref, uid),
+                  ),
+                ],
+              );
             }
-            return SizedBox(
-              height: 240,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: vehicles.length,
-                itemBuilder: (context, index) {
-                  final v = vehicles[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: _VehicleCard(
-                      name: '${v.year} ${v.make} ${v.model}',
-                      plate: v.plateNumber,
-                      status: v.healthStatus,
-                      fuel: v.fuelLevel,
-                      mileage: 'N/A',
-                      isBattery: v.fuelLevel.contains('%'),
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = constraints.maxWidth > 700 ? 2 : 1;
+                final childAspectRatio = crossAxisCount == 2 ? 1.2 : 0.85;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: vehicles.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        mainAxisSpacing: 24,
+                        crossAxisSpacing: 24,
+                        childAspectRatio: childAspectRatio,
+                      ),
+                      itemBuilder: (context, index) {
+                        final v = vehicles[index];
+                        return KeyedSubtree(
+                          key: ValueKey('vehicle-${v.id}'),
+                          child: CustomerGarageVehicleCard(
+                            vehicle: v,
+                            onDelete: () => confirmDeleteCustomerVehicle(context, ref, v),
+                            onEdit: () => showCustomerAddVehicleDialog(context, ref, uid, vehicle: v),
+                            onDetails: () => showCustomerVehicleDetailsModal(context, ref, v),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
+                    const SizedBox(height: 24),
+                    CustomerGarageAddButton(
+                      label: 'Add Vehicle',
+                      onPressed: () => showCustomerAddVehicleDialog(context, ref, uid),
+                    ),
+                  ],
+                );
+              },
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
           error: (_, _) => Text('Error loading garage', style: TextStyle(color: BoostDriveTheme.textDim)),
         );
   }
 }
 
-class _VehicleCard extends StatelessWidget {
-  const _VehicleCard({
-    required this.name,
-    required this.plate,
-    required this.status,
-    required this.fuel,
-    required this.mileage,
-    this.isBattery = false,
-  });
-
-  final String name;
-  final String plate;
-  final String status;
-  final String fuel;
-  final String mileage;
-  final bool isBattery;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            child: Container(
-              height: 120,
-              width: double.infinity,
-              color: Colors.white.withValues(alpha: 0.05),
-              child: const Center(child: Icon(Icons.directions_car_filled_outlined, size: 40, color: Colors.white10)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text('HEALTHY', style: TextStyle(color: Colors.green, fontSize: 8, fontWeight: FontWeight.w900)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text('Plate: $plate', style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
-                const SizedBox(height: 16),
-                const Divider(color: Colors.white10),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _Stat(label: isBattery ? 'BATTERY' : 'FUEL', value: fuel),
-                    _Stat(label: 'MILEAGE', value: mileage),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 9, fontWeight: FontWeight.w900)),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-}
-
-class _ActiveOrdersSection extends ConsumerWidget {
-  const _ActiveOrdersSection({required this.uid});
+class _GarageOrdersBlock extends ConsumerWidget {
+  const _GarageOrdersBlock({required this.uid});
 
   final String uid;
 
+  static double _progressForStatus(String status) {
+    var progress = 0.2;
+    if (status == 'at_pickup' || status == 'picking_up') progress = 0.4;
+    if (status == 'in_transit') progress = 0.7;
+    if (status == 'delivered') progress = 1.0;
+    return progress;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Active Orders',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 16),
-        ref.watch(activeDeliveriesProvider(uid)).when(
+    return ref.watch(activeDeliveriesProvider(uid)).when(
           data: (orders) {
             if (orders.isEmpty) {
               return Text('No active orders.', style: TextStyle(color: BoostDriveTheme.textDim));
             }
             return Column(
-              children: orders.map((o) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _OrderCard(order: o),
-              )).toList(),
+              children: [
+                for (var i = 0; i < orders.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 16),
+                  KeyedSubtree(
+                    key: ValueKey('order-${orders[i].id}'),
+                    child: _GarageOrderTile(order: orders[i], progress: _progressForStatus(orders[i].status)),
+                  ),
+                ],
+              ],
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
           error: (_, _) => Text('Error loading orders', style: TextStyle(color: BoostDriveTheme.textDim)),
-        ),
-      ],
-    );
+        );
   }
 }
 
-class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order});
+class _GarageOrderTile extends StatelessWidget {
+  const _GarageOrderTile({required this.order, required this.progress});
 
   final DeliveryOrder order;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.local_shipping, color: BoostDriveTheme.primaryColor, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    order.status.toUpperCase().replaceAll('_', ' '),
-                    style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                  ),
-                ],
-              ),
-              Text('ID: #${order.id.substring(0, 8).toUpperCase()}', style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            order.items['title'] ?? 'Generic Parts Delivery',
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            order.items['description'] ?? 'Automotive Parts',
-            style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    Container(
-                      height: 6,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    Container(
-                      height: 6,
-                      width: order.status == 'delivered' ? 400 : 150,
-                      decoration: BoxDecoration(
-                        color: BoostDriveTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                order.eta.isNotEmpty ? order.eta : 'N/A',
-                style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.map_outlined), label: const Text('Track Live'))),
-              const SizedBox(width: 12),
-              Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.phone_outlined, color: Colors.white)),
-            ],
-          ),
-        ],
-      ),
+    final itemsMap = Map<String, dynamic>.from(order.items);
+    return CustomerGarageOrderCard(
+      title: itemsMap['title']?.toString() ?? 'Product Delivery',
+      id: '#${order.id.substring(0, 8).toUpperCase()}',
+      status: order.status.replaceAll('_', ' ').toUpperCase(),
+      description: itemsMap['description']?.toString() ?? 'See details for more info',
+      eta: order.eta.isNotEmpty ? order.eta : 'Calculating ETA...',
+      progress: progress,
     );
   }
 }
 
-class _ServiceHistorySection extends ConsumerWidget {
-  const _ServiceHistorySection({required this.uid});
+class _GarageServiceHistoryBlock extends ConsumerWidget {
+  const _GarageServiceHistoryBlock({required this.uid});
 
   final String uid;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Service History',
-              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
-            ),
-            TextButton(
-              onPressed: () {},
-              child: const Text('View All', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ref.watch(userVehiclesProvider(uid)).when(
-          data: (vehicles) {
-            if (vehicles.isEmpty) return const SizedBox();
-            return ref.watch(vehicleHistoryProvider(vehicles.first.id)).when(
-              data: (history) {
-                if (history.isEmpty) return const SizedBox();
-                return Column(
-                  children: history.take(2).map((item) => _HistoryItem(
-                    title: item.serviceName,
-                    subtitle: '${item.completedAt.day}/${item.completedAt.month}/${item.completedAt.year}',
-                    price: '\$${item.price.toStringAsFixed(2)}',
-                    icon: Icons.build,
-                  )).toList(),
-                );
-              },
-              loading: () => const SizedBox(),
-              error: (_, _) => const SizedBox(),
+    return ref.watch(userServiceHistoryProvider(uid)).when(
+          data: (history) {
+            if (history.isEmpty) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('No service records found.', style: TextStyle(color: BoostDriveTheme.textDim)),
+                  const SizedBox(height: 16),
+                  ref.watch(userVehiclesProvider(uid)).when(
+                    data: (vehicles) => vehicles.isNotEmpty
+                        ? CustomerGarageAddButton(
+                            label: 'Log First Service',
+                            onPressed: () => showCustomerLogServiceDialog(context, ref, uid, vehicles.first.id),
+                          )
+                        : const SizedBox.shrink(),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
+                ],
+              );
+            }
+            return Column(
+              children: [
+                for (final item in history)
+                  KeyedSubtree(
+                    key: ValueKey('history-${item.id}'),
+                    child: CustomerGarageHistoryItem(
+                      item: item,
+                      onDelete: () => confirmDeleteCustomerServiceRecord(context, ref, uid, item),
+                      onEdit: () => showCustomerLogServiceDialog(context, ref, uid, item.vehicleId, record: item),
+                      onDetails: () => showCustomerServiceRecordDetailsDialog(context, item),
+                      onViewReceipts: item.receiptUrls.isNotEmpty
+                          ? () => showCustomerViewReceiptsDialog(context, item.receiptUrls)
+                          : null,
+                    ),
+                  ),
+              ],
             );
           },
-          loading: () => const SizedBox(),
-          error: (_, _) => const SizedBox(),
-        ),
-      ],
-    );
-  }
-}
-
-class _HistoryItem extends StatelessWidget {
-  const _HistoryItem({required this.title, required this.subtitle, required this.price, required this.icon});
-
-  final String title;
-  final String subtitle;
-  final String price;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: BoostDriveTheme.primaryColor.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-              border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
-            ),
-            child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 22),
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                Text(subtitle, style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 13)),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          error: (err, _) => Column(
             children: [
-              Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15)),
-              const Icon(Icons.chevron_right, color: Colors.white24, size: 16),
+              const Icon(Icons.error_outline, color: Colors.redAccent),
+              const SizedBox(height: 8),
+              Text('Sync Error: $err', style: const TextStyle(color: Colors.redAccent, fontSize: 10), textAlign: TextAlign.center),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PromoBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'BOOSTDRIVE.SHOP',
-                  style: TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Upgrade your BMW\'s air filter for 15% better flow.',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    minimumSize: const Size(120, 44),
-                  ),
-                  child: const Text('Shop Now'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            height: 100,
-            width: 100,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(Icons.air, color: Colors.white24, size: 40),
-          ),
-        ],
-      ),
-    );
+        );
   }
 }

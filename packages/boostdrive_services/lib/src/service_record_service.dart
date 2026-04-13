@@ -49,6 +49,23 @@ class ServiceRecordService {
     await _supabase.from('service_history').delete().eq('id', recordId);
   }
 
+  /// All service records for any of the given vehicles (garage-wide history).
+  Future<List<ServiceRecord>> fetchHistoryForVehicleIds(List<String> vehicleIds) async {
+    if (vehicleIds.isEmpty) return [];
+    try {
+      final response = await _supabase
+          .from('service_history')
+          .select()
+          .inFilter('vehicle_id', vehicleIds)
+          .order('completed_at', ascending: false);
+      final list = response as List;
+      return list.map((json) => ServiceRecord.fromMap(Map<String, dynamic>.from(json as Map))).toList();
+    } catch (e) {
+      print('DEBUG: fetchHistoryForVehicleIds error: $e');
+      return [];
+    }
+  }
+
   Stream<List<ServiceRecord>> getUserServiceHistory(String userId) {
     // This is a more complex query because we need records for ALL vehicles owned by the user.
     // However, the service_history table has provider_id which is NOT the owner_id.

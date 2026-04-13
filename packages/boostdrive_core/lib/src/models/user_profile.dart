@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'emergency_contact.dart';
+
 class UserProfile {
   final String uid;
   final String fullName;
@@ -54,6 +58,8 @@ class UserProfile {
   final bool dealsEnabled;
   final String emergencyContactName;
   final String emergencyContactPhone;
+  /// Multiple SOS / emergency contacts (stored as JSON in `emergency_contacts`).
+  final List<EmergencyContact> emergencyContacts;
   /// Optional username (unique).
   final String? username;
   /// Provider business contact number shown to customers in listings.
@@ -127,6 +133,7 @@ class UserProfile {
     this.dealsEnabled = false,
     this.emergencyContactName = '',
     this.emergencyContactPhone = '',
+    this.emergencyContacts = const [],
     this.username,
     this.businessContactNumber = '',
     this.registeredBusinessName = '',
@@ -207,6 +214,7 @@ class UserProfile {
       parsedFullName = 'Carlos Mechanical Services';
     }
 
+    final emergencyList = _parseEmergencyContacts(data);
     return UserProfile(
       uid: parsedUid,
       fullName: parsedFullName,
@@ -229,8 +237,9 @@ class UserProfile {
       totalEarnings: (data['total_earnings'] ?? 0.0).toDouble(),
       remindersEnabled: _parseBool(data['reminders_enabled'], true),
       dealsEnabled: _parseBool(data['deals_enabled'], false),
-      emergencyContactName: _str(data['emergency_contact_name'] ?? data['emergencyContactName']),
-      emergencyContactPhone: _str(data['emergency_contact_phone'] ?? data['emergencyContactPhone']),
+      emergencyContactName: emergencyList.isEmpty ? '' : emergencyList.first.name,
+      emergencyContactPhone: emergencyList.isEmpty ? '' : emergencyList.first.phone,
+      emergencyContacts: emergencyList,
       username: data['username'] as String?,
       businessContactNumber: _str(data['business_contact_number'] ?? data['businessContactNumber']),
       registeredBusinessName: _str(data['registered_business_name'] ?? data['registeredBusinessName']),
@@ -283,19 +292,65 @@ class UserProfile {
     return double.tryParse(v.toString());
   }
 
+  /// JSON round-trip so Supabase/JS interop (Flutter web) yields plain Dart structures safe for `.map` / iteration.
+  static dynamic _jsonRoundTrip(dynamic value) {
+    if (value == null) return null;
+    try {
+      return jsonDecode(jsonEncode(value));
+    } catch (_) {
+      return null;
+    }
+  }
+
   static List<String> _parseList(dynamic v, {bool preserveEmpty = false}) {
     if (v == null) return [];
     if (v is List) {
-      return v.map((e) => e?.toString().trim() ?? '').where((s) => preserveEmpty || s.isNotEmpty).toList();
+      final list = List<dynamic>.from(v);
+      return list
+          .map((e) => e?.toString().trim() ?? '')
+          .where((s) => preserveEmpty || s.isNotEmpty)
+          .toList();
     }
     final s = v.toString().trim();
     if (s.isEmpty) return [];
     return s.split(',').map((e) => e.trim()).where((e) => preserveEmpty || e.isNotEmpty).toList();
   }
 
+  static List<EmergencyContact> _parseEmergencyContacts(Map<String, dynamic> data) {
+    dynamic raw = data['emergency_contacts'];
+    if (raw != null) {
+      final normalized = _jsonRoundTrip(raw);
+      if (normalized != null) raw = normalized;
+    }
+    if (raw is List) {
+      final rawList = List<dynamic>.from(raw);
+      final out = <EmergencyContact>[];
+      for (final e in rawList) {
+        if (e is Map) {
+          try {
+            final c = EmergencyContact.fromMap(Map<String, dynamic>.from(e));
+            if (c.name.isNotEmpty || c.phone.isNotEmpty) out.add(c);
+          } catch (_) {
+            // Skip malformed jsonb entries from API.
+          }
+        }
+      }
+      if (out.isNotEmpty) return out;
+    }
+    final n = _str(data['emergency_contact_name'] ?? data['emergencyContactName']);
+    final p = _str(data['emergency_contact_phone'] ?? data['emergencyContactPhone']);
+    if (n.isNotEmpty || p.isNotEmpty) {
+      return [EmergencyContact(name: n, phone: p)];
+    }
+    return [];
+  }
+
   static List<String> _parseServiceTypes(dynamic v) {
     if (v == null) return [];
-    if (v is List) return v.map((e) => e?.toString().trim() ?? '').where((s) => s.isNotEmpty).toList();
+    if (v is List) {
+      final list = List<dynamic>.from(v);
+      return list.map((e) => e?.toString().trim() ?? '').where((s) => s.isNotEmpty).toList();
+    }
     final s = v.toString().trim();
     if (s.isEmpty) return [];
     return s.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
@@ -320,6 +375,9 @@ class UserProfile {
       'deals_enabled': dealsEnabled,
       'emergency_contact_name': emergencyContactName,
       'emergency_contact_phone': emergencyContactPhone,
+      'emergency_contacts': <Map<String, dynamic>>[
+        for (final EmergencyContact c in emergencyContacts) c.toMap(),
+      ],
       if (username != null) 'username': username,
       'business_contact_number': businessContactNumber ?? '',
       'registered_business_name': registeredBusinessName ?? '',
@@ -379,6 +437,7 @@ class UserProfile {
     bool? dealsEnabled,
     String? emergencyContactName,
     String? emergencyContactPhone,
+    List<EmergencyContact>? emergencyContacts,
     String? username,
     String? businessContactNumber,
     String? registeredBusinessName,
@@ -416,6 +475,27 @@ class UserProfile {
     String? suspensionReason,
     String? pronouns,
   }) {
+    List<EmergencyContact> nextContacts;
+    if (emergencyContacts != null) {
+      nextContacts = emergencyContacts;
+    } else if (emergencyContactName != null || emergencyContactPhone != null) {
+      final n = emergencyContactName ??
+          (this.emergencyContacts.isNotEmpty ? this.emergencyContacts.first.name : '');
+      final p = emergencyContactPhone ??
+          (this.emergencyContacts.isNotEmpty ? this.emergencyContacts.first.phone : '');
+      if (this.emergencyContacts.isEmpty) {
+        nextContacts = [EmergencyContact(name: n, phone: p)];
+      } else {
+        nextContacts = [
+          EmergencyContact(name: n, phone: p),
+          ...this.emergencyContacts.skip(1),
+        ];
+      }
+    } else {
+      nextContacts = this.emergencyContacts;
+    }
+    final firstName = nextContacts.isEmpty ? '' : nextContacts.first.name;
+    final firstPhone = nextContacts.isEmpty ? '' : nextContacts.first.phone;
     return UserProfile(
       uid: uid,
       fullName: fullName ?? this.fullName,
@@ -433,8 +513,9 @@ class UserProfile {
       totalEarnings: totalEarnings ?? this.totalEarnings,
       remindersEnabled: remindersEnabled ?? this.remindersEnabled,
       dealsEnabled: dealsEnabled ?? this.dealsEnabled,
-      emergencyContactName: emergencyContactName ?? this.emergencyContactName,
-      emergencyContactPhone: emergencyContactPhone ?? this.emergencyContactPhone,
+      emergencyContactName: firstName,
+      emergencyContactPhone: firstPhone,
+      emergencyContacts: nextContacts,
       username: username ?? this.username,
       businessContactNumber: businessContactNumber ?? this.businessContactNumber,
       registeredBusinessName: registeredBusinessName ?? this.registeredBusinessName,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
+import 'package:boostdrive_core/boostdrive_core.dart';
 import 'product_detail_page.dart';
 import 'add_listing_page.dart';
 import 'cart_page.dart';
@@ -17,6 +18,80 @@ class MarketplacePage extends ConsumerStatefulWidget {
 
 class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   late String _selectedCategory;
+  String _searchQuery = '';
+
+  bool _matchesSearch(Product p) {
+    if (_searchQuery.trim().isEmpty) return true;
+    final q = _searchQuery.toLowerCase();
+    return p.title.toLowerCase().contains(q) ||
+        p.subtitle.toLowerCase().contains(q) ||
+        p.description.toLowerCase().contains(q) ||
+        p.location.toLowerCase().contains(q);
+  }
+
+  void _openSearch() {
+    final controller = TextEditingController(text: _searchQuery);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: BoostDriveTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Search listings', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Title, description, location…',
+                  hintStyle: TextStyle(color: BoostDriveTheme.textDim),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.06),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+                onSubmitted: (_) => Navigator.pop(ctx),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      controller.clear();
+                      setState(() => _searchQuery = '');
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('Clear'),
+                  ),
+                  const Spacer(),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() => _searchQuery = controller.text);
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor, foregroundColor: Colors.white),
+                    child: const Text('Apply'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   bool _matchesSelectedCategory(String category) {
     if (_selectedCategory == 'all') return true;
@@ -70,8 +145,9 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
         ) : const SizedBox()).value : const SizedBox(),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: _openSearch,
             icon: const Icon(Icons.search),
+            tooltip: 'Search',
           ),
           IconButton(
             onPressed: () {
@@ -152,8 +228,9 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
           Expanded(
             child: productsAsync.when(
               data: (products) {
-                final filteredProducts =
-                    products.where((p) => _matchesSelectedCategory(p.category)).toList();
+                final filteredProducts = products
+                    .where((p) => _matchesSelectedCategory(p.category) && _matchesSearch(p))
+                    .toList();
 
                 if (filteredProducts.isEmpty) {
                   return const Center(

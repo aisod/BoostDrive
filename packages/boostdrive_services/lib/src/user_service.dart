@@ -151,14 +151,38 @@ class UserService {
     }
   }
 
-  /// Updates or creates a user profile
-  Future<void> updateProfile(UserProfile profile) async {
+  /// Updates or creates a user profile.
+  ///
+  /// Returns `true` when `emergency_contacts` was included in the upsert (column exists).
+  /// Returns `false` when that column is missing on the server: upsert retries without it
+  /// so legacy `emergency_contact_name` / `emergency_contact_phone` still store the first contact.
+  /// Apply `supabase/migrations/20260410210000_profiles_emergency_contacts_jsonb.sql` for full multi-contact storage.
+  Future<bool> updateProfile(UserProfile profile) async {
+    final map = profile.toMap()..['id'] = profile.uid;
     try {
-      await _supabase.from('profiles').upsert(profile.toMap()..['id'] = profile.uid);
+      await _supabase.from('profiles').upsert(map);
+      return true;
     } catch (e) {
+      if (_isMissingEmergencyContactsColumn(e)) {
+        print(
+          'Warning: profiles.emergency_contacts column missing (PGRST204). '
+          'Upserting without it; only the first emergency contact is stored until the migration is applied.',
+        );
+        final fallback = Map<String, dynamic>.from(map)..remove('emergency_contacts');
+        await _supabase.from('profiles').upsert(fallback);
+        return false;
+      }
       print('Error updating profile: $e');
       rethrow;
     }
+  }
+
+  static bool _isMissingEmergencyContactsColumn(Object e) {
+    if (e is! PostgrestException) return false;
+    final code = e.code;
+    final msg = e.message;
+    return (code == 'PGRST204' || msg.contains('PGRST204')) &&
+        msg.contains('emergency_contacts');
   }
 
   /// Updates the provider's verification status and logs the action
@@ -506,6 +530,27 @@ class UserService {
       print('Error fetching verified providers: $e');
       return [];
     }
+  }
+
+  /// Providers with workshop coordinates within [maxKm] of the SOS point (for customer waiting map).
+  Future<List<UserProfile>> getNearbyVerifiedProviders({
+    required double customerLat,
+    required double customerLng,
+    String? serviceType,
+    double maxKm = 150,
+  }) async {
+    final all = await getVerifiedProviders(serviceType: serviceType);
+    return all.where((p) {
+      final lat = p.workshopLat;
+      final lng = p.workshopLng;
+      if (lat == null || lng == null) return false;
+      return GeoEta.haversineKm(customerLat, customerLng, lat, lng) <= maxKm;
+    }).toList()
+      ..sort((a, b) {
+        final da = GeoEta.haversineKm(customerLat, customerLng, a.workshopLat!, a.workshopLng!);
+        final db = GeoEta.haversineKm(customerLat, customerLng, b.workshopLat!, b.workshopLng!);
+        return da.compareTo(db);
+      });
   }
 
   Future<List<UserProfile>> _fetchProviders({String? serviceType, required bool verifiedOnly}) async {

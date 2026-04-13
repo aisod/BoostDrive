@@ -6,6 +6,8 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'provider_detail_page.dart';
+
 /// Mobile: Find a Provider — Mechanics, Towing, Parts Suppliers, Rental Agencies.
 /// Same filters and data as Web; uses verifiedProvidersProvider with fallback so list is never blank.
 class FindProvidersPage extends ConsumerStatefulWidget {
@@ -198,7 +200,14 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
       itemCount: list.length,
       itemBuilder: (context, index) {
         final p = list[index];
-        return _ProviderCard(profile: p);
+        return _ProviderCard(
+          profile: p,
+          onOpenDetail: () {
+            Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(builder: (_) => ProviderDetailPage(profile: p)),
+            );
+          },
+        );
       },
     );
   }
@@ -225,8 +234,9 @@ class _FilterChip extends StatelessWidget {
 
 class _ProviderCard extends StatelessWidget {
   final UserProfile profile;
+  final VoidCallback onOpenDetail;
 
-  const _ProviderCard({required this.profile});
+  const _ProviderCard({required this.profile, required this.onOpenDetail});
 
   @override
   Widget build(BuildContext context) {
@@ -245,10 +255,13 @@ class _ProviderCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpenDetail,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
             CircleAvatar(
               radius: 28,
               backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
@@ -361,6 +374,7 @@ class _ProviderCard extends StatelessWidget {
                 tooltip: 'Call $primaryContactNumber',
               ),
           ],
+        ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'theme.dart';
 
 class PremiumPageLayout extends StatelessWidget {
@@ -41,9 +42,9 @@ class PremiumPageLayout extends StatelessWidget {
     final bool useNested = headerSlivers != null;
     
     // Background decoration is safer than a Stack for hit-testing on Web
-    final BoxDecoration decoration = showBackground ? BoxDecoration(
+    final BoxDecoration decoration = (showBackground && kIsWeb) ? const BoxDecoration(
       color: BoostDriveTheme.backgroundDark,
-      image: const DecorationImage(
+      image: DecorationImage(
         image: AssetImage(
           BoostDriveTheme.globalBackgroundImage,
           package: 'boostdrive_ui',

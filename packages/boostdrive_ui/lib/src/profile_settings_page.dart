@@ -12,6 +12,21 @@ import 'package:file_picker/file_picker.dart';
 import 'theme.dart';
 import 'boostdrive_stepper.dart';
 
+/// Editable name/phone row for SOS emergency contacts (backed by [EmergencyContact] on save).
+class _EmergencyContactFieldPair {
+  _EmergencyContactFieldPair({String nameText = '', String phoneText = ''})
+      : name = TextEditingController(text: nameText),
+        phone = TextEditingController(text: phoneText);
+
+  final TextEditingController name;
+  final TextEditingController phone;
+
+  void dispose() {
+    name.dispose();
+    phone.dispose();
+  }
+}
+
 class ProfileSettingsPage extends ConsumerStatefulWidget {
   /// When true, this page opens directly in provider edit mode (stepper only).
   /// Used as the dedicated "Edit Profile Settings" screen; back / Exit Edit Mode pops the route.
@@ -27,8 +42,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _emergencyNameController = TextEditingController();
-  final _emergencyPhoneController = TextEditingController();
+  final List<_EmergencyContactFieldPair> _emergencyContactPairs = [];
   final _phoneFocusNode = FocusNode();
   
   // Dynamic business phone fields for providers
@@ -124,6 +138,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         cleaned.contains('rental');
   }
 
+  /// Registered service businesses (mechanic/towing/etc.) — not a casual marketplace seller.
+  bool _isRegisteredServiceShop(UserProfile profile) => _isProviderRole(profile.role);
+
   @override
   void initState() {
     super.initState();
@@ -137,8 +154,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _emergencyNameController.dispose();
-    _emergencyPhoneController.dispose();
+    _disposeEmergencyContactPairs();
     _phoneFocusNode.dispose();
     for (var c in _businessPhoneControllers) {
       c.dispose();
@@ -168,6 +184,62 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     _registrationNumberController.dispose();
     _yearsInOperationController.dispose();
     super.dispose();
+  }
+
+  void _disposeEmergencyContactPairs() {
+    for (final p in _emergencyContactPairs) {
+      p.dispose();
+    }
+    _emergencyContactPairs.clear();
+  }
+
+  /// Hydrates editable rows from [UserProfile] (legacy single fields map into one row).
+  void _syncEmergencyPairsFromProfile(UserProfile profile) {
+    _disposeEmergencyContactPairs();
+    final list = profile.emergencyContacts;
+    if (list.isNotEmpty) {
+      for (final c in list) {
+        _emergencyContactPairs.add(_EmergencyContactFieldPair(nameText: c.name, phoneText: c.phone));
+      }
+    } else if (profile.emergencyContactName.isNotEmpty || profile.emergencyContactPhone.isNotEmpty) {
+      _emergencyContactPairs.add(_EmergencyContactFieldPair(
+        nameText: profile.emergencyContactName,
+        phoneText: profile.emergencyContactPhone,
+      ));
+    }
+    if (_emergencyContactPairs.isEmpty) {
+      _emergencyContactPairs.add(_EmergencyContactFieldPair());
+    }
+  }
+
+  List<EmergencyContact> _emergencyContactsFromPairs() {
+    return _emergencyContactPairs
+        .map((p) => EmergencyContact(name: p.name.text.trim(), phone: p.phone.text.trim()))
+        .where((c) => c.name.isNotEmpty || c.phone.isNotEmpty)
+        .toList();
+  }
+
+  void _replaceEmergencyContactPairsFrom(List<EmergencyContact> list) {
+    _disposeEmergencyContactPairs();
+    for (final c in list) {
+      _emergencyContactPairs.add(_EmergencyContactFieldPair(nameText: c.name, phoneText: c.phone));
+    }
+    if (_emergencyContactPairs.isEmpty) {
+      _emergencyContactPairs.add(_EmergencyContactFieldPair());
+    }
+  }
+
+  String _emergencyContactsControlSubtitle() {
+    final c = _emergencyContactsFromPairs();
+    if (c.isEmpty) {
+      return 'Set who should be reachable when you trigger SOS.';
+    }
+    if (c.length == 1) {
+      final a = c.first;
+      return '${a.name.isEmpty ? 'Contact' : a.name} · ${a.phone.isEmpty ? 'add phone' : a.phone}';
+    }
+    final a = c.first;
+    return '${a.name.isEmpty ? 'Contact' : a.name} · ${a.phone.isEmpty ? 'add phone' : a.phone} · +${c.length - 1} more';
   }
 
   void _addBusinessPhoneField() {
@@ -400,8 +472,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       var updated = profile.copyWith(
         fullName: fullName,
         phoneNumber: _phoneController.text.trim(),
-        emergencyContactName: _emergencyNameController.text.trim(),
-        emergencyContactPhone: _emergencyPhoneController.text.trim(),
+        emergencyContacts: _emergencyContactsFromPairs(),
       );
 
       // 2. Prepare role-specific updates (Providers/Sellers)
@@ -1062,6 +1133,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             const SizedBox(height: 32),
             _buildDocumentsVault(profile),
         ],
+        const SizedBox(height: 32),
+          _buildControlCenterSection(profile),
         const SizedBox(height: 40),
           _buildAccountActions(),
           const SizedBox(height: 24),
@@ -2959,8 +3032,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             }
           }
           
-          _emergencyNameController.text = profile.emergencyContactName;
-          _emergencyPhoneController.text = profile.emergencyContactPhone;
+          _syncEmergencyPairsFromProfile(profile);
           _serviceAreaController.text = profile.serviceAreaDescription;
           _workingHoursController.text = profile.workingHours;
           _registeredBusinessNameController.text = profile.registeredBusinessName ?? '';
@@ -3093,6 +3165,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                           const SizedBox(height: 32),
                           _buildSafetySection(),
                         ],
+                        const SizedBox(height: 32),
+                        _buildControlCenterSection(profile),
                         const SizedBox(height: 32),
                       ],
                     ),
@@ -3847,6 +3921,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildSafetySection() {
+    final contacts = _emergencyContactsFromPairs();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -3894,7 +3969,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Emergency Contact',
+                            'Emergency contacts',
                             style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -3903,7 +3978,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Notifications will be sent to this contact in case of a breakdown or collision.',
+                            'Notifications can be sent to these contacts in case of a breakdown or collision.',
                             style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -3916,62 +3991,101 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+                Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_isEditing)
-                              TextField(
-                                controller: _emergencyNameController,
-                                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF000000)),
-                                decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: 'Contact Name'),
-                              )
-                            else
-                              Text(
-                                _emergencyNameController.text.isEmpty ? 'No Contact' : _emergencyNameController.text,
-                                style: TextStyle(fontFamily: 'Manrope', 
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF000000),
-                                ),
-                              ),
-                            if (_isEditing)
-                              TextField(
-                                controller: _emergencyPhoneController,
-                                style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF000000)),
-                                decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: 'Phone Number'),
-                              )
-                            else
-                              Text(
-                                _emergencyPhoneController.text.isEmpty ? 'Not set' : _emergencyPhoneController.text,
-                                style: TextStyle(fontFamily: 'Manrope', 
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF000000),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (!_isEditing)
-                        Text(
-                          'Edit',
-                          style: TextStyle(fontFamily: 'Manrope', 
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFFD92D20),
+                    onTap: _showEmergencyContactsEditor,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: contacts.isEmpty
+                                ? Text(
+                                    'No contacts saved. Tap Manage to add people we can reference for SOS.',
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF000000),
+                                    ),
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      for (var i = 0; i < contacts.length && i < 4; i++) ...[
+                                        if (i > 0) const SizedBox(height: 10),
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${i + 1}. ',
+                                              style: TextStyle(
+                                                fontFamily: 'Manrope',
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFF000000),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    contacts[i].name.isEmpty ? 'Unnamed' : contacts[i].name,
+                                                    style: TextStyle(
+                                                      fontFamily: 'Manrope',
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: const Color(0xFF000000),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    contacts[i].phone.isEmpty ? 'No phone' : contacts[i].phone,
+                                                    style: TextStyle(
+                                                      fontFamily: 'Manrope',
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: const Color(0xFF000000),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                      if (contacts.length > 4)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: Text(
+                                            '+ ${contacts.length - 4} more',
+                                            style: TextStyle(
+                                              fontFamily: 'Manrope',
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF666666),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                           ),
-                        ),
-                    ],
+                          const SizedBox(width: 8),
+                          Text(
+                            'Manage',
+                            style: TextStyle(fontFamily: 'Manrope', 
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFFD92D20),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -4003,6 +4117,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   ],
                 ),
               ),
+              const SizedBox(height: 32),
+              _buildControlCenterSection(profile),
               _buildAdminFooter(),
               const SizedBox(height: 40),
             ],
@@ -4012,6 +4128,218 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
+  Future<void> _showEmergencyContactsEditor() async {
+    final savedFullJson = await showModalBottomSheet<bool?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _EmergencyContactsSheet(
+        initialContacts: _emergencyContactsFromPairs(),
+        onSave: (contacts) async {
+          final user = ref.read(currentUserProvider);
+          if (user == null) throw StateError('Not logged in');
+          final fresh = await ref.read(userProfileProvider(user.id).future);
+          if (fresh == null) throw StateError('Profile not found');
+          final fullJson = await ref.read(userServiceProvider).updateProfile(
+            fresh.copyWith(emergencyContacts: contacts),
+          );
+          if (!mounted) return fullJson;
+          setState(() => _replaceEmergencyContactPairsFrom(contacts));
+          ref.invalidate(userProfileProvider(user.id));
+          return fullJson;
+        },
+      ),
+    );
+    if (!mounted || savedFullJson == null) return;
+
+    if (savedFullJson) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogCtx) => AlertDialog(
+          title: Text(
+            'Emergency contacts saved',
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              color: BoostDriveTheme.primaryColor,
+            ),
+          ),
+          content: const Text(
+            'Your emergency contacts have been saved. We\'ll use them when you trigger SOS.',
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 14,
+              height: 1.35,
+              color: Color(0xFF000000),
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              style: FilledButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
+              child: const Text(
+                'OK',
+                style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogCtx) => AlertDialog(
+          title: Text(
+            'Partially saved',
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              color: BoostDriveTheme.primaryColor,
+            ),
+          ),
+          content: const Text(
+            'Your profile was updated, but the database is missing the emergency_contacts column, '
+            'so only the first contact was stored. Ask your project admin to run the SQL migration '
+            'supabase/migrations/20260410210000_profiles_emergency_contacts_jsonb.sql in the Supabase SQL Editor, '
+            'then try saving again for full multi-contact support.',
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 14,
+              height: 1.35,
+              color: Color(0xFF000000),
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              style: FilledButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
+              child: const Text(
+                'OK',
+                style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  /// Control Center: emergency contacts (non-shops), shop-only staff/payouts.
+  Widget _buildControlCenterSection(UserProfile profile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'CONTROL CENTER',
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF000000),
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE8E8E8)),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                onSurface: const Color(0xFF000000),
+                onSurfaceVariant: const Color(0xFF000000),
+              ),
+              listTileTheme: ListTileThemeData(
+                iconColor: const Color(0xFF000000),
+                textColor: const Color(0xFF000000),
+                titleTextStyle: const TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF000000),
+                ),
+                subtitleTextStyle: const TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 13,
+                  height: 1.35,
+                  color: Color(0xFF000000),
+                ),
+              ),
+              expansionTileTheme: ExpansionTileThemeData(
+                iconColor: BoostDriveTheme.primaryColor,
+                collapsedIconColor: BoostDriveTheme.primaryColor,
+              ),
+            ),
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              childrenPadding: const EdgeInsets.only(bottom: 8),
+              title: Text(
+                'Hub & operations',
+                style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: BoostDriveTheme.primaryColor),
+              ),
+              subtitle: Text(
+                _isRegisteredServiceShop(profile)
+                    ? 'Staff, payouts.'
+                    : 'Emergency contacts.',
+                style: const TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Color(0xFF000000)),
+              ),
+              children: [
+                if (!_isRegisteredServiceShop(profile))
+                  ListTile(
+                    leading: const Icon(Icons.contact_phone_outlined, color: Color(0xFF000000)),
+                    title: const Text('Emergency contacts', style: TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      _emergencyContactsControlSubtitle(),
+                      style: const TextStyle(color: Color(0xFF000000)),
+                    ),
+                    onTap: _showEmergencyContactsEditor,
+                  ),
+                if (_isRegisteredServiceShop(profile)) ...[
+                  ListTile(
+                    leading: const Icon(Icons.groups_outlined, color: Color(0xFF000000)),
+                    title: const Text('Staff & roles', style: TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.w600)),
+                    subtitle: const Text(
+                      'Delegate dispatch, finance, and SOS oversight (org rollout).',
+                      style: TextStyle(color: Color(0xFF000000)),
+                    ),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Multi-user staff workspaces will link from here soon.')),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.payments_outlined, color: Color(0xFF000000)),
+                    title: const Text('Payouts', style: TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.w600)),
+                    subtitle: const Text(
+                      'Bank and VAT details live under Financial & Payout in your provider profile.',
+                      style: TextStyle(color: Color(0xFF000000)),
+                    ),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Payout configuration stays in your business profile for now.')),
+                      );
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildAdminPersonalInfo(UserProfile profile) {
     return Column(
@@ -4248,6 +4576,231 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Bottom sheet: edit multiple SOS emergency contacts; [onSave] returns whether `emergency_contacts` was persisted.
+class _EmergencyContactsSheet extends StatefulWidget {
+  const _EmergencyContactsSheet({
+    required this.initialContacts,
+    required this.onSave,
+  });
+
+  final List<EmergencyContact> initialContacts;
+  final Future<bool> Function(List<EmergencyContact> contacts) onSave;
+
+  @override
+  State<_EmergencyContactsSheet> createState() => _EmergencyContactsSheetState();
+}
+
+class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
+  late final List<_EmergencyContactFieldPair> _rows;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialContacts;
+    if (initial.isEmpty) {
+      _rows = [_EmergencyContactFieldPair()];
+    } else {
+      _rows = initial
+          .map((c) => _EmergencyContactFieldPair(nameText: c.name, phoneText: c.phone))
+          .toList();
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final r in _rows) {
+      r.dispose();
+    }
+    super.dispose();
+  }
+
+  List<EmergencyContact> _parsedContacts() {
+    return _rows
+        .map((p) => EmergencyContact(name: p.name.text.trim(), phone: p.phone.text.trim()))
+        .where((c) => c.name.isNotEmpty || c.phone.isNotEmpty)
+        .toList();
+  }
+
+  InputDecoration _outlineFieldDecoration(String labelText) {
+    return InputDecoration(
+      labelText: labelText,
+      labelStyle: const TextStyle(color: Color(0xFF424242)),
+      floatingLabelStyle: TextStyle(
+        color: BoostDriveTheme.primaryColor,
+        fontWeight: FontWeight.w600,
+      ),
+      border: const OutlineInputBorder(),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(
+          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.45),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: BoostDriveTheme.primaryColor, width: 2),
+      ),
+    );
+  }
+
+  Future<void> _onSavePressed() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      final fullJson = await widget.onSave(_parsedContacts());
+      if (mounted) Navigator.of(context).pop(fullJson);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxH = MediaQuery.sizeOf(context).height * 0.78;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 16,
+        bottom: bottomInset + 24,
+      ),
+      child: SizedBox(
+        height: maxH,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Emergency contacts',
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                color: BoostDriveTheme.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Add people we can reference when you use SOS — keep this updated so help reaches the right people.',
+              style: TextStyle(fontFamily: 'Manrope', fontSize: 13, color: Color(0xFF000000), height: 1.35),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _rows.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == _rows.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8, top: 4),
+                      child: OutlinedButton.icon(
+                        onPressed: _saving
+                            ? null
+                            : () => setState(() => _rows.add(_EmergencyContactFieldPair())),
+                        icon: Icon(Icons.person_add_alt_1_outlined, color: BoostDriveTheme.primaryColor.withValues(alpha: _saving ? 0.4 : 1)),
+                        label: Text(
+                          'Add another contact',
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
+                            fontWeight: FontWeight.w700,
+                            color: BoostDriveTheme.primaryColor.withValues(alpha: _saving ? 0.4 : 1),
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.55)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    );
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Contact ${index + 1}',
+                              style: const TextStyle(
+                                fontFamily: 'Manrope',
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                color: Color(0xFF000000),
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_rows.length > 1)
+                              IconButton(
+                                tooltip: 'Remove contact',
+                                icon: const Icon(Icons.delete_outline, color: Color(0xFFD92D20)),
+                                onPressed: _saving
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          final r = _rows.removeAt(index);
+                                          r.dispose();
+                                        });
+                                      },
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _rows[index].name,
+                          enabled: !_saving,
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF000000),
+                          ),
+                          cursorColor: const Color(0xFF000000),
+                          decoration: _outlineFieldDecoration('Contact name'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _rows[index].phone,
+                          enabled: !_saving,
+                          keyboardType: TextInputType.phone,
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF000000),
+                          ),
+                          cursorColor: const Color(0xFF000000),
+                          decoration: _outlineFieldDecoration('Phone number'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: _saving ? null : _onSavePressed,
+              style: FilledButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
+              child: _saving
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
   }
