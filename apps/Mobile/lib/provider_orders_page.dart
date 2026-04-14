@@ -96,7 +96,10 @@ class _SosTab extends ConsumerWidget {
     final assignedAsync = ref.watch(providerAssignedRequestsProvider(providerId));
     return RefreshIndicator(
       color: BoostDriveTheme.primaryColor,
-      onRefresh: () async {},
+      onRefresh: () async {
+        ref.invalidate(providerAssignedRequestsProvider(providerId));
+        await ref.read(providerAssignedRequestsProvider(providerId).future);
+      },
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -162,7 +165,7 @@ class _SosTab extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
-            error: (e, _) => Text('$e', style: TextStyle(color: Colors.red.shade200)),
+            error: (e, _) => Text(_ordersSosErrorMessage(e), style: TextStyle(color: Colors.red.shade200, height: 1.35)),
           ),
         ],
       ),
@@ -437,6 +440,16 @@ class _HistoryTab extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// User-facing copy when the SOS tab cannot load assigned jobs (often `ClientException: Failed to fetch` on web).
+String _ordersSosErrorMessage(Object e) {
+  final s = e.toString();
+  if (s.contains('Failed to fetch') || s.contains('Could not reach Supabase')) {
+    return '$s\n\nTip: on web, check Wi‑Fi, try another browser, and pause strict privacy or ad blockers for this site. '
+        'The Android or iOS build usually avoids this browser fetch issue.';
+  }
+  return s;
 }
 
 final _ordersRequestsFamily = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, uid) async {

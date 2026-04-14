@@ -46,6 +46,12 @@ bool _looksLikeTransportFailure(Object e) {
       s.contains('Network is unreachable');
 }
 
+/// After a successful poll, keep streaming if later polls hit flaky network (web "Failed to fetch").
+bool _isRecoverableSosPollFailure(Object e) {
+  return _looksLikeTransportFailure(e) ||
+      e.toString().contains('Could not reach Supabase while loading assigned SOS');
+}
+
 class SosService {
   final _supabase = Supabase.instance.client;
   static const String emergencyNumber = "+264811234567"; // Namibia dispatch placeholder
@@ -281,25 +287,56 @@ class SosService {
   }
 
   Future<List<SosRequest>> _fetchProviderAssignedRequests(String providerId) async {
-    final rows = await _supabase
-        .from('sos_requests')
-        .select()
-        .eq('assigned_provider_id', providerId)
-        .order('created_at', ascending: false);
-    return (rows as List<dynamic>)
-        .where((r) {
-          final st = (r['status']?.toString() ?? '').toLowerCase().trim();
-          return const {'accepted', 'assigned'}.contains(st);
-        })
-        .map((json) => SosRequest.fromMap(json as Map<String, dynamic>))
-        .toList();
+    Object? lastError;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(Duration(milliseconds: 400 * attempt));
+      }
+      try {
+        final rows = await _supabase
+            .from('sos_requests')
+            .select()
+            .eq('assigned_provider_id', providerId)
+            .order('created_at', ascending: false);
+        return (rows as List<dynamic>)
+            .where((r) {
+              final st = (r['status']?.toString() ?? '').toLowerCase().trim();
+              return const {'accepted', 'assigned'}.contains(st);
+            })
+            .map((json) => SosRequest.fromMap(json as Map<String, dynamic>))
+            .toList();
+      } catch (e) {
+        lastError = e;
+        if (!_looksLikeTransportFailure(e)) rethrow;
+        if (attempt == 2) {
+          throw Exception(
+            'Could not reach Supabase while loading assigned SOS orders. This is usually a brief network issue; '
+            'on the web it is often caused by strict privacy blockers, flaky Wi‑Fi, or mixed-content rules. '
+            'Try refreshing, another browser or network, or the Android/iOS app. '
+            'Original error: $e',
+          );
+        }
+      }
+    }
+    throw lastError ?? Exception('Failed to load assigned SOS');
   }
 
   Stream<List<SosRequest>> _pollProviderAssignedRequests(String providerId) async* {
-    yield await _fetchProviderAssignedRequests(providerId);
+    var everSucceeded = false;
+    List<SosRequest> lastOk = [];
     while (true) {
+      try {
+        lastOk = await _fetchProviderAssignedRequests(providerId);
+        everSucceeded = true;
+        yield lastOk;
+      } catch (e) {
+        if (everSucceeded && _isRecoverableSosPollFailure(e)) {
+          yield lastOk;
+        } else {
+          rethrow;
+        }
+      }
       await Future<void>.delayed(const Duration(seconds: 3));
-      yield await _fetchProviderAssignedRequests(providerId);
     }
   }
 
