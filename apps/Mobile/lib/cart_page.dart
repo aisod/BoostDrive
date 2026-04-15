@@ -33,7 +33,7 @@ class _CartPageState extends ConsumerState<CartPage> {
     setState(() => _isLoading = true);
     final total = ref.read(cartProvider.notifier).grandTotal;
 
-    final bool? payOnline = await showDialog<bool>(
+    final String? paymentChoice = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: BoostDriveTheme.surfaceDark,
@@ -45,28 +45,42 @@ class _CartPageState extends ConsumerState<CartPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Arrange Personally', style: TextStyle(color: Colors.white54)),
+            onPressed: () => Navigator.pop(context, 'manual'),
+            child: const Text('Manual / Cash', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
-            child: const Text('Pay Securely Online'),
+            onPressed: () => Navigator.pop(context, 'pay2day'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.08)),
+            child: const Text('Pay2Day'),
           ),
         ],
       ),
     );
 
-    if (payOnline == null) {
+    if (paymentChoice == null) {
       setState(() => _isLoading = false);
       return;
     }
 
-    if (payOnline) {
-      _startOnlinePayment(context, ref, user, total);
-    } else {
-      _finishManualCheckout(context, ref, user, total, cartItems);
+    if (paymentChoice == 'pay2day') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Pay2Day integration is coming soon! For now, please proceed with cash or manual bank transfer.',
+            ),
+          ),
+        );
+      }
+      setState(() => _isLoading = false);
+      return;
     }
+
+    if (paymentChoice == 'manual') {
+      _finishManualCheckout(context, ref, user, total, cartItems);
+      return;
+    }
+    setState(() => _isLoading = false);
   }
 
   void _startOnlinePayment(BuildContext context, WidgetRef ref, User user, double total) {

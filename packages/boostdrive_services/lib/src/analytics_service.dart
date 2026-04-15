@@ -46,6 +46,10 @@ class AnalyticsService {
       
       final profiles = profilesResponse as List;
       if (profiles.isEmpty) return [];
+      final providerIds = profiles
+          .map((p) => p['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toList();
 
       // 2. Fetch SOS requests handled by these providers to compute metrics
       final sosResponse = await _supabase
@@ -55,15 +59,28 @@ class AnalyticsService {
       
       final allSos = sosResponse as List;
 
-      // 3. Aggregate metrics per provider
+      // 3. Fetch submitted provider reviews so ratings are fully dynamic.
+      final reviewsResponse = providerIds.isEmpty
+          ? <dynamic>[]
+          : await _supabase
+              .from('sos_provider_reviews')
+              .select('provider_id, rating, submitted_at')
+              .inFilter('provider_id', providerIds)
+              .not('rating', 'is', null)
+              .not('submitted_at', 'is', null);
+      final allReviews = List<dynamic>.from(reviewsResponse as List<dynamic>);
+
+      // 4. Aggregate metrics per provider
       return profiles.map((p) {
         final id = p['id'].toString();
         final name = p['registered_business_name']?.toString() ?? p['full_name']?.toString() ?? 'Unknown Provider';
         
         final providerSos = allSos.where((s) => s['assigned_provider_id'] == id).toList();
+        final providerReviews = allReviews.where((r) => r['provider_id'] == id).toList();
         
         double avgResponse = 15.0; // Default fallback if no data
         double completionRes = 0.0;
+        double avgRating = 0.0;
         
         if (providerSos.isNotEmpty) {
           int completed = providerSos.where((s) => s['status'] == 'completed').length;
@@ -85,13 +102,23 @@ class AnalyticsService {
             avgResponse = totalResponseTime / respondedCount;
           }
         }
+        if (providerReviews.isNotEmpty) {
+          final ratings = providerReviews
+              .map((r) => (r['rating'] as num?)?.toDouble())
+              .whereType<double>()
+              .toList();
+          if (ratings.isNotEmpty) {
+            final totalRatings = ratings.fold<double>(0, (sum, v) => sum + v);
+            avgRating = totalRatings / ratings.length;
+          }
+        }
 
         return ProviderPerformance(
           providerId: id,
           name: name,
           avgResponseTimeMinutes: avgResponse,
           completionRate: completionRes,
-          avgRating: 4.5, // TODO: Link to reviews table when implemented
+          avgRating: avgRating,
         );
       }).toList()
         ..sort((a, b) => b.completionRate.compareTo(a.completionRate)); // Sort by completion rate

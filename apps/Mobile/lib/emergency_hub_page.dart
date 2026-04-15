@@ -860,7 +860,7 @@ class _PendingReviewCardState extends ConsumerState<_PendingReviewCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'RATE YOUR SOS PROVIDER',
+            'RATE YOUR SERVICE PROVIDER',
             style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
           ),
           const SizedBox(height: 6),

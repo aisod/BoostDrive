@@ -400,6 +400,7 @@ class JobCardService {
     await _notifyRequesterExecutionStatus(jobCardId: jobCardId, providerId: providerId, status: status);
     if (status == 'completed') {
       await _finalizeJobCardCompletion(jobCardId: jobCardId, providerId: providerId);
+      await _createReviewPromptForCompletedJobCard(jobCardId: jobCardId, providerId: providerId);
       await _notifyRequesterJobCompleted(jobCardId: jobCardId, providerId: providerId);
     }
   }
@@ -657,8 +658,73 @@ class JobCardService {
           'action': 'completed',
         },
       });
+      await _c.from('notifications').insert({
+        'user_id': requesterId,
+        'title': 'Rate Your Provider',
+        'message': 'Please rate the service provider for ${row['vehicle_label'] ?? 'your completed task'}.',
+        'type': 'job_card_review_request',
+        'is_read': false,
+        'metadata': {
+          'job_card_id': jobCardId,
+          'provider_id': providerId,
+          'action': 'review_request',
+        },
+      });
     } catch (_) {
       // Non-blocking.
+    }
+  }
+
+  Future<void> _createReviewPromptForCompletedJobCard({
+    required String jobCardId,
+    required String providerId,
+  }) async {
+    try {
+      final card = await _c
+          .from('provider_job_cards')
+          .select('id,requester_id,customer_id,sos_request_id,vehicle_label')
+          .eq('id', jobCardId)
+          .maybeSingle();
+      if (card == null) return;
+      final customerId = card['requester_id']?.toString() ?? card['customer_id']?.toString() ?? '';
+      if (customerId.isEmpty) return;
+      final provider = await _c.from('profiles').select('full_name').eq('id', providerId).maybeSingle();
+      final providerName = (provider?['full_name']?.toString().trim().isNotEmpty == true)
+          ? provider!['full_name'].toString()
+          : 'Service Provider';
+
+      // Duplicate guard: if a pending review already exists for this customer/provider, skip.
+      final existing = await _c
+          .from('sos_provider_reviews')
+          .select('id')
+          .eq('customer_id', customerId)
+          .eq('provider_id', providerId)
+          .isFilter('submitted_at', null)
+          .limit(1);
+      final existingList = List<dynamic>.from(existing as List<dynamic>);
+      if (existingList.isNotEmpty) return;
+
+      final base = {
+        'customer_id': customerId,
+        'provider_id': providerId,
+        'provider_name_snapshot': providerName,
+      };
+      final withRefs = {
+        ...base,
+        'source_type': 'job_card',
+        'source_id': jobCardId,
+        'service_label': card['vehicle_label']?.toString() ?? '',
+        'sos_request_id': card['sos_request_id']?.toString(),
+      };
+
+      try {
+        await _c.from('sos_provider_reviews').insert(withRefs);
+      } catch (_) {
+        // Fallback for older table schemas without source fields.
+        await _c.from('sos_provider_reviews').insert(base);
+      }
+    } catch (_) {
+      // Non-blocking so completion cannot fail due to review prompt write.
     }
   }
 

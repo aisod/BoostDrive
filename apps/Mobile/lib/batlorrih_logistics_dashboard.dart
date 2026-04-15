@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
+import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -248,8 +249,8 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
         final activeDeliveries = deliveries.where((d) => d.status != 'delivered' && d.status != 'cancelled').toList();
         
         final Set<Marker> markers = activeDeliveries.map((d) {
-          final lat = d.dropoffLocation['lat'] as double? ?? -22.5609;
-          final lng = d.dropoffLocation['lng'] as double? ?? 17.0658;
+          final lat = d.driverLastLat ?? (d.dropoffLocation['lat'] as double?) ?? -22.5609;
+          final lng = d.driverLastLng ?? (d.dropoffLocation['lng'] as double?) ?? 17.0658;
           
           return Marker(
             markerId: MarkerId(d.id),
@@ -359,7 +360,10 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                         children: [
                           Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
                           const SizedBox(width: 8),
-                          Text('${activeDeliveries.length} DRIVERS LIVE', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Text(
+                            '${activeDeliveries.where((d) => (d.driverId ?? '').trim().isNotEmpty).map((d) => d.driverId!).toSet().length} DRIVERS LIVE',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
                     ),
@@ -398,7 +402,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
       data: (allOrders) {
         final orders = allOrders.where((o) {
           if (_tabController.index == 0) return o.status != 'delivered' && o.status != 'cancelled';
-          if (_tabController.index == 1) return o.status == 'pending' || o.status == 'awaiting_pickup';
+          if (_tabController.index == 1) return o.status == 'pending' || o.status == 'picking_up';
           if (_tabController.index == 2) return o.status == 'delivered';
           return true;
         }).toList();
@@ -407,18 +411,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
         return Column(
           children: orders.map((o) => Padding(
             padding: const EdgeInsets.only(bottom: 16),
-            child: _buildOrderCard(
-              status: o.status.toUpperCase().replaceAll('_', ' '),
-              statusColor: o.status == 'delivered' ? Colors.green : (o.status == 'in_transit' ? Colors.orange : BoostDriveTheme.primaryColor),
-              orderIdDisplay: '#${o.id.substring(0, 8).toUpperCase()}',
-              realOrderId: o.id,
-              eta: o.eta.isNotEmpty ? o.eta : 'N/A',
-              pickup: o.pickupLocation['address'] ?? 'Unknown Pickup',
-              dropoff: o.dropoffLocation['address'] ?? 'Unknown Drop-off',
-              driver: 'Assigned Driver', // Placeholder until driver profile fetching is implemented
-              actionText: o.status == 'pending' ? 'Assign' : 'Manage',
-              isAwaiting: o.status == 'pending',
-            ),
+            child: _buildOrderCard(ref, uid, o),
           )).toList(),
         );
       },
@@ -427,19 +420,34 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
     );
   }
 
-  Widget _buildOrderCard({
-    required String status,
-    required Color statusColor,
-    required String orderIdDisplay,
-    required String realOrderId,
-    required String eta,
-    String etaLabel = 'ETA',
-    required String pickup,
-    required String dropoff,
-    required String driver,
-    required String actionText,
-    bool isAwaiting = false,
-  }) {
+  Widget _buildOrderCard(WidgetRef ref, String uid, DeliveryOrder order) {
+    final status = order.status.toLowerCase();
+    final statusColor = status == 'delivered'
+        ? Colors.green
+        : (status == 'in_transit' ? Colors.orange : BoostDriveTheme.primaryColor);
+    final orderIdDisplay = '#${order.id.substring(0, 8).toUpperCase()}';
+    final eta = order.eta.isNotEmpty ? order.eta : 'N/A';
+    final pickup = order.pickupLocation['address'] ?? 'Unknown Pickup';
+    final dropoff = order.dropoffLocation['address'] ?? 'Unknown Drop-off';
+    final isAwaiting = status == 'pending';
+    final driverId = order.driverId?.trim();
+    final driverProfile = (driverId != null && driverId.isNotEmpty)
+        ? ref.watch(userProfileProvider(driverId)).valueOrNull
+        : null;
+    final driverLabel = driverProfile?.fullName?.trim().isNotEmpty == true
+        ? driverProfile!.fullName
+        : ((driverId != null && driverId.isNotEmpty) ? 'Driver: ${driverId.substring(0, driverId.length >= 8 ? 8 : driverId.length)}' : 'Unassigned');
+
+    final isAssignedToMe = driverId != null && driverId == uid;
+    final canAssign = status == 'pending';
+    final canProgress = isAssignedToMe && (status == 'picking_up' || status == 'in_transit');
+    final nextStatus = status == 'picking_up'
+        ? 'in_transit'
+        : (status == 'in_transit' ? 'delivered' : null);
+    final actionText = canAssign
+        ? 'Assign to me'
+        : (canProgress ? (nextStatus == 'in_transit' ? 'Start transit' : 'Mark delivered') : 'View');
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -464,7 +472,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(etaLabel, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 10, fontWeight: FontWeight.bold)),
+                  Text('ETA', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 10, fontWeight: FontWeight.bold)),
                   Text(eta, style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 14, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -491,16 +499,52 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                 ),
               if (!isAwaiting) const SizedBox(width: 12),
               if (!isAwaiting)
-                Text(driver, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(driverLabel, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
               if (isAwaiting)
                 const Text('Finding nearest optimized route...', style: TextStyle(color: Colors.white24, fontSize: 12, fontStyle: FontStyle.italic)),
               const Spacer(),
               ElevatedButton(
-                onPressed: () {
-                   Navigator.push(
-                     context,
-                     MaterialPageRoute<void>(builder: (BuildContext ctx) => ServiceTrackingPage(orderId: realOrderId)),
-                   );
+                onPressed: () async {
+                  try {
+                    if (canAssign) {
+                      await ref.read(deliveryServiceProvider).updateDeliveryStatus(
+                            order.id,
+                            'picking_up',
+                            driverId: uid,
+                            eta: order.eta.isNotEmpty ? order.eta : '30 min',
+                          );
+                      ref.invalidate(activeDeliveriesProvider(uid));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Assigned to you. Proceed to pickup.')),
+                        );
+                      }
+                      return;
+                    }
+                    if (canProgress && nextStatus != null) {
+                      await ref.read(deliveryServiceProvider).updateDeliveryStatus(
+                            order.id,
+                            nextStatus,
+                          );
+                      ref.invalidate(activeDeliveriesProvider(uid));
+                      if (context.mounted) {
+                        final label = nextStatus == 'in_transit' ? 'Order now in transit.' : 'Order marked delivered.';
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));
+                      }
+                      return;
+                    }
+                    if (!context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(builder: (BuildContext ctx) => ServiceTrackingPage(orderId: order.id)),
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not update order: $e')),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: !isAwaiting ? Colors.white.withValues(alpha: 0.05) : BoostDriveTheme.primaryColor,

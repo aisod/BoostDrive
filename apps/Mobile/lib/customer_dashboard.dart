@@ -205,6 +205,12 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
             );
             return;
           }
+          if (type == 'job_card_review_request') {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const EmergencyHubPage()),
+            );
+            return;
+          }
           if (type == 'sos') {
             Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const EmergencyHubPage()),

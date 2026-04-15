@@ -128,6 +128,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
         case 'job_card_decision':
         case 'job_card_cancelled':
         case 'job_card_request':
+        case 'job_card_review_request':
           return Icons.assignment_outlined;
         case 'sos':
           return Icons.warning_amber_rounded;
@@ -241,6 +242,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
         case 'job_card_decision':
         case 'job_card_cancelled':
         case 'job_card_request':
+        case 'job_card_review_request':
           return Icons.assignment_outlined;
         case 'sos':
           return Icons.warning_amber_rounded;
@@ -651,6 +653,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
       'job_card_decision',
       'job_card_cancelled',
       'job_card_request',
+      'job_card_review_request',
       'sos',
     }.contains(type);
     if (shouldDeepLink) {
