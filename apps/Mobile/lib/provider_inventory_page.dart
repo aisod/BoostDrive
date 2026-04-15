@@ -20,6 +20,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
 
   @override
   void dispose() {
+    // Dispose page-level text controllers.
     _search.dispose();
     _barcodeField.dispose();
     super.dispose();
@@ -27,6 +28,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Provider ID is required to scope inventory and operations data.
     final uid = ref.watch(currentUserProvider)?.id;
     if (uid == null) {
       return const Center(child: Text('Please log in'));
@@ -44,6 +46,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
         child: RefreshIndicator(
           color: BoostDriveTheme.primaryColor,
           onRefresh: () async {
+            // Refresh all related datasets together.
             ref.invalidate(_providerInventoryFamily(uid));
             ref.invalidate(_providerEquipmentFamily(uid));
             ref.invalidate(_serviceKitsFamily(uid));
@@ -270,6 +273,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   List<Map<String, dynamic>> _filteredInventory(List<Map<String, dynamic>> rows, String q) {
+    // Filter rows by name, SKU, or barcode.
     if (q.isEmpty) return rows;
     return rows.where((r) {
       final name = (r['name'] ?? '').toString().toLowerCase();
@@ -280,6 +284,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Widget _summaryCard(String label, String value, IconData icon) {
+    // Small reusable summary card component.
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -300,6 +305,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Widget _sectionTitle(String t) {
+    // Shared section header style.
     return Text(
       t.toUpperCase(),
       style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
@@ -307,6 +313,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Widget _inventoryTile(BuildContext context, String uid, Map<String, dynamic> r) {
+    // Single inventory row with edit/delete/mobile-availability actions.
     final qty = (r['stock_quantity'] as num?)?.toInt() ?? 0;
     final th = (r['low_stock_threshold'] as num?)?.toInt() ?? 0;
     final low = qty <= th;
@@ -381,6 +388,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Future<void> _editInventoryItem(BuildContext context, String uid, Map<String, dynamic> row) async {
+    // Opens dialog to edit inventory row details.
     final name = TextEditingController(text: row['name']?.toString() ?? '');
     final qty = TextEditingController(text: '${(row['stock_quantity'] as num?)?.toInt() ?? 0}');
     final threshold = TextEditingController(text: '${(row['low_stock_threshold'] as num?)?.toInt() ?? 5}');
@@ -448,6 +456,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Future<void> _deleteInventoryItem(BuildContext context, String uid, Map<String, dynamic> row) async {
+    // Confirm and delete selected inventory item.
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -483,6 +492,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
     String hint, {
     TextInputType keyboard = TextInputType.text,
   }) {
+    // Reusable text field widget for add/edit dialogs.
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
@@ -501,6 +511,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Widget _errorBox(String msg) {
+    // Styled error message container.
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -513,6 +524,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Future<void> _addServiceKit(BuildContext context, String uid) async {
+    // Add a new service kit row.
     final name = TextEditingController();
     final desc = TextEditingController();
     final notes = TextEditingController();
@@ -556,6 +568,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Future<void> _editServiceKit(BuildContext context, String uid, Map<String, dynamic> kit) async {
+    // Edit existing service kit row.
     final name = TextEditingController(text: kit['name']?.toString() ?? '');
     final desc = TextEditingController(text: kit['description']?.toString() ?? '');
     final notes = TextEditingController(text: kit['vehicle_notes']?.toString() ?? '');
@@ -599,6 +612,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Future<void> _deleteServiceKit(BuildContext context, String uid, Map<String, dynamic> kit) async {
+    // Confirm and delete service kit row.
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -622,6 +636,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Future<void> _addEquipment(BuildContext context, String uid) async {
+    // Add equipment row (name, status, notes).
     final name = TextEditingController();
     final notes = TextEditingController();
     final status = TextEditingController(text: 'available');
@@ -665,6 +680,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Future<void> _editEquipment(BuildContext context, String uid, Map<String, dynamic> row) async {
+    // Edit equipment row details.
     final name = TextEditingController(text: row['name']?.toString() ?? '');
     final notes = TextEditingController(text: row['notes']?.toString() ?? '');
     final status = TextEditingController(text: row['status']?.toString() ?? 'available');
@@ -708,6 +724,7 @@ class _ProviderInventoryPageState extends ConsumerState<ProviderInventoryPage> {
   }
 
   Future<void> _deleteEquipment(BuildContext context, String uid, Map<String, dynamic> row) async {
+    // Confirm and delete equipment row.
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

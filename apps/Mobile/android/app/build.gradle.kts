@@ -33,12 +33,14 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
+        // Load Google Maps API key from .env into Android manifest placeholders.
         val envFile = project.rootProject.file("../../.env")
         if (envFile.exists()) {
             val env = java.util.Properties()
             env.load(envFile.inputStream())
             manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = env.getProperty("GOOGLE_MAPS_API_KEY") ?: ""
         } else {
+            // Keep empty key when .env file is missing.
             manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = ""
         }
     }

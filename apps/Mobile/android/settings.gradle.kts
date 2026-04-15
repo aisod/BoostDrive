@@ -1,4 +1,5 @@
 pluginManagement {
+    // Read Flutter SDK path from local.properties.
     val flutterSdkPath =
         run {
             val properties = java.util.Properties()
@@ -8,6 +9,7 @@ pluginManagement {
             flutterSdkPath
         }
 
+    // Include Flutter build logic for Android integration.
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {

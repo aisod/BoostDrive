@@ -6,6 +6,7 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:image_picker/image_picker.dart';
 
+/// Page for editing an existing seller listing.
 class EditListingPage extends ConsumerStatefulWidget {
   final Product product;
   const EditListingPage({super.key, required this.product});
@@ -14,6 +15,7 @@ class EditListingPage extends ConsumerStatefulWidget {
   ConsumerState<EditListingPage> createState() => _EditListingPageState();
 }
 
+/// Holds editable form state, current images, and save flow.
 class _EditListingPageState extends ConsumerState<EditListingPage> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
@@ -32,6 +34,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
   @override
   void initState() {
     super.initState();
+    // Pre-fill form controllers with existing listing values.
     _titleController = TextEditingController(text: widget.product.title);
     _subtitleController = TextEditingController(text: widget.product.subtitle);
     _priceController = TextEditingController(text: widget.product.price.toStringAsFixed(0));
@@ -45,6 +48,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
 
   @override
   void dispose() {
+    // Dispose controllers to avoid memory leaks.
     _titleController.dispose();
     _subtitleController.dispose();
     _priceController.dispose();
@@ -55,6 +59,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
   }
 
   void _submit() async {
+    // Validate form before attempting update.
     if (!_formKey.currentState!.validate()) return;
 
     final user = ref.read(currentUserProvider);
@@ -63,10 +68,11 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
     setState(() => _isLoading = true);
 
     try {
+      // Product service handles image uploads and row update.
       final productService = ref.read(productServiceProvider);
       final List<String> uploadedUrls = List.from(_existingImageUrls);
 
-      // 1. Upload new images if any
+      // 1) Upload newly selected images (if any) and append URLs.
       for (final image in _selectedImages) {
         final bytes = await image.readAsBytes();
         final url = await productService.uploadProductImage(bytes, image.name);
@@ -77,7 +83,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
         throw Exception('Please have at least one image.');
       }
 
-      // 2. Parse Price
+      // 2) Parse price text into numeric value.
       final priceString = _priceController.text.replaceAll(',', '');
       final price = double.parse(priceString);
 
@@ -109,6 +115,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
   }
 
   void _showSuccessDialog(Product updatedProduct) {
+    // Show update success dialog, then return updated product.
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -164,6 +171,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Main edit form UI.
     return PremiumPageLayout(
       appBar: AppBar(
         title: const Text('Edit Listing'),
@@ -362,6 +370,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
   }
 
   Widget _buildSectionTitle(String title) {
+    // Reusable section title style.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

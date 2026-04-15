@@ -8,6 +8,7 @@ import 'product_detail_page.dart';
 import 'add_listing_page.dart';
 import 'cart_page.dart';
 
+/// Marketplace home for browsing listings and creating new sell listings.
 class MarketplacePage extends ConsumerStatefulWidget {
   final String? initialCategory;
   const MarketplacePage({super.key, this.initialCategory});
@@ -16,11 +17,13 @@ class MarketplacePage extends ConsumerStatefulWidget {
   ConsumerState<MarketplacePage> createState() => _MarketplacePageState();
 }
 
+/// State for selected category, search query, and listing filters.
 class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   late String _selectedCategory;
   String _searchQuery = '';
 
   bool _matchesSearch(Product p) {
+    // Return true when item matches the current free-text query.
     if (_searchQuery.trim().isEmpty) return true;
     final q = _searchQuery.toLowerCase();
     return p.title.toLowerCase().contains(q) ||
@@ -30,6 +33,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   }
 
   void _openSearch() {
+    // Opens bottom sheet to apply or clear text search.
     final controller = TextEditingController(text: _searchQuery);
     showModalBottomSheet<void>(
       context: context,
@@ -94,6 +98,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   }
 
   bool _matchesSelectedCategory(String category) {
+    // Normalize category matching so singular/plural values still match.
     if (_selectedCategory == 'all') return true;
     final c = category.trim().toLowerCase();
     if (_selectedCategory == 'car') return c == 'car' || c == 'cars' || c == 'vehicle' || c == 'vehicles';
@@ -105,14 +110,16 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   @override
   void initState() {
     super.initState();
+    // Initialize tab from deep-link/route argument when provided.
     _selectedCategory = widget.initialCategory ?? 'all';
   }
   @override
   Widget build(BuildContext context) {
+    // Load marketplace products and auth user context.
     final productsAsync = ref.watch(marketplaceProductsProvider);
     final user = ref.watch(authStateProvider).value?.session?.user;
 
-    // Redirect to Role Selection if logged in but no roles set
+    // Redirect to role selection if user is logged in but has no role flags.
     if (user != null) {
       final profileAsync = ref.watch(userProfileProvider(user.id));
       profileAsync.whenData((profile) {
@@ -162,6 +169,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
+          // Require login before allowing listing creation.
           final user = ref.read(currentUserProvider);
           if (user == null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -173,7 +181,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
             context,
             MaterialPageRoute(builder: (context) => const AddListingPage()),
           );
-          // Refresh provider after adding listing
+          // Refresh listings after returning from add-listing flow.
           final _ = ref.refresh(marketplaceProductsProvider);
         },
         backgroundColor: BoostDriveTheme.primaryColor,
@@ -286,6 +294,7 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reusable category chip used in horizontal selector.
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(

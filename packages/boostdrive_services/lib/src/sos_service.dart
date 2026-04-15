@@ -35,6 +35,7 @@ class SosRespondingHeartbeat {
   final DateTime lastSeenAt;
 }
 
+/// Returns true when the error looks like a network/transport issue.
 bool _looksLikeTransportFailure(Object e) {
   if (e is ClientException) return true;
   final s = e.toString();
@@ -52,10 +53,12 @@ bool _isRecoverableSosPollFailure(Object e) {
       e.toString().contains('Could not reach Supabase while loading assigned SOS');
 }
 
+/// Service layer for SOS creation, assignment, tracking, and provider/customer helpers.
 class SosService {
   final _supabase = Supabase.instance.client;
   static const String emergencyNumber = "+264811234567"; // Namibia dispatch placeholder
 
+  /// Gets current location with permission checks and fallbacks.
   Future<Position?> getCurrentLocation() async {
     try {
       // Browser / some emulators report location services oddly; web uses the Geolocation API directly.
@@ -109,6 +112,7 @@ class SosService {
     }
   }
 
+  /// Creates a new SOS request and returns request ID when successful.
   Future<String?> recordSosRequest({
     required String userId,
     required Position position,
@@ -147,6 +151,7 @@ class SosService {
     }
   }
 
+  /// Opens SMS app with emergency message and current Google Maps location.
   Future<void> sendEmergencySms(Position position) async {
     final String googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}";
     final String message = "BOOSTDRIVE EMERGENCY SOS! My location: $googleMapsUrl";
@@ -164,6 +169,7 @@ class SosService {
     }
   }
 
+  /// Streams active SOS requests for a specific customer.
   Stream<List<SosRequest>> streamActiveRequest(String userId) {
     return _supabase
         .from('sos_requests')
@@ -211,6 +217,7 @@ class SosService {
     }
   }
 
+  /// Opens phone dialer for emergency call.
   Future<void> callEmergencyServices(String number) async {
     final Uri callUri = Uri(scheme: 'tel', path: number);
     
@@ -286,6 +293,7 @@ class SosService {
     return _pollProviderAssignedRequests(providerId);
   }
 
+  /// Fetches provider-assigned SOS requests with retry on transient network failures.
   Future<List<SosRequest>> _fetchProviderAssignedRequests(String providerId) async {
     Object? lastError;
     for (var attempt = 0; attempt < 3; attempt++) {
@@ -321,6 +329,7 @@ class SosService {
     throw lastError ?? Exception('Failed to load assigned SOS');
   }
 
+  /// Polls assigned SOS requests continuously and survives recoverable transient failures.
   Stream<List<SosRequest>> _pollProviderAssignedRequests(String providerId) async* {
     var everSucceeded = false;
     List<SosRequest> lastOk = [];
@@ -368,6 +377,7 @@ class SosService {
     }
   }
 
+  /// Completes provider assignment via RPC after location validation.
   Future<void> completeAssignment({
     required String requestId,
     String? completionNote,
@@ -395,6 +405,7 @@ class SosService {
     );
   }
 
+  /// Cancels current provider assignment and optionally stores a reason.
   Future<void> cancelAssignmentByProvider({
     required String requestId,
     String? reason,
@@ -409,6 +420,7 @@ class SosService {
     );
   }
 
+  /// Gets pending provider review prompts for a customer.
   Future<List<Map<String, dynamic>>> getPendingReviewPrompts(String customerId) async {
     if (customerId.isEmpty) return <Map<String, dynamic>>[];
     final rows = await _supabase
@@ -420,6 +432,7 @@ class SosService {
     return List<Map<String, dynamic>>.from(rows as List<dynamic>);
   }
 
+  /// Submits a customer review for provider performance.
   Future<void> submitProviderReview({
     required String reviewId,
     required int rating,

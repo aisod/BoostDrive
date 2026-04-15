@@ -11,7 +11,9 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'boostdrive_google_map_gate.dart';
+import 'job_card_tool_page.dart';
 import 'messages_page.dart';
+import 'provider_orders_page.dart';
 import 'sos_request_detail_page.dart';
 
 class ServiceProDashboard extends ConsumerStatefulWidget {
@@ -27,6 +29,8 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   LatLng? _currentPosition;
   Timer? _sosLocationTimer;
   Set<String> _trackedSosIds = {};
+  bool? _optimisticOnline;
+  bool _updatingAvailability = false;
 
   @override
   void initState() {
@@ -143,7 +147,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
             const SizedBox(height: 32),
             _buildActiveServicesSection(ref, user.id),
             const SizedBox(height: 32),
-            _buildJobCardTool(),
+            _buildIncomingJobCardRequests(ref, user.id),
             const SizedBox(height: 120),
           ],
         ),
@@ -306,6 +310,23 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
         onNotificationTap: (type, id) {
           if (type == 'support') {
             ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+            return;
+          }
+          if (type == 'job_card_quote' ||
+              type == 'job_card_status' ||
+              type == 'job_card_completed' ||
+              type == 'job_card_decision' ||
+              type == 'job_card_cancelled' ||
+              type == 'job_card_request') {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => JobCardToolPage(initialJobCardId: id)),
+            );
+            return;
+          }
+          if (type == 'sos') {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ProviderOrdersPage()),
+            );
           }
         },
       ),
@@ -327,7 +348,30 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
-        final isOnline = profile.isOnline;
+        final isOnline = _optimisticOnline ?? profile.isOnline;
+        Future<void> setAvailability(bool nextOnline) async {
+          if (_updatingAvailability || nextOnline == isOnline) return;
+          setState(() {
+            _optimisticOnline = nextOnline;
+            _updatingAvailability = true;
+          });
+          try {
+            await ref.read(userServiceProvider).updateProfile(profile.copyWith(isOnline: nextOnline));
+            ref.invalidate(userProfileProvider(uid));
+            await ref.read(userProfileProvider(uid).future);
+          } catch (e) {
+            if (mounted) {
+              setState(() => _optimisticOnline = profile.isOnline);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Could not update availability: $e')),
+              );
+            }
+          } finally {
+            if (mounted) {
+              setState(() => _updatingAvailability = false);
+            }
+          }
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -347,9 +391,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        ref.read(userServiceProvider).updateProfile(profile.copyWith(isOnline: true));
-                      },
+                      onTap: _updatingAvailability ? null : () => setAvailability(true),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
@@ -376,9 +418,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                   ),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        ref.read(userServiceProvider).updateProfile(profile.copyWith(isOnline: false));
-                      },
+                      onTap: _updatingAvailability ? null : () => setAvailability(false),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
@@ -406,6 +446,14 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 ],
               ),
             ),
+            if (_updatingAvailability)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 4),
+                child: Text(
+                  'Updating availability...',
+                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
             if (isOnline)
               Padding(
                 padding: const EdgeInsets.only(top: 8, left: 4),
@@ -888,6 +936,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Widget _buildActiveServicesSection(WidgetRef ref, String uid) {
+    final catalogAsync = ref.watch(_dashboardProviderServicesFamily(uid));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -896,11 +945,10 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
         ),
         const SizedBox(height: 16),
-        ref.watch(userProfileProvider(uid)).when(
-              data: (profile) {
-                if (profile == null) return const SizedBox();
-                final types = profile.providerServiceTypes;
-                if (types.isEmpty) {
+        catalogAsync.when(
+              data: (rows) {
+                final activeRows = rows.where((r) => r['is_active'] != false).toList();
+                if (activeRows.isEmpty) {
                   return Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -920,7 +968,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Add service types in your profile to show them here.',
+                            'Add services in the Services tab to show them here.',
                             style: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.8), fontSize: 13),
                             textAlign: TextAlign.center,
                           ),
@@ -932,74 +980,170 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 return Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: types
-                      .map(
-                        (t) => Chip(
-                          label: Text(
-                            UserProfile.getSpecializationLabel(t),
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
-                          backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                          side: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
-                        ),
-                      )
-                      .toList(),
+                  children: activeRows.map((row) {
+                    final name = row['name']?.toString().trim();
+                    final label = (name == null || name.isEmpty) ? 'Unnamed service' : name;
+                    return Chip(
+                      label: Text(
+                        label,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
+                      side: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
+                    );
+                  }).toList(),
                 );
               },
-              loading: () => const SizedBox(),
-              error: (_, _) => const SizedBox(),
+              loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              error: (e, _) => Text(
+                'Could not load services: $e',
+                style: TextStyle(color: Colors.red.shade200, fontSize: 12),
+              ),
             ),
       ],
     );
   }
 
-  Widget _buildJobCardTool() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [BoostDriveTheme.primaryColor, Colors.orange.shade900],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildIncomingJobCardRequests(WidgetRef ref, String providerId) {
+    final asyncCards = ref.watch(_incomingProviderJobCardsFamily(providerId));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'CUSTOMER JOB CARD REQUESTS',
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Job Card & Diagnostics',
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
-              ),
-              const Icon(Icons.assignment, color: Colors.white, size: 28),
-            ],
+        const SizedBox(height: 12),
+        asyncCards.when(
+          data: (rows) {
+            if (rows.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: Text(
+                  'No new job card requests yet.',
+                  style: TextStyle(color: BoostDriveTheme.textDim),
+                ),
+              );
+            }
+            final visible = rows.take(3).toList();
+            return Column(
+              children: visible.map((row) {
+                final status = (row['status']?.toString() ?? 'submitted').toLowerCase();
+                final labor = (row['labor_amount'] as num?)?.toDouble() ?? 0;
+                final statusLabel = status == 'quoted' ? 'AWAITING CLIENT RESPONSE' : status.toUpperCase();
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        row['vehicle_label']?.toString() ?? 'Vehicle not set',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        row['concern_summary']?.toString() ?? '',
+                        style: TextStyle(color: BoostDriveTheme.textDim),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text('Status: $statusLabel', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
+                          const Spacer(),
+                          Text('Labor: N\$${labor.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
+                        ],
+                      ),
+                      if (status == 'submitted') ...[
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final amount = await _promptProviderQuote(context);
+                              if (amount == null) return;
+                              try {
+                                await ref.read(jobCardServiceProvider).providerQuoteJobCard(
+                                      jobCardId: row['id'].toString(),
+                                      providerId: providerId,
+                                      quotedLaborAmount: amount,
+                                    );
+                                // Defer refresh until after the quote dialog is fully closed so Riverpod/layout stay stable.
+                                if (!context.mounted) return;
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (!context.mounted) return;
+                                  ref.invalidate(_incomingProviderJobCardsFamily(providerId));
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Quote sent. Awaiting client response.')),
+                                    );
+                                  }
+                                });
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Could not send quote: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
+                            child: const Text('RESPOND WITH PRICE'),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          error: (e, _) => Text('Could not load job card requests: $e', style: TextStyle(color: Colors.red.shade200)),
+        ),
+      ],
+    );
+  }
+
+  Future<double?> _promptProviderQuote(BuildContext context) async {
+    final c = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: BoostDriveTheme.surfaceDark,
+        title: const Text('Enter labor quote', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: c,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Labor amount (N\$)',
+            hintStyle: TextStyle(color: BoostDriveTheme.textDim),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.06),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'Create digital job cards and push required parts directly to the customer\'s cart.',
-            style: TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: BoostDriveTheme.primaryColor,
-              minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            child: const Text('OPEN JOB CARD TOOL', style: TextStyle(fontWeight: FontWeight.w900)),
-          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('SEND QUOTE')),
         ],
       ),
     );
+    final v = double.tryParse(c.text.trim());
+    c.dispose();
+    if (ok != true || v == null || v < 0) return null;
+    return v;
   }
 
   static const String _mapStyle = '''
@@ -1166,3 +1310,11 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
 ]
 ''';
 }
+
+final _dashboardProviderServicesFamily = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, uid) async {
+  return ref.read(providerOpsServiceProvider).listProviderServices(uid);
+});
+
+final _incomingProviderJobCardsFamily = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, providerId) async {
+  return ref.read(jobCardServiceProvider).listIncomingJobCardsForProvider(providerId);
+});

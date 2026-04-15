@@ -11,6 +11,7 @@ import 'cart_page.dart';
 import 'edit_listing_page.dart';
 import 'chat_page.dart';
 
+/// Product details page for buyers and sellers.
 class ProductDetailPage extends ConsumerStatefulWidget {
   final Product product;
 
@@ -20,6 +21,7 @@ class ProductDetailPage extends ConsumerStatefulWidget {
   ConsumerState<ProductDetailPage> createState() => _ProductDetailPageState();
 }
 
+/// State for current listing data, edit/delete actions, and cart flow.
 class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   late Product _currentProduct;
   bool _hasChanges = false;
@@ -28,15 +30,18 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   @override
   void initState() {
     super.initState();
+    // Start with product passed from previous page.
     _currentProduct = widget.product;
+    // Track a view click once page appears.
     WidgetsBinding.instance.addPostFrameCallback((_) => _trackListingClick());
   }
 
   Future<void> _trackListingClick() async {
+    // Only track one click per page open.
     if (_hasTrackedClick) return;
     _hasTrackedClick = true;
 
-    // Don't count the seller viewing their own listing
+    // Do not count seller viewing their own listing.
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null && _currentProduct.sellerId != null && user.id == _currentProduct.sellerId) {
       return;
@@ -50,6 +55,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   void _handleDelete() async {
+    // Confirm destructive action before deleting listing.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -81,6 +87,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   void _handleEdit() async {
+    // Open edit page and update local product if changed.
     final result = await Navigator.push<dynamic>(
       context, 
       MaterialPageRoute(builder: (context) => EditListingPage(product: _currentProduct))
@@ -97,6 +104,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine if logged-in user is owner to switch available actions.
     final authState = ref.watch(authStateProvider);
     final user = authState.value?.session?.user;
     final isOwner = _currentProduct.sellerId == user?.id;
@@ -354,6 +362,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   void _openChat(BuildContext context) async {
+    // Opens buyer-seller chat for this listing.
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
@@ -392,6 +401,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   Widget _buildSectionTitle(String title) {
+    // Reusable section heading style for details sections.
     return Text(
       title.toUpperCase(),
       style: const TextStyle(
@@ -404,6 +414,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   void _handleAction(BuildContext context, WidgetRef ref) async {
+    // Entry point for buyer action button (book/add-to-cart).
     final user = ref.read(currentUserProvider);
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -415,7 +426,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   void _handleManualAction(BuildContext context, WidgetRef ref, User user) async {
-    // Rental specific logic
+    // Rental items ask for booking date range before adding to cart.
     if (_currentProduct.category == 'rental') {
       final DateTimeRange? picked = await showDateRangePicker(
         context: context,
@@ -447,7 +458,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         }
       }
     } else {
-      // Standard Product
+      // Standard product asks for quantity before adding to cart.
       final qty = await _promptQuantity(context);
       if (qty == null) return;
       ref.read(cartProvider.notifier).addItem(_currentProduct, quantity: qty);
@@ -456,6 +467,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   Future<int?> _promptQuantity(BuildContext context) async {
+    // Dialog to validate and return quantity for cart add.
     final controller = TextEditingController(text: '1');
     String? errorText;
     final value = await showDialog<int>(
@@ -511,6 +523,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   void _showAddedSnackBar(BuildContext context, {int quantity = 1}) {
+    // Shows success snackbar and quick link to cart page.
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(quantity > 1 ? '$quantity items added to cart' : 'Added to Cart'),

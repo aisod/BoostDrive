@@ -5,6 +5,7 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'emergency_hub_page.dart';
+import 'job_card_tool_page.dart';
 import 'messages_page.dart';
 
 // Notifications use the same stream + overlay as the web customer dashboard.
@@ -43,6 +44,10 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
               _buildHeader(ref, user.id),
               const SizedBox(height: 24),
               _buildSOSSection(),
+              const SizedBox(height: 20),
+              _buildJobCardUpdatesSection(ref, user.id),
+              const SizedBox(height: 20),
+              _buildJobCardSection(),
               const SizedBox(height: 100),
             ],
           ),
@@ -187,6 +192,23 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
         onNotificationTap: (type, id) {
           if (type == 'support') {
             ref.read(pendingSupportTicketIdProvider.notifier).state = id;
+            return;
+          }
+          if (type == 'job_card_quote' ||
+              type == 'job_card_status' ||
+              type == 'job_card_completed' ||
+              type == 'job_card_decision' ||
+              type == 'job_card_cancelled' ||
+              type == 'job_card_request') {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => JobCardToolPage(initialJobCardId: id)),
+            );
+            return;
+          }
+          if (type == 'sos') {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const EmergencyHubPage()),
+            );
           }
         },
       ),
@@ -255,4 +277,114 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
     );
   }
 
+  Widget _buildJobCardSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.assignment_outlined, color: BoostDriveTheme.primaryColor, size: 22),
+              SizedBox(width: 8),
+              Text(
+                'Customer Job Card & Diagnostics',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create your job card request and receive required part recommendations from your provider.',
+            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12, height: 1.35),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const JobCardToolPage()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BoostDriveTheme.primaryColor,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 52),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: const Text('OPEN CUSTOMER JOB CARD', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJobCardUpdatesSection(WidgetRef ref, String uid) {
+    final updatesAsync = ref.watch(_requesterJobCardsDashboardFamily(uid));
+    return updatesAsync.when(
+      data: (rows) {
+        final actionable = rows.where((r) {
+          final s = (r['status']?.toString() ?? '').toLowerCase();
+          return s == 'quoted';
+        }).toList();
+        if (actionable.isEmpty) return const SizedBox.shrink();
+        final first = actionable.first;
+        final labor = (first['labor_amount'] as num?)?.toDouble() ?? 0;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.45)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.assignment_turned_in_outlined, color: BoostDriveTheme.primaryColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Provider Quote Received',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Labor quote: N\$${labor.toStringAsFixed(2)} • ${actionable.length} pending response',
+                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const JobCardToolPage()),
+                  );
+                },
+                child: const Text('REVIEW'),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+
 }
+
+final _requesterJobCardsDashboardFamily = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, uid) async {
+  return ref.read(jobCardServiceProvider).listJobCardsForRequester(uid);
+});

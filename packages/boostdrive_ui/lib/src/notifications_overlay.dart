@@ -116,9 +116,30 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
   ) {
     final List<Map<String, dynamic>> all = [];
 
+    IconData _iconForType(String type, bool isRejected) {
+      if (isRejected) return Icons.cancel;
+      switch (type) {
+        case 'verification':
+        case 'account_verification':
+          return Icons.verified_user;
+        case 'job_card_quote':
+        case 'job_card_status':
+        case 'job_card_completed':
+        case 'job_card_decision':
+        case 'job_card_cancelled':
+        case 'job_card_request':
+          return Icons.assignment_outlined;
+        case 'sos':
+          return Icons.warning_amber_rounded;
+        default:
+          return Icons.notifications;
+      }
+    }
+
     for (var n in systemNotifications) {
       final title = n['title'] ?? 'System Notification';
       final isRejected = title.toLowerCase().contains('reject');
+      final notifType = (n['type']?.toString() ?? 'system').trim();
       
       all.add({
         'id': 'sys_${n['id']}',
@@ -126,9 +147,10 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
         'message': n['message'] ?? '',
         'time': _formatTime(n['created_at']),
         'isRead': n['is_read'] ?? false,
-        'icon': isRejected ? Icons.cancel : (n['type'] == 'verification' ? Icons.verified_user : Icons.notifications),
+        'icon': _iconForType(notifType, isRejected),
         'iconColor': isRejected ? Colors.red : null,
-        'type': 'system',
+        'type': notifType,
+        'metadata': n['metadata'] as Map<String, dynamic>?,
         'timestamp': n['created_at'] != null ? DateTime.parse(n['created_at'].toString()) : DateTime.now(),
       });
     }
@@ -207,9 +229,30 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
 
   /// Fallback: build a display list from system notifications only (used when Realtime streams fail)
   List<Map<String, dynamic>> _getFilteredNotifications(List<Map<String, dynamic>> systemNotifications) {
+    IconData _iconForType(String type, bool isRejected) {
+      if (isRejected) return Icons.cancel;
+      switch (type) {
+        case 'verification':
+        case 'account_verification':
+          return Icons.verified_user;
+        case 'job_card_quote':
+        case 'job_card_status':
+        case 'job_card_completed':
+        case 'job_card_decision':
+        case 'job_card_cancelled':
+        case 'job_card_request':
+          return Icons.assignment_outlined;
+        case 'sos':
+          return Icons.warning_amber_rounded;
+        default:
+          return Icons.notifications;
+      }
+    }
+
     final all = systemNotifications.map((n) {
       final title = n['title'] ?? 'System Notification';
       final isRejected = title.toLowerCase().contains('reject');
+      final notifType = (n['type']?.toString() ?? 'system').trim();
       
       return <String, dynamic>{
         'id': 'sys_${n['id']}',
@@ -217,9 +260,10 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
         'message': n['message'] ?? '',
         'time': _formatTime(n['created_at']),
         'isRead': n['is_read'] ?? false,
-        'icon': isRejected ? Icons.cancel : (n['type'] == 'verification' ? Icons.verified_user : Icons.notifications),
+        'icon': _iconForType(notifType, isRejected),
         'iconColor': isRejected ? Colors.red : null,
-        'type': 'system',
+        'type': notifType,
+        'metadata': n['metadata'] as Map<String, dynamic>?,
         'timestamp': n['created_at'] != null ? DateTime.parse(n['created_at'].toString()) : DateTime.now(),
       };
     }).toList();
@@ -571,6 +615,11 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     final metadata = notification['metadata'] as Map<String, dynamic>?;
     final ticketId = metadata?['ticket_id'] as String?;
     final realId = ticketId ?? id.split('_').last;
+    final jobCardId = metadata?['job_card_id']?.toString();
+    final sosRequestId = metadata?['sos_request_id']?.toString();
+    final routeId = (jobCardId != null && jobCardId.isNotEmpty)
+        ? jobCardId
+        : ((sosRequestId != null && sosRequestId.isNotEmpty) ? sosRequestId : realId);
 
     final user = ref.read(currentUserProvider);
 
@@ -579,7 +628,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
         if (user != null) {
           ref.invalidate(unreadConversationsProvider(user.id));
         }
-      } else if (type == 'system' || type == 'verification' || type == 'account_verification') {
+      } else if (id.startsWith('sys_')) {
         await ref.read(notificationServiceProvider).markAsRead(realId);
         if (user != null) {
           ref.invalidate(userNotificationsStreamProvider(user.id));
@@ -590,8 +639,24 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> wit
     }
 
     if (!mounted) return;
-    
-    // Show the detailed popup only - NO deep linking or navigation
+    if (widget.onNotificationTap != null) {
+      widget.onNotificationTap!(type ?? 'system', routeId);
+    }
+
+    final shouldDeepLink = {
+      'support',
+      'job_card_quote',
+      'job_card_status',
+      'job_card_completed',
+      'job_card_decision',
+      'job_card_cancelled',
+      'job_card_request',
+      'sos',
+    }.contains(type);
+    if (shouldDeepLink) {
+      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+      return;
+    }
     _showNotificationDetailDialog(notification);
   }
 

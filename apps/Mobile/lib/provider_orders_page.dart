@@ -22,6 +22,7 @@ class _ProviderOrdersPageState extends ConsumerState<ProviderOrdersPage> with Si
   @override
   void initState() {
     super.initState();
+    // Create 3 tabs: SOS, Requests, and History.
     _tabs = TabController(length: 3, vsync: this);
   }
 
@@ -33,6 +34,7 @@ class _ProviderOrdersPageState extends ConsumerState<ProviderOrdersPage> with Si
 
   @override
   Widget build(BuildContext context) {
+    // Provider ID is required for provider-only order data.
     final uid = ref.watch(currentUserProvider)?.id;
     if (uid == null) {
       return const Center(child: Text('Please log in'));
@@ -93,10 +95,12 @@ class _SosTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch provider-assigned SOS jobs for focus mode.
     final assignedAsync = ref.watch(providerAssignedRequestsProvider(providerId));
     return RefreshIndicator(
       color: BoostDriveTheme.primaryColor,
       onRefresh: () async {
+        // Force refresh assigned SOS data when user pulls down.
         ref.invalidate(providerAssignedRequestsProvider(providerId));
         await ref.read(providerAssignedRequestsProvider(providerId).future);
       },
@@ -181,6 +185,7 @@ class _SosTab extends ConsumerWidget {
     required bool showAccept,
     required bool showCancel,
   }) {
+    // Read customer destination used by external map navigation.
     final lat = r.lat;
     final lng = r.lng;
     return Card(
@@ -242,6 +247,7 @@ class _SosTab extends ConsumerWidget {
                               ? null
                               : () async {
                                   try {
+                                    // Accept SOS and refresh related streams.
                                     await ref.read(sosServiceProvider).acceptRequest(r.id, providerId);
                               ref.invalidate(providerAssignedRequestsProvider(providerId));
                               ref.invalidate(globalActiveSosRequestsProvider);
@@ -358,40 +364,137 @@ class _RequestsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final jobCardsAsync = ref.watch(_ordersExecutionJobCardsFamily(providerId));
+    // Scheduled/pooled service request rows.
     final async = ref.watch(_ordersRequestsFamily(providerId));
-    return async.when(
+    return jobCardsAsync.when(
+      data: (jobCards) => async.when(
       data: (rows) {
         if (rows.isEmpty) {
-          return ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Text(
-                'No rows in service_requests yet. After migration, scheduled jobs appear here; finishing a job updates status and completed_at.',
-                style: TextStyle(color: BoostDriveTheme.textDim, height: 1.4),
-              ),
-            ],
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: rows.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 8),
-          itemBuilder: (context, i) {
-            final r = rows[i];
-            return ListTile(
-              tileColor: BoostDriveTheme.surfaceDark.withValues(alpha: 0.55),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              title: Text(r['title']?.toString() ?? 'Request', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-              subtitle: Text(
-                'Status: ${r['status']} · ${r['request_kind']}',
-                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
-              ),
+          if (jobCards.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                Text(
+                  'No active requests right now.',
+                  style: TextStyle(color: BoostDriveTheme.textDim, height: 1.4),
+                ),
+              ],
             );
-          },
+          }
+        }
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (jobCards.isNotEmpty) ...[
+              Text(
+                'JOB CARD EXECUTION',
+                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+              const SizedBox(height: 8),
+              ...jobCards.map((r) => _jobExecutionTile(context, ref, r)).toList(),
+              const SizedBox(height: 14),
+            ],
+            if (rows.isNotEmpty) ...[
+              Text(
+                'OTHER REQUESTS',
+                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+              const SizedBox(height: 8),
+              ...rows.map((r) => ListTile(
+                    tileColor: BoostDriveTheme.surfaceDark.withValues(alpha: 0.55),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    title: Text(r['title']?.toString() ?? 'Request', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      'Status: ${r['status']} · ${r['request_kind']}',
+                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                    ),
+                  )).toList(),
+            ],
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('$e', style: TextStyle(color: Colors.red.shade200)))),
+    ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('$e', style: TextStyle(color: Colors.red.shade200)))),
+    );
+  }
+
+  Widget _jobExecutionTile(BuildContext context, WidgetRef ref, Map<String, dynamic> r) {
+    final id = r['id']?.toString() ?? '';
+    final status = (r['status']?.toString() ?? 'accepted').toLowerCase();
+    final labor = (r['labor_amount'] as num?)?.toDouble() ?? 0;
+    final nextStatus = switch (status) {
+      'accepted' => 'active',
+      'active' => 'in_progress',
+      'in_progress' => 'completed',
+      _ => null,
+    };
+    final nextLabel = switch (nextStatus) {
+      'active' => 'SET ACTIVE',
+      'in_progress' => 'SET IN PROGRESS',
+      'completed' => 'MARK COMPLETED',
+      _ => null,
+    };
+    return Card(
+      color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.65),
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              r['vehicle_label']?.toString() ?? 'Job Card',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              r['concern_summary']?.toString() ?? '',
+              style: TextStyle(color: BoostDriveTheme.textDim),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Status: ${status.toUpperCase()} · Labor: N\$${labor.toStringAsFixed(2)}',
+              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            if (nextStatus != null)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: id.isEmpty
+                      ? null
+                      : () async {
+                          try {
+                            await ref.read(jobCardServiceProvider).setExecutionStatus(
+                                  jobCardId: id,
+                                  providerId: providerId,
+                                  status: nextStatus,
+                                );
+                            ref.invalidate(_ordersExecutionJobCardsFamily(providerId));
+                            ref.invalidate(_ordersExecutionHistoryJobCardsFamily(providerId));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Updated to ${nextStatus.toUpperCase()}')),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Could not update status: $e')),
+                              );
+                            }
+                          }
+                        },
+                  child: Text(nextLabel ?? 'UPDATE'),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -403,28 +506,37 @@ class _HistoryTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Completed/cancelled request history.
+    final jobCardHistoryAsync = ref.watch(_ordersExecutionHistoryJobCardsFamily(providerId));
     final async = ref.watch(_ordersHistoryFamily(providerId));
-    return async.when(
+    return jobCardHistoryAsync.when(
+      data: (jobRows) => async.when(
       data: (rows) {
-        if (rows.isEmpty) {
-          return Center(child: Text('No completed or cancelled service_requests.', style: TextStyle(color: BoostDriveTheme.textDim)));
+        if (rows.isEmpty && jobRows.isEmpty) {
+          return Center(child: Text('No completed or cancelled history yet.', style: TextStyle(color: BoostDriveTheme.textDim)));
         }
-        return ListView.separated(
+        return ListView(
           padding: const EdgeInsets.all(16),
-          itemCount: rows.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 8),
-          itemBuilder: (context, i) {
-            final r = rows[i];
-            return ListTile(
-              tileColor: Colors.white.withValues(alpha: 0.04),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              title: Text(r['title']?.toString() ?? '', style: const TextStyle(color: Colors.white)),
-              subtitle: Text(
-                '${r['status']} · completed: ${r['completed_at'] ?? '—'}',
-                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
-              ),
-            );
-          },
+          children: [
+            ...jobRows.map((r) => ListTile(
+                  tileColor: Colors.white.withValues(alpha: 0.04),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  title: Text(r['vehicle_label']?.toString() ?? 'Job Card', style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    'job_card · ${r['status']} · completed: ${r['completed_at'] ?? '—'}',
+                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                  ),
+                )),
+            ...rows.map((r) => ListTile(
+                  tileColor: Colors.white.withValues(alpha: 0.04),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  title: Text(r['title']?.toString() ?? '', style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    '${r['status']} · completed: ${r['completed_at'] ?? '—'}',
+                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                  ),
+                )),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -433,6 +545,18 @@ class _HistoryTab extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           child: Text(
             'History unavailable on current schema. Apply latest Supabase migration.\n$e',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.red.shade200),
+          ),
+        ),
+      ),
+    ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text(
+            'Job card history unavailable.\n$e',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.red.shade200),
           ),
@@ -458,4 +582,12 @@ final _ordersRequestsFamily = FutureProvider.family<List<Map<String, dynamic>>, 
 
 final _ordersHistoryFamily = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, uid) async {
   return ref.read(providerOpsServiceProvider).listServiceRequestsHistory(uid);
+});
+
+final _ordersExecutionJobCardsFamily = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, uid) async {
+  return ref.read(jobCardServiceProvider).listExecutionJobCardsForProvider(uid);
+});
+
+final _ordersExecutionHistoryJobCardsFamily = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, uid) async {
+  return ref.read(jobCardServiceProvider).listExecutionJobCardHistoryForProvider(uid);
 });

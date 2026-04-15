@@ -120,27 +120,38 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
               child: const Icon(Icons.local_shipping, color: Colors.white, size: 24),
             ),
             const SizedBox(width: 12),
-            const Text(
-               'BaTLorriH',
-               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+            const Flexible(
+              fit: FlexFit.loose,
+              child: Text(
+                 'BaTLorriH',
+                 maxLines: 1,
+                 overflow: TextOverflow.ellipsis,
+                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+              ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profile.fullName,
-                  style: GoogleFonts.manrope(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    profile.fullName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                Text(
-                  'Logistics • Parts & Vehicle Transport',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
-                ),
-              ],
+                  Text(
+                    'Logistics • Parts & Vehicle Transport',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(width: 8),
           ],

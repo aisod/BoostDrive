@@ -5,6 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.android") version "1.9.22" apply false
 }
 
+// Apply common Android SDK versions to all Android modules.
 subprojects {
     afterEvaluate {
         val android = project.extensions.findByName("android")
@@ -41,6 +42,7 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Standard clean task for generated build output.
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

@@ -9,6 +9,7 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boost_drive_web/edit_listing_page.dart';
 import 'package:boost_drive_web/add_listing_page.dart';
 
+/// Seller dashboard where users manage their marketplace listings.
 class SellerDashboardPage extends ConsumerStatefulWidget {
   const SellerDashboardPage({super.key});
 
@@ -16,6 +17,7 @@ class SellerDashboardPage extends ConsumerStatefulWidget {
   ConsumerState<SellerDashboardPage> createState() => _SellerDashboardPageState();
 }
 
+/// State for tabs, scrolling, and seller listing actions.
 class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
@@ -26,6 +28,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
   @override
   void initState() {
     super.initState();
+    // Create tab controller for listing status tabs.
     _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(() {
       setState(() {});
@@ -34,6 +37,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
 
   @override
   void dispose() {
+    // Dispose controllers to avoid memory leaks.
     _tabController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -41,6 +45,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
 
   @override
   Widget build(BuildContext context) {
+    // Read signed-in user; this page requires authentication.
     final user = ref.watch(currentUserProvider);
     if (user == null) {
       return const Scaffold(
@@ -61,6 +66,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
         ),
       ),
       body: ref.watch(sellerProductsProvider(user.id)).when(
+        // Show dashboard when seller products are loaded.
         data: (products) {
           return SingleChildScrollView(
             controller: _scrollController,
@@ -77,12 +83,15 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
             ),
           );
         },
+        // Show spinner while product data is loading.
         loading: () => const Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
+        // Show readable error if products fail to load.
         error: (err, _) => Center(child: Text('Error loading listings: $err', style: const TextStyle(color: Colors.red))),
       ),
     );
   }
 
+  /// Builds top metrics row and "Add New Listing" button.
   Widget _buildHeaderStats(List<Product> products) {
     int activeCount = products.where((p) => p.status == 'active').length;
     int pendingCount = products.where((p) => p.status == 'pending').length;
@@ -136,6 +145,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Reusable stat card widget used in dashboard header.
   Widget _buildStatBox(String label, String value, IconData icon) {
     return Expanded(
       child: Container(
@@ -177,6 +187,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Builds tab bar for listing status filters.
   Widget _buildTabs() {
     return Container(
       decoration: BoxDecoration(
@@ -199,6 +210,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Filters products by selected tab and renders list or empty state.
   Widget _buildFilteredListings(List<Product> products) {
     String currentTab = _tabs[_tabController.index];
     
@@ -226,6 +238,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Empty-state section shown when current tab has no listings.
   Widget _buildEmptyState(String currentTab) {
     return Container(
       padding: const EdgeInsets.all(64),
@@ -276,6 +289,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Full listing card with image, meta, and inline action buttons.
   Widget _buildListingCard(Product p) {
     return Container(
       decoration: BoxDecoration(
@@ -462,6 +476,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Reusable outlined action button for listing card actions.
   Widget _actionBtn({
     required IconData icon,
     required String label,
@@ -481,6 +496,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Returns a status badge with color and label based on listing status.
   Widget _buildStatusTag(String status) {
     Color bg;
     Color fg;
@@ -528,6 +544,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Opens listing edit page.
   void _handleEdit(Product p) {
     Navigator.push(
       context,
@@ -535,6 +552,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Shows promote information dialog (feature notice and details).
   void _handlePromote(Product p) {
     showDialog(
       context: context,
@@ -591,6 +609,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
+  /// Lets seller mark listing as sold or rented, then updates backend status.
   void _handleMarkSold(Product p) async {
     final confirm = await showDialog<String>(
       context: context,
@@ -644,6 +663,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     }
   }
 
+  /// Confirms and deletes listing from backend.
   void _handleDelete(Product p) async {
     final confirm = await showDialog<bool>(
       context: context,

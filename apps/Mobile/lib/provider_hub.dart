@@ -40,7 +40,8 @@ class _ProviderHubState extends ConsumerState<ProviderHub> with SingleTickerProv
     final isSeller = profile.role.toLowerCase().contains('seller');
 
     return PremiumPageLayout(
-      showBackground: true,
+      // Disable global web background image here to avoid right-edge image artifact/overlay.
+      showBackground: false,
       appBar: AppBar(
         backgroundColor: BoostDriveTheme.primaryColor,
         elevation: 0,

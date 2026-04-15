@@ -18,6 +18,7 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-boostdrive-sos-secret",
 };
 
+// Helper to return JSON with shared CORS headers.
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -25,17 +26,20 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+// Main webhook function that sends push notifications for new SOS requests.
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Validate webhook secret so only trusted callers can trigger notifications.
   const secret = Deno.env.get("SOS_WEBHOOK_SECRET") ?? "";
   const sentSecret = req.headers.get("x-boostdrive-sos-secret") ?? "";
   if (!secret || sentSecret !== secret) {
     return jsonResponse({ error: "unauthorized" }, 401);
   }
 
+  // Read Firebase Cloud Messaging key from function environment.
   const fcmKey = Deno.env.get("FCM_LEGACY_SERVER_KEY") ?? "";
   if (!fcmKey) {
     return jsonResponse({ error: "FCM_LEGACY_SERVER_KEY not configured" }, 500);
@@ -73,6 +77,7 @@ serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  // Load approved provider-like profiles that can respond to SOS alerts.
   const { data: profiles, error: pErr } = await admin
     .from("profiles")
     .select("id,status,role")
@@ -123,6 +128,7 @@ serve(async (req) => {
 
   let sent = 0;
   const chunkSize = 500;
+  // Send notification tokens in chunks to stay within FCM batch request limits.
   for (let i = 0; i < tokens.length; i += chunkSize) {
     const chunk = tokens.slice(i, i + chunkSize);
     const res = await fetch("https://fcm.googleapis.com/fcm/send", {

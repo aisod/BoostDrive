@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
+import 'providers.dart';
 
 /// CRUD on `provider_services` (catalog for billing and customer-facing menu).
 class ProviderServicesPage extends ConsumerWidget {
@@ -63,11 +64,27 @@ class ProviderServicesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Provider ID is required to scope catalog rows.
     final uid = ref.watch(currentUserProvider)?.id;
     if (uid == null) {
       return const Center(child: Text('Please log in'));
     }
+    final role = ref.watch(mobileShellRoleProvider);
+    final canManage = role == 'service_pro' || role == 'logistics';
+    if (!canManage) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'Service catalog management is available to service providers only.',
+            style: TextStyle(color: BoostDriveTheme.textDim, height: 1.4),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
 
+    // Load provider service catalog from backend.
     final listAsync = ref.watch(_providerServicesCatalogFamily(uid));
 
     return Container(
@@ -90,6 +107,7 @@ class ProviderServicesPage extends ConsumerWidget {
           listAsync.when(
             data: (rows) {
               if (rows.isEmpty) {
+                // Empty state when provider has no services yet.
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(20, 48, 20, 100),
                   children: [
@@ -106,6 +124,7 @@ class ProviderServicesPage extends ConsumerWidget {
                 separatorBuilder: (context, index) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final r = rows[index];
+                  // Resolve row id using modern and legacy keys.
                   final rowId = _serviceRowId(r);
                   final active = r['is_active'] == true;
                   final estMin = r['estimated_minutes'] ?? r['duration_minutes'] ?? 0;
@@ -132,6 +151,7 @@ class ProviderServicesPage extends ConsumerWidget {
                                     ? null
                                     : (v) async {
                                         try {
+                                          // Persist active flag change.
                                           await ref.read(providerOpsServiceProvider).updateProviderServiceActive(
                                                 id: rowId,
                                                 isActive: v,
@@ -181,6 +201,7 @@ class ProviderServicesPage extends ConsumerWidget {
                                 onPressed: rowId == null
                                     ? null
                                     : () async {
+                                  // Confirm deletion before removing service row.
                                   final ok = await showDialog<bool>(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
@@ -258,6 +279,7 @@ class ProviderServicesPage extends ConsumerWidget {
     String uid, {
     required Map<String, dynamic>? existing,
   }) async {
+    // Keep messenger from parent context so feedback still works after modal closes.
     final messenger = ScaffoldMessenger.of(context);
     var isSubmitting = false;
     final name = TextEditingController(text: existing?['name']?.toString() ?? '');
@@ -290,6 +312,7 @@ class ProviderServicesPage extends ConsumerWidget {
           ),
           child: StatefulBuilder(
             builder: (ctx, setSt) {
+              // Local sheet state handles submit loading button.
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -372,6 +395,7 @@ class ProviderServicesPage extends ConsumerWidget {
                                 final parsedMinutes = _parseMinutes(minutes.text);
                                 final ops = ref.read(providerOpsServiceProvider);
                                 if (existingId == null) {
+                                  // Create new service row.
                                   await ops.insertProviderService(
                                     providerId: uid,
                                     name: name.text.trim(),
@@ -381,6 +405,7 @@ class ProviderServicesPage extends ConsumerWidget {
                                     estimatedMinutes: parsedMinutes,
                                   );
                                 } else {
+                                  // Update existing service row.
                                   await ops.updateProviderService(
                                     id: existingId,
                                     name: name.text.trim(),
@@ -416,6 +441,7 @@ class ProviderServicesPage extends ConsumerWidget {
   }
 
   InputDecoration _fieldDeco(String hint) {
+    // Shared field style for bottom-sheet inputs.
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: BoostDriveTheme.textDim),

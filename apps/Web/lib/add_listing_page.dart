@@ -6,6 +6,7 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:image_picker/image_picker.dart';
 
+/// Page for creating and publishing a new marketplace listing.
 class AddListingPage extends ConsumerStatefulWidget {
   const AddListingPage({super.key});
 
@@ -13,6 +14,7 @@ class AddListingPage extends ConsumerStatefulWidget {
   ConsumerState<AddListingPage> createState() => _AddListingPageState();
 }
 
+/// Holds form state, selected media, and submit flow for new listing.
 class _AddListingPageState extends ConsumerState<AddListingPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
@@ -29,6 +31,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
 
   @override
   void dispose() {
+    // Dispose all text controllers to free memory.
     _titleController.dispose();
     _subtitleController.dispose();
     _priceController.dispose();
@@ -39,6 +42,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
   }
 
   void _submit() async {
+    // Stop submit if required form fields are invalid.
     if (!_formKey.currentState!.validate()) return;
 
     final user = ref.read(currentUserProvider);
@@ -52,6 +56,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
     }
 
     if (_selectedImages.isEmpty) {
+      // Require at least one image before publishing.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please select at least one image.')),
@@ -63,17 +68,18 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
     setState(() => _isLoading = true);
 
     try {
+      // Product service handles uploads and DB insert.
       final productService = ref.read(productServiceProvider);
       final List<String> uploadedUrls = [];
 
-      // 1. Upload images
+      // 1) Upload selected images and collect resulting URLs.
       for (final image in _selectedImages) {
         final bytes = await image.readAsBytes();
         final url = await productService.uploadProductImage(bytes, image.name);
         uploadedUrls.add(url);
       }
       
-      // 2. Parse Price
+      // 2) Parse price text into numeric value.
       final priceString = _priceController.text.replaceAll(',', '');
       final price = double.parse(priceString);
 
@@ -115,6 +121,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
   }
 
   void _showSuccessDialog() {
+    // Show success confirmation and return to marketplace flow.
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -170,6 +177,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Main listing form UI.
     return PremiumPageLayout(
       appBar: AppBar(
         title: const Text('Add New Listing'),
@@ -369,6 +377,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
   }
 
   Widget _buildSectionTitle(String title) {
+    // Reusable section title with accent line.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

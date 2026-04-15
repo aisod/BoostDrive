@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import XCTest
 
+/// Basic iOS test class placeholder for Runner app tests.
 class RunnerTests: XCTestCase {
 
   func testExample() {

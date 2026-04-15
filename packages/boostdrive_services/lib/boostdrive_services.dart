@@ -18,3 +18,4 @@ export 'src/notification_hub_service.dart';
 export 'src/analytics_service.dart';
 export 'src/support_service.dart';
 export 'src/provider_ops_service.dart';
+export 'src/job_card_service.dart';
