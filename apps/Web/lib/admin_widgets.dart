@@ -1,15 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 
-class NamibiaSOSRadar extends StatelessWidget {
+class NamibiaSOSRadar extends StatefulWidget {
   final List<SosRequest> activeRequests;
   const NamibiaSOSRadar({super.key, required this.activeRequests});
 
   @override
+  State<NamibiaSOSRadar> createState() => _NamibiaSOSRadarState();
+}
+
+class _NamibiaSOSRadarState extends State<NamibiaSOSRadar> {
+  bool _mapInitialized = false;
+  String? _mapInitError;
+
+  static const CameraPosition _defaultCamera = CameraPosition(
+    target: LatLng(-22.5609, 17.0658),
+    zoom: 6.2,
+  );
+
+  @override
   Widget build(BuildContext context) {
+    final points = _buildPlottableRequests(widget.activeRequests);
+    final rawCount = widget.activeRequests.length;
+    final hasValidCoords = points.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -26,103 +43,137 @@ class NamibiaSOSRadar extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
           ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // Mock Map Placeholder
-                  Center(
-                    child: Opacity(
-                      opacity: 0.1,
-                      child: Icon(Icons.map, size: 200, color: Colors.black),
+          child: Stack(
+            children: [
+              if (points.isEmpty)
+                const Positioned.fill(
+                  child: Center(
+                    child: Text(
+                      'No active SOS requests to display.',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black45),
                     ),
                   ),
-                  // Dynamic Heatmap Clusters
-                  ...activeRequests.map((r) => _buildSosPoint(context, r, constraints)),
-                  // Legend
-                  Positioned(
-                    bottom: 16,
-                    right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [BoxShadow(color: Color(0x22FF6600), blurRadius: 4)],
-                      ),
-                      child: Column(
-                        children: [
-                          _buildLegendItem('Critical', Colors.redAccent),
-                          _buildLegendItem('Major', Colors.orange),
-                        ],
-                      ),
+                )
+              else
+                Positioned.fill(
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(points.first.lat, points.first.lng),
+                      zoom: 10.5,
+                    ),
+                    markers: points.map(_toMarker).toSet(),
+                    circles: points.map(_toCircle).toSet(),
+                    onMapCreated: (_) {
+                      if (!mounted) return;
+                      setState(() {
+                        _mapInitialized = true;
+                        _mapInitError = null;
+                      });
+                    },
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: true,
+                    mapToolbarEnabled: false,
+                  ),
+                ),
+              Positioned(
+                left: 12,
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _mapInitError != null
+                        ? 'Map: error | rows: $rawCount | plotted: ${points.length}'
+                        : 'Map: ${_mapInitialized ? 'initialized' : 'initializing'} | rows: $rawCount | plotted: ${points.length} | coords: ${hasValidCoords ? 'ok' : 'none'}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
                   ),
-                ],
-              );
-            }
+                ),
+              ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  ),
+                  child: Text(
+                    '${points.length} active',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black54),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [BoxShadow(color: Color(0x22FF6600), blurRadius: 4)],
+                  ),
+                  child: Column(
+                    children: [
+                      _buildLegendItem('Critical', Colors.redAccent),
+                      _buildLegendItem('Major', Colors.orange),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSosPoint(BuildContext context, SosRequest r, BoxConstraints constraints) {
-    // Namibia Bounding Box Approximation
-    const minLat = -29.0;
-    const maxLat = -17.0;
-    const minLng = 11.5;
-    const maxLng = 25.5;
+  List<SosRequest> _buildPlottableRequests(List<SosRequest> requests) {
+    final withCoords = requests.where((r) => r.lat != 0.0 || r.lng != 0.0).toList();
+    if (withCoords.isNotEmpty) return withCoords;
+    return const <SosRequest>[];
+  }
 
-    // Default to roughly Windhoek if lat/lng is 0,0
-    double lat = r.lat;
-    double lng = r.lng;
-    if (lat == 0.0 && lng == 0.0) {
-      lat = -22.56;
-      lng = 17.06;
-    }
-
-    // Clamp coordinates to keep them inside the visual bounding box
-    lat = lat.clamp(minLat, maxLat);
-    lng = lng.clamp(minLng, maxLng);
-
-    // Normalize (Lat is inverted because top of screen is Y=0 and North is higher lat)
-    final double normalizedX = (lng - minLng) / (maxLng - minLng);
-    final double normalizedY = (maxLat - lat) / (maxLat - minLat);
-
-    final double left = (normalizedX * constraints.maxWidth) - 6; // offset by child width/2
-    final double top = (normalizedY * constraints.maxHeight) - 6; // offset by child height/2
-
-    return Positioned(
-      left: left,
-      top: top,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: Colors.redAccent,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.redAccent.withValues(alpha: 0.5),
-                  blurRadius: 10,
-                  spreadRadius: 10,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            r.type.toUpperCase(),
-            style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.redAccent),
-          ),
-        ],
+  Marker _toMarker(SosRequest r) {
+    final isCritical = _isCritical(r);
+    final hue = isCritical ? BitmapDescriptor.hueRed : BitmapDescriptor.hueOrange;
+    return Marker(
+      markerId: MarkerId(r.id),
+      position: LatLng(r.lat, r.lng),
+      icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+      infoWindow: InfoWindow(
+        title: r.type.toUpperCase(),
+        snippet: 'Status: ${r.status}',
       ),
     );
+  }
+
+  Circle _toCircle(SosRequest r) {
+    final isCritical = _isCritical(r);
+    final color = isCritical ? Colors.redAccent : Colors.orange;
+    return Circle(
+      circleId: CircleId('pulse_${r.id}'),
+      center: LatLng(r.lat, r.lng),
+      radius: isCritical ? 220 : 150,
+      fillColor: color.withValues(alpha: 0.18),
+      strokeColor: color.withValues(alpha: 0.45),
+      strokeWidth: 1,
+    );
+  }
+
+  bool _isCritical(SosRequest r) {
+    final t = r.type.toLowerCase();
+    final s = r.status.toLowerCase();
+    return t.contains('accident') || t.contains('medical') || s == 'pending';
   }
 
   Widget _buildLegendItem(String label, Color color) {

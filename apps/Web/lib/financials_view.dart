@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
@@ -93,22 +94,61 @@ final userRoleSplitProvider = Provider<Map<String, int>>((ref) {
   };
 });
 
-/// Service category revenue breakdown
-final serviceCategoryBreakdownProvider = Provider<Map<String, double>>((ref) {
-  final profiles = ref.watch(allProfilesProvider).valueOrNull ?? [];
-  final breakdown = <String, double>{};
+/// Service category breakdown from provider catalog rows (dynamic, DB-backed).
+final serviceCategoryBreakdownProvider = FutureProvider<Map<String, double>>((ref) async {
+  final supabase = Supabase.instance.client;
+  dynamic rows;
 
-  for (final p in profiles) {
-    if (p.isProvider && (p.totalEarnings > 0 || (p.primaryServiceCategory != null && p.primaryServiceCategory!.isNotEmpty))) {
-      final cat = p.primaryServiceCategory ?? 'Other';
-      breakdown[cat] = (breakdown[cat] ?? 0.0) + p.totalEarnings;
-    }
+  // Prefer active services only; gracefully fallback for older schemas.
+  try {
+    rows = await supabase
+        .from('provider_services')
+        .select('category,price,is_active')
+        .eq('is_active', true);
+  } catch (_) {
+    rows = await supabase.from('provider_services').select('category,price');
   }
 
-  // Remove entries with 0 if we want to clean it up, or leave them. Let's filter out 0.0 for a cleaner chart.
-  breakdown.removeWhere((key, value) => value <= 0.0);
-
+  final list = List<Map<String, dynamic>>.from(rows as List<dynamic>);
+  final breakdown = <String, double>{};
+  for (final row in list) {
+    final rawCategory = row['category']?.toString().trim() ?? '';
+    final category = rawCategory.isEmpty ? 'Other' : rawCategory;
+    final price = (row['price'] as num?)?.toDouble() ?? 0;
+    if (price <= 0) continue;
+    breakdown[category] = (breakdown[category] ?? 0.0) + price;
+  }
   return breakdown;
+});
+
+/// Dynamic financial config for admin calculations.
+/// Falls back to safe defaults when config/table is missing.
+final platformFinancialConfigProvider = FutureProvider<Map<String, double>>((ref) async {
+  final supabase = Supabase.instance.client;
+  try {
+    final row = await supabase
+        .from('platform_financial_settings')
+        .select('commission_rate,operating_cost,is_active,updated_at')
+        .eq('is_active', true)
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    if (row == null) {
+      return <String, double>{
+        'commission_rate': 0.10,
+        'operating_cost': 0.0,
+      };
+    }
+    return <String, double>{
+      'commission_rate': (row['commission_rate'] as num?)?.toDouble() ?? 0.10,
+      'operating_cost': (row['operating_cost'] as num?)?.toDouble() ?? 0.0,
+    };
+  } catch (_) {
+    return <String, double>{
+      'commission_rate': 0.10,
+      'operating_cost': 0.0,
+    };
+  }
 });
 
 /// Providers who have bank details set (eligible for payout)
@@ -184,8 +224,6 @@ final suspendedAccountsProvider = Provider<List<UserProfile>>((ref) {
 // ---------------------------------------------------------------------------
 class FinancialsView extends ConsumerWidget {
   const FinancialsView({super.key});
-
-  static const double _commissionRate = 0.10; // 10% platform fee
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -293,6 +331,7 @@ class FinancialsView extends ConsumerWidget {
   // -------------------------------------------------------------------------
   Widget _buildKPIRow(WidgetRef ref) {
     final volumeAsync = ref.watch(globalVolumeProvider);
+    final financialConfigAsync = ref.watch(platformFinancialConfigProvider);
     final pendingAsync = ref.watch(pendingVerificationsProvider);
     final sosAsync = ref.watch(globalActiveSosRequestsProvider);
 
@@ -301,19 +340,39 @@ class FinancialsView extends ConsumerWidget {
       final cards = [
         // Marketplace Volume + Commission
         volumeAsync.when(
-          data: (vol) {
-            final commission = vol * _commissionRate;
-            return _buildPrimaryKPICard(
-              label: 'MARKETPLACE VOLUME',
-              value: _formatNAD(vol),
-              subLabel: 'Commission Earned',
-              subValue: _formatNAD(commission),
-              subColor: Colors.green,
-              icon: Icons.show_chart_rounded,
-              color: BoostDriveTheme.primaryColor,
-              badge: 'GMV',
-            );
-          },
+          data: (vol) => financialConfigAsync.when(
+            data: (cfg) {
+              final commission = vol * (cfg['commission_rate'] ?? 0.10);
+              return _buildPrimaryKPICard(
+                label: 'MARKETPLACE VOLUME',
+                value: _formatNAD(vol),
+                subLabel: 'Commission Earned',
+                subValue: _formatNAD(commission),
+                subColor: Colors.green,
+                icon: Icons.show_chart_rounded,
+                color: BoostDriveTheme.primaryColor,
+                badge: 'GMV',
+              );
+            },
+            loading: () => _buildPrimaryKPICard(
+                label: 'MARKETPLACE VOLUME',
+                value: '…',
+                subLabel: 'Commission Earned',
+                subValue: '…',
+                subColor: Colors.green,
+                icon: Icons.show_chart_rounded,
+                color: BoostDriveTheme.primaryColor,
+                badge: 'GMV'),
+            error: (_, __) => _buildPrimaryKPICard(
+                label: 'MARKETPLACE VOLUME',
+                value: _formatNAD(vol),
+                subLabel: 'Commission Earned',
+                subValue: _formatNAD(vol * 0.10),
+                subColor: Colors.green,
+                icon: Icons.show_chart_rounded,
+                color: BoostDriveTheme.primaryColor,
+                badge: 'GMV'),
+          ),
           loading: () => _buildPrimaryKPICard(
               label: 'MARKETPLACE VOLUME',
               value: '…',
@@ -558,7 +617,7 @@ class FinancialsView extends ConsumerWidget {
   }
 
   Widget _buildCategoryRevenueChart(WidgetRef ref) {
-    final volumeAsync = ref.watch(globalVolumeProvider);
+    final breakdownAsync = ref.watch(serviceCategoryBreakdownProvider);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -593,105 +652,118 @@ class FinancialsView extends ConsumerWidget {
                 ],
               ),
               const Spacer(),
-              volumeAsync.when(
-                data: (vol) => Container(
+              breakdownAsync.when(
+                data: (data) {
+                  final total = data.values.fold<double>(0, (sum, amount) => sum + amount);
+                  return Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text('Total: ${_formatNAD(vol)}',
+                  child: Text('Total: ${_formatNAD(total)}',
                       style: TextStyle(fontFamily: 'Manrope', 
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: BoostDriveTheme.primaryColor)),
-                ),
+                  );
+                },
                 loading: () => const SizedBox(),
                 error: (_, __) => const SizedBox(),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          Builder(builder: (_) {
-            final data = ref.watch(serviceCategoryBreakdownProvider);
-            if (data.isEmpty) {
-              return _buildEmptyState(
-                  'No provider service data yet',
-                  'As providers register and set their labor rates, revenue categories will appear here.',
-                  Icons.bar_chart_rounded);
-            }
-            final total = data.values.fold(0.0, (a, b) => a + b);
-            final sorted = data.entries.toList()
-              ..sort((a, b) => b.value.compareTo(a.value));
-            return Column(
-              children: sorted.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final cat = entry.value.key;
-                final val = entry.value.value;
-                final pct = total > 0 ? val / total : 0.0;
-                final colors = [
-                  BoostDriveTheme.primaryColor,
-                  Colors.purpleAccent,
-                  BoostDriveTheme.primaryColor,
-                  Colors.tealAccent.shade700,
-                  Colors.deepOrangeAccent,
-                ];
-                final color = colors[idx % colors.length];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                                color: color, shape: BoxShape.circle),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _humanizeCategory(cat),
-                            style: TextStyle(fontFamily: 'Manrope', 
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87),
-                          ),
-                          const Spacer(),
-                          Text(
-                            _formatNAD(val),
-                            style: TextStyle(fontFamily: 'Manrope', 
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black87),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${(pct * 100).toStringAsFixed(0)}%',
-                            style: TextStyle(fontFamily: 'Manrope', 
-                                fontSize: 11, color: Colors.black45),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: pct,
-                          minHeight: 8,
-                          backgroundColor:
-                              Colors.black.withValues(alpha: 0.05),
-                          valueColor: AlwaysStoppedAnimation<Color>(color),
+          breakdownAsync.when(
+            data: (data) {
+              if (data.isEmpty) {
+                return _buildEmptyState(
+                    'No provider service data yet',
+                    'As providers register and set their labor rates, revenue categories will appear here.',
+                    Icons.bar_chart_rounded);
+              }
+              final total = data.values.fold(0.0, (a, b) => a + b);
+              final sorted = data.entries.toList()
+                ..sort((a, b) => b.value.compareTo(a.value));
+              return Column(
+                children: sorted.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final cat = entry.value.key;
+                  final val = entry.value.value;
+                  final pct = total > 0 ? val / total : 0.0;
+                  final colors = [
+                    BoostDriveTheme.primaryColor,
+                    Colors.purpleAccent,
+                    BoostDriveTheme.primaryColor,
+                    Colors.tealAccent.shade700,
+                    Colors.deepOrangeAccent,
+                  ];
+                  final color = colors[idx % colors.length];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                  color: color, shape: BoxShape.circle),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _humanizeCategory(cat),
+                              style: TextStyle(fontFamily: 'Manrope', 
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87),
+                            ),
+                            const Spacer(),
+                            Text(
+                              _formatNAD(val),
+                              style: TextStyle(fontFamily: 'Manrope', 
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.black87),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${(pct * 100).toStringAsFixed(0)}%',
+                              style: TextStyle(fontFamily: 'Manrope', 
+                                  fontSize: 11, color: Colors.black45),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            );
-          }),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: pct,
+                            minHeight: 8,
+                            backgroundColor:
+                                Colors.black.withValues(alpha: 0.05),
+                            valueColor: AlwaysStoppedAnimation<Color>(color),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const Center(child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(),
+            )),
+            error: (e, _) => _buildEmptyState(
+              'Could not load service revenue data',
+              '$e',
+              Icons.error_outline,
+            ),
+          ),
         ],
       ),
     );
@@ -1213,16 +1285,19 @@ class FinancialsView extends ConsumerWidget {
   Widget _buildFraudWatchlist(WidgetRef ref) {
     final suspended = ref.watch(suspendedAccountsProvider);
     final volumeAsync = ref.watch(globalVolumeProvider);
+    final financialConfigAsync = ref.watch(platformFinancialConfigProvider);
 
     return Column(
       children: [
         // Net Revenue snapshot
         volumeAsync.when(
-          data: (vol) {
-            final commission = vol * _commissionRate;
-            final opex = 0.0; // Manual add when billing connected
-            final netRevenue = commission - opex;
-            return Container(
+          data: (vol) => financialConfigAsync.when(
+            data: (cfg) {
+              final commissionRate = cfg['commission_rate'] ?? 0.10;
+              final opex = cfg['operating_cost'] ?? 0.0;
+              final commission = vol * commissionRate;
+              final netRevenue = commission - opex;
+              return Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -1267,7 +1342,7 @@ class FinancialsView extends ConsumerWidget {
                       const Icon(Icons.info_outline,
                           color: Colors.white54, size: 14),
                       const SizedBox(width: 4),
-                      Text('OpEx not yet connected',
+                      Text('OpEx from platform settings',
                           style: TextStyle(fontFamily: 'Manrope', 
                               fontSize: 10, color: Colors.white54)),
                     ],
@@ -1275,7 +1350,59 @@ class FinancialsView extends ConsumerWidget {
                 ],
               ),
             );
-          },
+            },
+            loading: () => Container(
+              height: 160,
+              decoration: BoxDecoration(
+                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, __) {
+              final commission = vol * 0.10;
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      BoostDriveTheme.primaryColor,
+                      BoostDriveTheme.primaryColor.withValues(alpha: 0.75),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Net Revenue',
+                        style: TextStyle(fontFamily: 'Manrope', 
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white70,
+                            letterSpacing: 0.5)),
+                    const SizedBox(height: 10),
+                    Text(_formatNAD(commission),
+                        style: TextStyle(fontFamily: 'Manrope', 
+                            fontSize: 34,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildPillStat('GMV', _formatNAD(vol), Colors.white30),
+                        const SizedBox(width: 8),
+                        _buildPillStat('Commission', _formatNAD(commission), Colors.white30),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           loading: () => Container(
             height: 160,
             decoration: BoxDecoration(

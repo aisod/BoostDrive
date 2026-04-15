@@ -453,7 +453,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
   // ==== Dashboard Modules from previous design, updated for light mode ====
   Widget _buildDashboardContent(WidgetRef ref, String uid, {required bool isNarrow}) {
     final pendingAsync = ref.watch(pendingVerificationsProvider);
-    final sosAsync = ref.watch(globalActiveSosRequestsProvider);
+    final sosAsync = ref.watch(globalOperationalActiveSosRequestsProvider);
     final volumeAsync = ref.watch(globalVolumeProvider);
     final userCountAsync = ref.watch(userCountProvider);
 
@@ -859,7 +859,7 @@ class _SuperAdminDashboardPageState extends ConsumerState<SuperAdminDashboardPag
     final volumeAsync = ref.watch(globalVolumeProvider);
     final userCountAsync = ref.watch(userCountProvider);
     final pendingAsync = ref.watch(pendingVerificationsProvider);
-    final sosAsync = ref.watch(globalActiveSosRequestsProvider);
+    final sosAsync = ref.watch(globalOperationalActiveSosRequestsProvider);
 
     return Container(
       padding: const EdgeInsets.all(24),

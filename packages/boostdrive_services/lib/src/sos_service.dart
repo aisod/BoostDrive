@@ -242,6 +242,20 @@ class SosService {
             .toList());
   }
 
+  /// Operationally active SOS requests for admin monitoring surfaces.
+  /// Includes pending + in-progress assignment/execution statuses.
+  Stream<List<SosRequest>> getGlobalOperationalActiveRequests() {
+    const activeStatuses = <String>{'pending', 'assigned', 'accepted', 'active'};
+    return _supabase
+        .from('sos_requests')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) => data
+            .where((row) => activeStatuses.contains((row['status']?.toString() ?? '').toLowerCase().trim()))
+            .map((json) => SosRequest.fromMap(json))
+            .toList());
+  }
+
   /// Provider marks themselves as viewing a pending SOS (heartbeat for customer map).
   Future<void> upsertProviderResponding(String requestId) async {
     final uid = _supabase.auth.currentUser?.id;
@@ -523,6 +537,11 @@ final sosServiceProvider = Provider<SosService>((ref) => SosService());
 
 final globalActiveSosRequestsProvider = StreamProvider<List<SosRequest>>((ref) {
   return ref.watch(sosServiceProvider).getGlobalActiveRequests();
+});
+
+/// Admin-focused live SOS stream with broader active statuses.
+final globalOperationalActiveSosRequestsProvider = StreamProvider<List<SosRequest>>((ref) {
+  return ref.watch(sosServiceProvider).getGlobalOperationalActiveRequests();
 });
 
 final userActiveSosRequestsProvider = StreamProvider.family<List<SosRequest>, String>((ref, userId) {
