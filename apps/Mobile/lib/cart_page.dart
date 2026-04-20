@@ -6,6 +6,7 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
+import 'messages_page.dart';
 
 class CartPage extends ConsumerStatefulWidget {
   const CartPage({super.key});
@@ -30,191 +31,142 @@ class _CartPageState extends ConsumerState<CartPage> {
       return;
     }
 
-    setState(() => _isLoading = true);
-    final total = ref.read(cartProvider.notifier).grandTotal;
-
-    final String? paymentChoice = await showDialog<String>(
+    final action = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: BoostDriveTheme.surfaceDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Payment Method', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Checkout Options',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         content: const Text(
-          'How would you like to pay for your cart total?',
+          'Choose how you want to continue:',
           style: TextStyle(color: BoostDriveTheme.textDim),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, 'manual'),
-            child: const Text('Manual / Cash', style: TextStyle(color: Colors.white54)),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, 'message_seller'),
+            child: const Text('Message Seller Directly'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, 'pay2day'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.08)),
-            child: const Text('Pay2Day'),
+            onPressed: () => Navigator.pop(ctx, 'online_coming_soon'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: BoostDriveTheme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Online Payments (Coming Soon)'),
           ),
         ],
       ),
     );
 
-    if (paymentChoice == null) {
-      setState(() => _isLoading = false);
+    if (!mounted || action == null) return;
+    if (action == 'online_coming_soon') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Online payments are coming soon. Please message the seller directly for now.'),
+        ),
+      );
+      return;
+    }
+    if (action == 'message_seller') {
+      await _messageSellerDirectly(user, cartItems);
+    }
+  }
+
+  Future<void> _messageSellerDirectly(User user, List<CartItem> cartItems) async {
+    final bySeller = <String, List<CartItem>>{};
+    for (final item in cartItems) {
+      final sellerId = item.product.sellerId?.trim() ?? '';
+      if (sellerId.isEmpty || sellerId == user.id) continue;
+      bySeller.putIfAbsent(sellerId, () => <CartItem>[]).add(item);
+    }
+
+    if (bySeller.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No seller found for these cart items.')),
+      );
       return;
     }
 
-    if (paymentChoice == 'pay2day') {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Pay2Day integration is coming soon! For now, please proceed with cash or manual bank transfer.',
+    String? selectedSellerId;
+    if (bySeller.length == 1) {
+      selectedSellerId = bySeller.keys.first;
+    } else {
+      selectedSellerId = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: BoostDriveTheme.surfaceDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text(
+            'Select Seller',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: 360,
+            child: ListView(
+              shrinkWrap: true,
+              children: bySeller.entries.map((entry) {
+                final sellerId = entry.key;
+                final items = entry.value;
+                final title = items.first.product.title;
+                return ListTile(
+                  title: Text(title, style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    '${items.length} item(s)',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  onTap: () => Navigator.pop(ctx, sellerId),
+                );
+              }).toList(),
             ),
           ),
-        );
-      }
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    if (paymentChoice == 'manual') {
-      _finishManualCheckout(context, ref, user, total, cartItems);
-      return;
-    }
-    setState(() => _isLoading = false);
-  }
-
-  void _startOnlinePayment(BuildContext context, WidgetRef ref, User user, double total) {
-    showDialog(
-      context: context,
-      builder: (context) => BoostPaymentDialog(
-        amount: total,
-        productName: 'Cart Total (${ref.read(cartProvider).length} items)',
-        onConfirm: (cardDetails) async {
-          if (!mounted) return;
-          final navigator = Navigator.of(context);
-          final messenger = ScaffoldMessenger.of(context);
-          navigator.pop(); // Close payment dialog
-
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const Center(
-              child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
-            ),
-          );
-
-          try {
-            final paymentService = ref.read(paymentServiceProvider);
-            final success = await paymentService.processPayment(
-              productId: 'cart_multiple',
-              customerId: user.id,
-              amount: total,
-              paymentMethod: 'card',
-              cardDetails: cardDetails,
-            );
-
-            if (!mounted) return;
-            navigator.pop(); // Remove loading
-
-            if (success) {
-              ref.read(cartProvider.notifier).clearCart();
-              if (mounted) _showPaymentSuccess(context, total);
-            } else {
-              messenger.showSnackBar(
-                const SnackBar(content: Text('Payment failed. Please try again.'), backgroundColor: Colors.red),
-              );
-              setState(() => _isLoading = false);
-            }
-          } catch (e) {
-            if (!mounted) return;
-            navigator.pop(); // Remove loading
-            messenger.showSnackBar(
-              SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-            );
-            setState(() => _isLoading = false);
-          }
-        },
-      ),
-    );
-  }
-
-  void _showPaymentSuccess(BuildContext context, double total) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 20),
-            const Icon(Icons.verified_user_rounded, color: Colors.green, size: 80),
-            const SizedBox(height: 24),
-            const Text(
-              'Payment Successful!',
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'You have successfully paid N\$ ${total.toStringAsFixed(2)} for your cart items. A receipt has been sent to your email.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: BoostDriveTheme.textDim),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pop(context); // Close cart
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: BoostDriveTheme.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Understood'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _finishManualCheckout(BuildContext context, WidgetRef ref, User user, double total, List<CartItem> cartItems) async {
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final checkoutService = ref.read(checkoutServiceProvider);
-      await checkoutService.placeOrder(user.id, cartItems, total);
-
-      ref.read(cartProvider.notifier).clearCart();
-
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          backgroundColor: BoostDriveTheme.surfaceDark,
-          title: const Text('Order Placed!', style: TextStyle(color: Colors.white)),
-          content: const Text('Thank you for your order. We will contact you shortly regarding delivery/pickup.', style: TextStyle(color: Colors.white70)),
           actions: [
             TextButton(
-              onPressed: () {
-                navigator.pop(); // Close dialog
-                navigator.pop(); // Close cart
-              },
-              child: const Text('OK', style: TextStyle(color: BoostDriveTheme.primaryColor)),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
           ],
         ),
       );
+    }
+
+    if (!mounted || selectedSellerId == null) return;
+    final sellerItems = bySeller[selectedSellerId]!;
+    setState(() => _isLoading = true);
+    try {
+      final seed = sellerItems.first;
+      final conversationId = await ref.read(messageServiceProvider).getOrCreateConversation(
+            productId: seed.product.id,
+            buyerId: user.id,
+            seller_id: selectedSellerId,
+          );
+
+      final summary = sellerItems
+          .map((e) => '${e.product.title} (x${e.quantity})')
+          .join(', ');
+      await ref.read(messageServiceProvider).sendMessage(
+            conversationId: conversationId,
+            senderId: user.id,
+            content: 'Hi, I want to checkout these item(s): $summary',
+      );
+
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MessagesPage(initialConversationId: conversationId),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open seller chat: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

@@ -187,17 +187,18 @@ class MessageService {
   }
 
   Stream<List<Map<String, dynamic>>> streamMessages(String conversationId) {
-    return _supabase
+    final realtime = _supabase
         .from('messages')
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
         .order('created_at', ascending: true);
+    return _withMessagesPollingFallback(conversationId, realtime);
   }
 
   /// Streams IDs of conversations that have unread messages for the user
   Stream<Set<String>> streamUnreadConversationIds(String userId) {
-    // We stream from the messages table directly to check for unread messages
-    return _supabase
+    // Realtime first, then fallback to polling under websocket/network issues.
+    final realtime = _supabase
         .from('messages')
         .stream(primaryKey: ['id'])
         .map((data) {
@@ -213,11 +214,12 @@ class MessageService {
             return <String>{};
           }
         });
+    return _withUnreadIdsPollingFallback(userId, realtime);
   }
 
   /// Streams unread message count per conversation (conversationId -> count). Used for WhatsApp-style badges.
   Stream<Map<String, int>> streamUnreadCountByConversation(String userId) {
-    return _supabase
+    final realtime = _supabase
         .from('messages')
         .stream(primaryKey: ['id'])
         .map((data) {
@@ -235,13 +237,14 @@ class MessageService {
             return <String, int>{};
           }
         });
+    return _withUnreadCountPollingFallback(userId, realtime);
   }
 
   /// Streams active conversations for a user
   Stream<List<Map<String, dynamic>>> streamConversations(String userId) {
-    // Note: Supabase stream doesn't support .or() filters
-    // We'll filter in the UI layer or use two separate streams
-    return _supabase
+    // Note: Supabase stream doesn't support .or() filters; keep broad stream
+    // and filter locally, then fallback to polling on failures.
+    final realtime = _supabase
         .from('conversations')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
@@ -257,6 +260,166 @@ class MessageService {
           print('DEBUG: streamConversations emitted ${filtered.length} conversations for user $userId');
           return filtered;
         });
+    return _withConversationsPollingFallback(userId, realtime);
+  }
+
+  Stream<List<Map<String, dynamic>>> _withConversationsPollingFallback(
+    String userId,
+    Stream<List<Map<String, dynamic>>> realtime,
+  ) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: streamConversations realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await _fetchConversationsSnapshot(userId);
+      } catch (e) {
+        print('DEBUG: streamConversations polling fetch failed: $e');
+        yield const <Map<String, dynamic>>[];
+      }
+      await Future<void>.delayed(const Duration(seconds: 8));
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> _withMessagesPollingFallback(
+    String conversationId,
+    Stream<List<Map<String, dynamic>>> realtime,
+  ) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: streamMessages realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await getMessages(conversationId);
+      } catch (e) {
+        print('DEBUG: streamMessages polling fetch failed: $e');
+        yield const <Map<String, dynamic>>[];
+      }
+      await Future<void>.delayed(const Duration(seconds: 5));
+    }
+  }
+
+  Stream<Set<String>> _withUnreadIdsPollingFallback(
+    String userId,
+    Stream<Set<String>> realtime,
+  ) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: streamUnreadConversationIds realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await _fetchUnreadConversationIdsSnapshot(userId);
+      } catch (e) {
+        print('DEBUG: streamUnreadConversationIds polling fetch failed: $e');
+        yield <String>{};
+      }
+      await Future<void>.delayed(const Duration(seconds: 8));
+    }
+  }
+
+  Stream<Map<String, int>> _withUnreadCountPollingFallback(
+    String userId,
+    Stream<Map<String, int>> realtime,
+  ) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: streamUnreadCountByConversation realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await _fetchUnreadCountByConversationSnapshot(userId);
+      } catch (e) {
+        print('DEBUG: streamUnreadCountByConversation polling fetch failed: $e');
+        yield const <String, int>{};
+      }
+      await Future<void>.delayed(const Duration(seconds: 8));
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchConversationsSnapshot(String userId) async {
+    final asBuyer = await _supabase
+        .from('conversations')
+        .select()
+        .eq('buyer_id', userId);
+    final asSeller = await _supabase
+        .from('conversations')
+        .select()
+        .eq('seller_id', userId);
+
+    final merged = <String, Map<String, dynamic>>{};
+    void addRows(dynamic rows) {
+      for (final row in (rows as List<dynamic>)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final id = map['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        merged[id] = map;
+      }
+    }
+
+    addRows(asBuyer);
+    addRows(asSeller);
+
+    final list = merged.values.toList();
+    list.sort((a, b) {
+      final ad = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bd = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bd.compareTo(ad);
+    });
+    return list;
+  }
+
+  Future<Set<String>> _fetchUnreadConversationIdsSnapshot(String userId) async {
+    try {
+      final response = await _supabase
+          .from('messages')
+          .select('conversation_id,is_read,sender_id')
+          .eq('is_read', false)
+          .neq('sender_id', userId);
+      final unread = <String>{};
+      for (final row in (response as List<dynamic>)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final cid = map['conversation_id']?.toString() ?? '';
+        if (cid.isNotEmpty) unread.add(cid);
+      }
+      return unread;
+    } catch (_) {
+      return <String>{};
+    }
+  }
+
+  Future<Map<String, int>> _fetchUnreadCountByConversationSnapshot(String userId) async {
+    try {
+      final response = await _supabase
+          .from('messages')
+          .select('conversation_id,is_read,sender_id')
+          .eq('is_read', false)
+          .neq('sender_id', userId);
+      final counts = <String, int>{};
+      for (final row in (response as List<dynamic>)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final cid = map['conversation_id']?.toString() ?? '';
+        if (cid.isEmpty) continue;
+        counts[cid] = (counts[cid] ?? 0) + 1;
+      }
+      return counts;
+    } catch (_) {
+      return <String, int>{};
+    }
   }
 
   /// Gets a single conversation by ID

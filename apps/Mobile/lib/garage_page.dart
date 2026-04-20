@@ -244,7 +244,17 @@ class _GarageServiceHistoryBlock extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, color: Colors.redAccent),
               const SizedBox(height: 8),
-              Text('Sync Error: $err', style: const TextStyle(color: Colors.redAccent, fontSize: 10), textAlign: TextAlign.center),
+              Text(
+                'Service history is temporarily offline. Check connection and retry.',
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => ref.invalidate(userServiceHistoryProvider(uid)),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
             ],
           ),
         );

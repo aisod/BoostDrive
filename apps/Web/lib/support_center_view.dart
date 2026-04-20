@@ -466,10 +466,15 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
 
   Widget _buildComposer() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Expanded(
           child: TextField(
             controller: _messageController,
+            minLines: 1,
+            maxLines: 6,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
             style: const TextStyle(color: Colors.black87),
             decoration: InputDecoration(
               hintText: 'Type internal response...',
@@ -484,7 +489,7 @@ class _TicketDetailsModalState extends ConsumerState<TicketDetailsModal> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             ),
           ),
         ),

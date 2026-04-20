@@ -97,6 +97,14 @@ class _ListingApprovalViewState extends ConsumerState<ListingApprovalView> {
     'Other'
   ];
 
+  String _normalizedListingStatus(Product p) {
+    final raw = p.status.toLowerCase().trim();
+    if (raw == 'available' || raw == 'active' || raw == 'approved') return 'approved';
+    if (raw == 'rejected' || raw == 'declined') return 'rejected';
+    if (raw == 'pending' || raw == 'awaiting_approval' || raw == 'submitted' || raw.isEmpty) return 'pending';
+    return raw;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_selectedListing != null) {
@@ -121,7 +129,7 @@ class _ListingApprovalViewState extends ConsumerState<ListingApprovalView> {
             ),
             adminListingsAsync.when(
               data: (list) {
-                final pendingCount = list.where((p) => p.status.toLowerCase() == 'pending').length;
+                final pendingCount = list.where((p) => _normalizedListingStatus(p) == 'pending').length;
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -159,14 +167,7 @@ class _ListingApprovalViewState extends ConsumerState<ListingApprovalView> {
                 
                 if (_statusFilter != 'All') {
                   final s = _statusFilter.toLowerCase();
-                  if (s == 'approved') {
-                    filtered = filtered.where((p) => 
-                      p.status.toLowerCase() == 'available' || 
-                      p.status.toLowerCase() == 'active'
-                    ).toList();
-                  } else {
-                    filtered = filtered.where((p) => p.status.toLowerCase() == s).toList();
-                  }
+                  filtered = filtered.where((p) => _normalizedListingStatus(p) == s).toList();
                 }
                 if (_searchQuery.isNotEmpty) {
                   final q = _searchQuery.toLowerCase();
@@ -433,6 +434,11 @@ class _ListingApprovalViewState extends ConsumerState<ListingApprovalView> {
                         Text(
                           'N\$ ${p.price.toStringAsFixed(2)} • ${p.category.toUpperCase()}',
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'raw status: ${p.status}',
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 10, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -720,6 +726,7 @@ class _ListingApprovalViewState extends ConsumerState<ListingApprovalView> {
     setState(() => _isLoading = true);
     try {
       await ref.read(productServiceProvider).updateListingStatus(productId, status, rejectionReason: reason);
+      ref.invalidate(adminListingsProvider);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -750,6 +757,7 @@ class _ListingApprovalViewState extends ConsumerState<ListingApprovalView> {
         await ref.read(productServiceProvider).updateListingStatus(id, 'available');
         success++;
       }
+      ref.invalidate(adminListingsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$success listings approved bulk!'), backgroundColor: Colors.green));
         setState(() { _selectedListingIds.clear(); _isLoading = false; });
@@ -773,6 +781,7 @@ class _ListingApprovalViewState extends ConsumerState<ListingApprovalView> {
         await ref.read(productServiceProvider).updateListingStatus(id, 'rejected', rejectionReason: reason);
         success++;
       }
+      ref.invalidate(adminListingsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$success listings rejected batch!'), backgroundColor: Colors.red));
         setState(() { _selectedListingIds.clear(); _isLoading = false; });

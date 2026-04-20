@@ -171,7 +171,7 @@ class SosService {
 
   /// Streams active SOS requests for a specific customer.
   Stream<List<SosRequest>> streamActiveRequest(String userId) {
-    return _supabase
+    final realtime = _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
@@ -183,6 +183,12 @@ class SosService {
             })
             .map((json) => SosRequest.fromMap(json))
             .toList());
+    return _withSosPollingFallback(
+      realtime,
+      () => _fetchActiveRequestsSnapshot(userId),
+      label: 'streamActiveRequest',
+      interval: const Duration(seconds: 5),
+    );
   }
 
   /// Cancels the customer-owned SOS via RPC when available; otherwise RLS UPDATE.
@@ -232,7 +238,7 @@ class SosService {
 
   /// Pending SOS requests (for providers to accept).
   Stream<List<SosRequest>> getGlobalActiveRequests() {
-    return _supabase
+    final realtime = _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
@@ -240,13 +246,18 @@ class SosService {
             .where((row) => (row['status']?.toString() ?? '').toLowerCase().trim() == 'pending')
             .map((json) => SosRequest.fromMap(json))
             .toList());
+    return _withSosPollingFallback(
+      realtime,
+      _fetchGlobalActiveRequestsSnapshot,
+      label: 'getGlobalActiveRequests',
+    );
   }
 
   /// Operationally active SOS requests for admin monitoring surfaces.
   /// Includes pending + in-progress assignment/execution statuses.
   Stream<List<SosRequest>> getGlobalOperationalActiveRequests() {
     const activeStatuses = <String>{'pending', 'assigned', 'accepted', 'active'};
-    return _supabase
+    final realtime = _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
@@ -254,6 +265,11 @@ class SosService {
             .where((row) => activeStatuses.contains((row['status']?.toString() ?? '').toLowerCase().trim()))
             .map((json) => SosRequest.fromMap(json))
             .toList());
+    return _withSosPollingFallback(
+      realtime,
+      _fetchGlobalOperationalActiveRequestsSnapshot,
+      label: 'getGlobalOperationalActiveRequests',
+    );
   }
 
   /// Provider marks themselves as viewing a pending SOS (heartbeat for customer map).
@@ -286,7 +302,7 @@ class SosService {
     if (requestId.isEmpty) {
       return Stream.value(<SosRespondingHeartbeat>[]);
     }
-    return _supabase
+    final realtime = _supabase
         .from('sos_provider_responding')
         .stream(primaryKey: ['sos_request_id', 'provider_id'])
         .eq('sos_request_id', requestId)
@@ -299,6 +315,88 @@ class SosService {
             );
           }).toList();
         });
+    return _withSosPollingFallback(
+      realtime,
+      () => _fetchProviderRespondingSnapshot(requestId),
+      label: 'streamProviderRespondingForRequest',
+      interval: const Duration(seconds: 6),
+    );
+  }
+
+  Stream<List<T>> _withSosPollingFallback<T>(
+    Stream<List<T>> realtime,
+    Future<List<T>> Function() fetchSnapshot, {
+    required String label,
+    Duration interval = const Duration(seconds: 8),
+  }) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: $label realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await fetchSnapshot();
+      } catch (e) {
+        print('DEBUG: $label polling fetch failed: $e');
+        yield <T>[];
+      }
+      await Future<void>.delayed(interval);
+    }
+  }
+
+  Future<List<SosRequest>> _fetchActiveRequestsSnapshot(String userId) async {
+    final rows = await _supabase
+        .from('sos_requests')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+    return (rows as List<dynamic>)
+        .where((item) {
+          final st = (item['status']?.toString() ?? '').toLowerCase().trim();
+          return const {'pending', 'accepted', 'assigned', 'active'}.contains(st);
+        })
+        .map((json) => SosRequest.fromMap(Map<String, dynamic>.from(json as Map)))
+        .toList();
+  }
+
+  Future<List<SosRequest>> _fetchGlobalActiveRequestsSnapshot() async {
+    final rows = await _supabase
+        .from('sos_requests')
+        .select()
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+    return (rows as List<dynamic>)
+        .map((json) => SosRequest.fromMap(Map<String, dynamic>.from(json as Map)))
+        .toList();
+  }
+
+  Future<List<SosRequest>> _fetchGlobalOperationalActiveRequestsSnapshot() async {
+    final rows = await _supabase
+        .from('sos_requests')
+        .select()
+        .inFilter('status', ['pending', 'assigned', 'accepted', 'active'])
+        .order('created_at', ascending: false);
+    return (rows as List<dynamic>)
+        .map((json) => SosRequest.fromMap(Map<String, dynamic>.from(json as Map)))
+        .toList();
+  }
+
+  Future<List<SosRespondingHeartbeat>> _fetchProviderRespondingSnapshot(String requestId) async {
+    final rows = await _supabase
+        .from('sos_provider_responding')
+        .select('sos_request_id,provider_id,last_seen_at')
+        .eq('sos_request_id', requestId);
+    return (rows as List<dynamic>).map((r) {
+      final row = Map<String, dynamic>.from(r as Map);
+      return SosRespondingHeartbeat(
+        sosRequestId: row['sos_request_id']?.toString() ?? '',
+        providerId: row['provider_id']?.toString() ?? '',
+        lastSeenAt: DateTime.tryParse(row['last_seen_at']?.toString() ?? '') ?? DateTime.utc(1970),
+      );
+    }).toList();
   }
 
   /// Requests assigned to this provider (accepted by them).

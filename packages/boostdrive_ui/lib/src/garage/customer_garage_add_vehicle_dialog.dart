@@ -315,10 +315,36 @@ void showCustomerAddVehicleDialog(BuildContext context, WidgetRef ref, String ui
                   backgroundColor: BoostDriveTheme.primaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                onPressed: (pendingImages.isEmpty && (vehicle == null || vehicle.imageUrls.isEmpty))
-                    ? null
-                    : () async {
+                onPressed: () async {
                         try {
+                          final make = makeController.text.trim();
+                          final model = modelController.text.trim();
+                          final plate = plateController.text.trim();
+                          final year = int.tryParse(yearController.text.trim());
+                          final currentYear = DateTime.now().year + 1;
+                          if (make.isEmpty || model.isEmpty || plate.isEmpty) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Make, model, and plate number are required.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                            return;
+                          }
+                          if (year == null || year < 1900 || year > currentYear) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please enter a valid vehicle year.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
                           setDialogState(() => isSaving = true);
                           List<String> imageUrls = vehicle?.imageUrls != null ? List<String>.from(vehicle!.imageUrls) : [];
 
@@ -345,10 +371,10 @@ void showCustomerAddVehicleDialog(BuildContext context, WidgetRef ref, String ui
                           final updatedVehicle = Vehicle(
                             id: vehicle?.id ?? '',
                             ownerId: uid,
-                            make: makeController.text,
-                            model: modelController.text,
-                            year: int.tryParse(yearController.text) ?? DateTime.now().year,
-                            plateNumber: plateController.text,
+                            make: make,
+                            model: model,
+                            year: year,
+                            plateNumber: plate,
                             mileage: int.tryParse(mileageController.text) ?? 0,
                             tireHealth: tireHealth,
                             serviceHistoryType: serviceHistory,

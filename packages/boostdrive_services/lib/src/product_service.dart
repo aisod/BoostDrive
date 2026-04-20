@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -242,20 +243,44 @@ class ProductService {
   }
 
   Stream<List<Product>> streamPendingListings() {
-    return _supabase
+    final realtime = _supabase
         .from('products')
         .stream(primaryKey: ['id'])
         .eq('status', 'pending')
         .order('created_at', ascending: false)
         .map((data) => data.map((e) => Product.fromMap(e)).toList());
+    return _withPollingFallback(
+      realtime,
+      _fetchPendingListingsSnapshot,
+      label: 'streamPendingListings',
+    );
   }
 
   Stream<List<Product>> streamAdminListings() {
-    return _supabase
+    final realtime = _supabase
         .from('products')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .map((data) => data.map((e) => Product.fromMap(e)).toList());
+    return _withPollingFallback(
+      realtime,
+      _fetchAdminListingsSnapshot,
+      label: 'streamAdminListings',
+    );
+  }
+
+  Stream<List<Product>> streamSellerProducts(String sellerId) {
+    final realtime = _supabase
+        .from('products')
+        .stream(primaryKey: ['id'])
+        .eq('seller_id', sellerId)
+        .map((data) => data.map((e) => Product.fromMap(e)).toList());
+    return _withPollingFallback(
+      realtime,
+      () => _fetchSellerProductsSnapshot(sellerId),
+      label: 'streamSellerProducts',
+      interval: const Duration(seconds: 6),
+    );
   }
 
   Future<void> updateListingStatus(String productId, String status, {String? rejectionReason}) async {
@@ -278,13 +303,63 @@ class ProductService {
       rethrow;
     }
   }
+
+  Stream<List<Product>> _withPollingFallback(
+    Stream<List<Product>> realtime,
+    Future<List<Product>> Function() fetchSnapshot, {
+    required String label,
+    Duration interval = const Duration(seconds: 8),
+  }) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: $label realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await fetchSnapshot();
+      } catch (e) {
+        print('DEBUG: $label polling fetch failed: $e');
+        yield const <Product>[];
+      }
+      await Future<void>.delayed(interval);
+    }
+  }
+
+  Future<List<Product>> _fetchPendingListingsSnapshot() async {
+    final rows = await _supabase
+        .from('products')
+        .select()
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+    return (rows as List<dynamic>)
+        .map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<List<Product>> _fetchAdminListingsSnapshot() async {
+    final rows = await _supabase
+        .from('products')
+        .select()
+        .order('created_at', ascending: false);
+    return (rows as List<dynamic>)
+        .map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<List<Product>> _fetchSellerProductsSnapshot(String sellerId) async {
+    final rows = await _supabase
+        .from('products')
+        .select()
+        .eq('seller_id', sellerId);
+    return (rows as List<dynamic>)
+        .map((e) => Product.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
 }
 
 final sellerProductsProvider = StreamProvider.family<List<Product>, String>((ref, sellerId) {
-  final supabase = Supabase.instance.client;
-  return supabase
-      .from('products')
-      .stream(primaryKey: ['id'])
-      .eq('seller_id', sellerId)
-      .map((data) => data.map((e) => Product.fromMap(e)).toList());
+  return ref.watch(productServiceProvider).streamSellerProducts(sellerId);
 });

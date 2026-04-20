@@ -1063,42 +1063,65 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
                   ),
                 ),
                 if (hasDoc) ...[
+                  Builder(
+                    builder: (context) {
+                      final docStatus = (_documentStatuses[label.trim()] ?? '').toLowerCase();
+                      final isApproved = docStatus == 'approved';
+                      final isRejected = docStatus == 'rejected';
+                      final approveColor = isApproved ? Colors.green.shade700 : Colors.green.shade800;
+                      final rejectColor = isRejected ? Colors.red.shade700 : Colors.red.shade800;
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                   // Tick (Approve)
-                  IconButton(
-                    icon: Icon(
-                      (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'approved' ? Icons.check_circle : Icons.check_circle_outline,
-                      color: (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'approved' ? Colors.green : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                      size: 20,
-                    ),
-                    onPressed: () => _updateDocStatus(label.trim(), 'approved'),
-                    tooltip: 'Approve Document',
-                  ),
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: isApproved ? Colors.green.withValues(alpha: 0.14) : Colors.white,
+                              side: BorderSide(color: approveColor.withValues(alpha: 0.5)),
+                            ),
+                            icon: Icon(
+                              isApproved ? Icons.check_circle : Icons.check_circle_outline,
+                              color: approveColor,
+                              size: 22,
+                            ),
+                            onPressed: () => _updateDocStatus(label.trim(), 'approved'),
+                            tooltip: 'Approve Document',
+                          ),
                   // X (Reject)
-                  IconButton(
-                    icon: Icon(
-                      (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'rejected' ? Icons.cancel : Icons.cancel_outlined,
-                      color: (_documentStatuses[label.trim()] ?? '').toLowerCase() == 'rejected' ? Colors.red : BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                      size: 20,
-                    ),
-                    onPressed: () => _showRejectionDialog(label.trim(), label.trim()),
-                    tooltip: 'Reject Document',
-                  ),
+                          const SizedBox(width: 2),
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: isRejected ? Colors.red.withValues(alpha: 0.12) : Colors.white,
+                              side: BorderSide(color: rejectColor.withValues(alpha: 0.45)),
+                            ),
+                            icon: Icon(
+                              isRejected ? Icons.cancel : Icons.cancel_outlined,
+                              color: rejectColor,
+                              size: 22,
+                            ),
+                            onPressed: () => _showRejectionDialog(label.trim(), label.trim()),
+                            tooltip: 'Reject Document',
+                          ),
                   if ((_documentStatuses[label.trim()]?? '').isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.history, size: 20, color: BoostDriveTheme.textDim),
-                      onPressed: () => _undoDocStatus(label.trim()),
-                      tooltip: 'Undo/Reset Status',
-                    ),
+                            IconButton(
+                              icon: const Icon(Icons.history, size: 20, color: BoostDriveTheme.textDim),
+                              onPressed: () => _undoDocStatus(label.trim()),
+                              tooltip: 'Undo/Reset Status',
+                            ),
                   if ((_documentStatuses[label.trim()] ?? '').toLowerCase() == 'rejected' && (_rejectionReasons[label.trim()] ?? '').isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.comment, size: 20, color: Colors.orange),
-                      onPressed: () => _showReasonDialog(label.trim(), label.trim()),
-                      tooltip: 'View Rejection Reason',
-                    ),
+                            IconButton(
+                              icon: const Icon(Icons.comment, size: 20, color: Colors.orange),
+                              onPressed: () => _showReasonDialog(label.trim(), label.trim()),
+                              tooltip: 'View Rejection Reason',
+                            ),
                   // View
-                  IconButton(
-                    icon: const Icon(Icons.open_in_new, size: 20, color: BoostDriveTheme.primaryColor),
-                    onPressed: () => _launchURL(url!, label.trim()),
+                          IconButton(
+                            icon: const Icon(Icons.open_in_new, size: 20, color: BoostDriveTheme.primaryColor),
+                            onPressed: () => _launchURL(url!, label.trim()),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ],
@@ -1110,7 +1133,12 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
   }
 
   Future<void> _launchURL(String url, String docLabel) async {
-    final uri = Uri.parse(url);
+    final rawUri = Uri.parse(url);
+    // Some storage links include download hints; strip them so browser opens preview.
+    final filteredQuery = Map<String, String>.from(rawUri.queryParameters)
+      ..remove('download')
+      ..remove('dl');
+    final uri = rawUri.replace(queryParameters: filteredQuery.isEmpty ? null : filteredQuery);
     if (_selectedProvider != null) {
        final admin = ref.read(currentUserProvider);
        if (admin != null) {
@@ -1122,8 +1150,27 @@ class _VerificationQueueViewState extends ConsumerState<VerificationQueueView> {
          );
        }
     }
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+    final previewCandidates = <Uri>[
+      Uri.parse('https://docs.google.com/gview?embedded=1&url=${Uri.encodeComponent(uri.toString())}'),
+      Uri.parse('https://view.officeapps.live.com/op/view.aspx?src=${Uri.encodeComponent(uri.toString())}'),
+      uri,
+    ];
+
+    for (final candidate in previewCandidates) {
+      if (await canLaunchUrl(candidate)) {
+        final opened = await launchUrl(
+          candidate,
+          mode: LaunchMode.platformDefault,
+          webOnlyWindowName: '_blank',
+        );
+        if (opened) return;
+      }
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open document preview.')),
+      );
     }
   }
 }

@@ -374,140 +374,11 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       );
       return;
     }
-
-    final bool? payOnline = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Payment Method', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text(
-          'How would you like to proceed with this listing?',
-          style: TextStyle(color: BoostDriveTheme.textDim),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Arrange Personally', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
-            child: const Text('Pay Securely Online'),
-          ),
-        ],
-      ),
-    );
-
-    if (!mounted) return;
-    if (payOnline == null) return;
-
-    if (payOnline) {
-      // ignore: use_build_context_synchronously
-      _startOnlinePayment(context, ref, user);
+    if (_currentProduct.category == 'rental') {
+      _handleRental(context, ref, user);
     } else {
-      if (_currentProduct.category == 'rental') {
-        // ignore: use_build_context_synchronously
-        _handleRental(context, ref, user);
-      } else {
-        // ignore: use_build_context_synchronously
-        _handleMessaging(context, ref, user);
-      }
+      _handleMessaging(context, ref, user);
     }
-  }
-
-  void _startOnlinePayment(BuildContext context, WidgetRef ref, User user) {
-    showDialog(
-      context: context,
-      builder: (context) => BoostPaymentDialog(
-        amount: _currentProduct.price,
-        productName: _currentProduct.title,
-        onConfirm: (cardDetails) async {
-          final navigator = Navigator.of(context);
-          final messenger = ScaffoldMessenger.of(context);
-          navigator.pop(); // Close payment dialog
-
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const Center(
-              child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
-            ),
-          );
-
-          try {
-            final paymentService = ref.read(paymentServiceProvider);
-            final success = await paymentService.processPayment(
-              productId: _currentProduct.id,
-              customerId: user.id,
-              amount: _currentProduct.price,
-              paymentMethod: 'card',
-              cardDetails: cardDetails,
-            );
-
-            if (!mounted) return;
-            navigator.pop(); // Remove loading
-
-            if (success) {
-              // ignore: use_build_context_synchronously
-              _showPaymentSuccess(context);
-            } else {
-              messenger.showSnackBar(
-                const SnackBar(content: Text('Payment failed. Please try again.'), backgroundColor: Colors.red),
-              );
-            }
-          } catch (e) {
-            if (!mounted) return;
-            navigator.pop(); // Remove loading
-            messenger.showSnackBar(
-              SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-            );
-          }
-        },
-      ),
-    );
-  }
-
-  void _showPaymentSuccess(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 20),
-            const Icon(Icons.verified_user_rounded, color: Colors.green, size: 80),
-            const SizedBox(height: 24),
-            const Text(
-              'Payment Successful!',
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'You have successfully paid N\$ ${_currentProduct.price.toStringAsFixed(2)} for ${_currentProduct.title}. A receipt has been sent to your email.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: BoostDriveTheme.textDim),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: BoostDriveTheme.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Understood'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _handleMessaging(BuildContext context, WidgetRef ref, User user) async {
@@ -706,7 +577,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'NOTE: Payment confirms booking.',
+              'NOTE: This sends your rental request for manual confirmation.',
               style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
@@ -741,7 +612,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Proceed to Payment'),
+            child: const Text('Send Rental Request'),
           ),
         ],
       ),
@@ -786,7 +657,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Payment detected. Your rental is being finalized. Our team will contact you for pickup details.',
+                    'Your rental request was sent. The provider will contact you to finalize arrangements manually.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: BoostDriveTheme.textDim),
                   ),

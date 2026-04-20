@@ -372,13 +372,21 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                     Expanded(
                       child: TextField(
                         controller: msgController,
+                        minLines: 1,
+                        maxLines: 6,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Type a message...',
                           hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                           filled: true,
                           fillColor: BoostDriveTheme.backgroundDark,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ),

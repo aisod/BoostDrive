@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
 class NotificationService {
   final _supabase = Supabase.instance.client;
@@ -91,11 +92,12 @@ class NotificationService {
 
   /// Fetches notifications for a specific user as a stream
   Stream<List<Map<String, dynamic>>> streamNotifications(String userId) {
-    return _supabase
+    final realtime = _supabase
         .from('notifications')
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
         .order('created_at', ascending: false);
+    return _withPollingFallback(userId, realtime);
   }
 
   /// Marks a specific notification as read
@@ -120,6 +122,37 @@ class NotificationService {
     } catch (e) {
       print('Error marking all notifications as read: $e');
     }
+  }
+
+  Stream<List<Map<String, dynamic>>> _withPollingFallback(
+    String userId,
+    Stream<List<Map<String, dynamic>>> realtime,
+  ) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: streamNotifications realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await _fetchNotificationsSnapshot(userId);
+      } catch (e) {
+        print('DEBUG: streamNotifications polling fetch failed: $e');
+        yield const <Map<String, dynamic>>[];
+      }
+      await Future<void>.delayed(const Duration(seconds: 8));
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchNotificationsSnapshot(String userId) async {
+    final rows = await _supabase
+        .from('notifications')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(rows as List<dynamic>);
   }
 }
 

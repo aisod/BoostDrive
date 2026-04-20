@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -67,17 +68,51 @@ class ServiceRecordService {
   }
 
   Stream<List<ServiceRecord>> getUserServiceHistory(String userId) {
-    // This is a more complex query because we need records for ALL vehicles owned by the user.
-    // However, the service_history table has provider_id which is NOT the owner_id.
-    // We should probably filter by vehicle_id IN (list of vehicle IDs).
-    // For now, if provider_id is the user (customer logging their own service), it works.
-    // A better way is to join or use a filter if we want records regardless of who logged it.
-    return _supabase
+    // Primary path: realtime stream for instant updates.
+    final realtime = _supabase
         .from('service_history')
         .stream(primaryKey: ['id'])
-        .eq('provider_id', userId) // Assuming customers log their own service for now
+        .eq('provider_id', userId)
         .order('completed_at', ascending: false)
         .map((data) => data.map((json) => ServiceRecord.fromMap(json)).toList());
+
+    // Fallback path: if realtime socket is unavailable (e.g. flaky DNS/network),
+    // switch to polling so the page stays usable instead of showing a hard error.
+    return _withPollingFallback(userId, realtime);
+  }
+
+  Stream<List<ServiceRecord>> _withPollingFallback(
+    String userId,
+    Stream<List<ServiceRecord>> realtime,
+  ) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: getUserServiceHistory realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await _fetchUserServiceHistorySnapshot(userId);
+      } catch (e) {
+        print('DEBUG: getUserServiceHistory polling fetch failed: $e');
+        yield const <ServiceRecord>[];
+      }
+      await Future<void>.delayed(const Duration(seconds: 8));
+    }
+  }
+
+  Future<List<ServiceRecord>> _fetchUserServiceHistorySnapshot(String userId) async {
+    final response = await _supabase
+        .from('service_history')
+        .select()
+        .eq('provider_id', userId)
+        .order('completed_at', ascending: false);
+    final list = response as List<dynamic>;
+    return list
+        .map((json) => ServiceRecord.fromMap(Map<String, dynamic>.from(json as Map)))
+        .toList();
   }
 }
 

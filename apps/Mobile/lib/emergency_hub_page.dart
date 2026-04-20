@@ -646,9 +646,27 @@ class _ActiveDispatchCard extends ConsumerWidget {
   final VoidCallback onCancel;
   final VoidCallback onShareWhatsApp;
 
-  Future<void> _openMaps(SosRequest r) async {
-    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}');
-    if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<bool> _openMaps(SosRequest r) async {
+    final hasValidCoords =
+        r.lat.isFinite && r.lng.isFinite && r.lat.abs() <= 90 && r.lng.abs() <= 180 && !(r.lat == 0 && r.lng == 0);
+    if (!hasValidCoords) return false;
+
+    final lat = r.lat.toStringAsFixed(6);
+    final lng = r.lng.toStringAsFixed(6);
+    final uris = <Uri>[
+      Uri.parse('google.navigation:q=$lat,$lng'),
+      Uri.parse('geo:$lat,$lng?q=$lat,$lng'),
+      Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng'),
+      Uri.parse('https://maps.apple.com/?q=$lat,$lng'),
+    ];
+
+    for (final uri in uris) {
+      if (await canLaunchUrl(uri)) {
+        final opened = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (opened) return true;
+      }
+    }
+    return false;
   }
 
   @override
@@ -697,7 +715,41 @@ class _ActiveDispatchCard extends ConsumerWidget {
               ),
             ],
           ),
-          Text(_statusLabel(status), style: TextStyle(color: BoostDriveTheme.textDim)),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _statusColor(status).withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: _statusColor(status).withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  'STATUS: ${status.toUpperCase()}',
+                  style: TextStyle(
+                    color: _statusColor(status),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _statusLabel(status),
+                  style: TextStyle(color: BoostDriveTheme.textDim),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Context: ${request.createdAt.day.toString().padLeft(2, '0')}/${request.createdAt.month.toString().padLeft(2, '0')} '
+            '${request.createdAt.hour.toString().padLeft(2, '0')}:${request.createdAt.minute.toString().padLeft(2, '0')}'
+            ' • ${request.lat.toStringAsFixed(5)}, ${request.lng.toStringAsFixed(5)}',
+            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+          ),
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -744,7 +796,16 @@ class _ActiveDispatchCard extends ConsumerWidget {
                               top: 6,
                               child: IconButton.filled(
                                 style: IconButton.styleFrom(backgroundColor: Colors.black54),
-                                onPressed: () => _openMaps(request),
+                                onPressed: () async {
+                                  final opened = await _openMaps(request);
+                                  if (!context.mounted || opened) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Could not open navigation app on this device.'),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                },
                                 icon: const Icon(Icons.open_in_new, color: Colors.white, size: 20),
                               ),
                             ),
@@ -808,8 +869,33 @@ class _ActiveDispatchCard extends ConsumerWidget {
       case 'accepted':
       case 'assigned':
         return 'Provider assigned — stay by your vehicle if safe.';
+      case 'active':
+        return 'Provider is actively assisting you now.';
+      case 'completed':
+      case 'resolved':
+        return 'SOS completed successfully.';
+      case 'cancelled':
+        return 'SOS request was cancelled.';
       default:
         return status;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orangeAccent;
+      case 'accepted':
+      case 'assigned':
+      case 'active':
+        return BoostDriveTheme.primaryColor;
+      case 'completed':
+      case 'resolved':
+        return Colors.greenAccent;
+      case 'cancelled':
+        return Colors.redAccent;
+      default:
+        return Colors.white70;
     }
   }
 }

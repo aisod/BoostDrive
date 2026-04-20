@@ -6,7 +6,11 @@ class WebUtils {
   static void registerViewFactory(String viewType, String elementId) {
     ui_web.platformViewRegistry.registerViewFactory(
       viewType,
-      (int viewId) => html.DivElement()..id = elementId,
+      (int viewId) => html.DivElement()
+        ..id = elementId
+        ..style.width = '48px'
+        ..style.height = '48px'
+        ..style.display = 'block',
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'notification_service.dart';
@@ -269,11 +270,16 @@ class UserService {
 
   /// Returns the last 10 audit logs for administrative overview
   Stream<List<Map<String, dynamic>>> getRecentAuditLogs() {
-    return _supabase
+    final realtime = _supabase
         .from('audit_logs')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .limit(10);
+    return _withPollingFallback(
+      realtime,
+      _fetchRecentAuditLogsSnapshot,
+      label: 'getRecentAuditLogs',
+    );
   }
 
   /// Captures IP and Device Info for Security Trail
@@ -471,20 +477,31 @@ class UserService {
 
   /// Streams the current user's profile
   Stream<UserProfile?> streamProfile(String uid) {
-    return _supabase
+    final realtime = _supabase
         .from('profiles')
         .stream(primaryKey: ['id'])
         .eq('id', uid)
         .map((data) => data.isNotEmpty ? UserProfile.fromMap(data.first) : null);
+    return _withPollingFallback(
+      realtime,
+      () => _fetchProfileSnapshot(uid),
+      label: 'streamProfile',
+      interval: const Duration(seconds: 6),
+    );
   }
 
   Stream<int> getUserCount() {
-    return _supabase.from('profiles').stream(primaryKey: ['id']).map((data) => data.length);
+    final realtime = _supabase.from('profiles').stream(primaryKey: ['id']).map((data) => data.length);
+    return _withPollingFallback(
+      realtime,
+      _fetchUserCountSnapshot,
+      label: 'getUserCount',
+    );
   }
   Stream<List<UserProfile>> getPendingVerifications() {
     // We stream profiles and filter client-side because the Supabase stream builder
     // does not support `.or(...)` on the stream query.
-    return _supabase.from('profiles').stream(primaryKey: ['id']).map((data) {
+    final realtime = _supabase.from('profiles').stream(primaryKey: ['id']).map((data) {
       final profiles = data.map((json) => UserProfile.fromMap(json)).toList();
 
       return profiles.where((p) {
@@ -509,14 +526,24 @@ class UserService {
             r.contains('rental');
       }).toList();
     });
+    return _withPollingFallback(
+      realtime,
+      _fetchPendingVerificationsSnapshot,
+      label: 'getPendingVerifications',
+    );
   }
 
   Stream<List<UserProfile>> getAllProfiles() {
-    return _supabase
+    final realtime = _supabase
         .from('profiles')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .map((data) => data.map((json) => UserProfile.fromMap(json)).toList());
+    return _withPollingFallback(
+      realtime,
+      _fetchAllProfilesSnapshot,
+      label: 'getAllProfiles',
+    );
   }
 
   /// Returns service providers for the Find a Provider directory.
@@ -605,6 +632,86 @@ class UserService {
       }
     }
     return result;
+  }
+
+  Stream<T> _withPollingFallback<T>(
+    Stream<T> realtime,
+    Future<T> Function() fetchSnapshot, {
+    required String label,
+    Duration interval = const Duration(seconds: 8),
+  }) async* {
+    try {
+      yield* realtime;
+      return;
+    } catch (e) {
+      print('DEBUG: $label realtime failed, switching to polling: $e');
+    }
+
+    while (true) {
+      try {
+        yield await fetchSnapshot();
+      } catch (e) {
+        print('DEBUG: $label polling fetch failed: $e');
+      }
+      await Future<void>.delayed(interval);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchRecentAuditLogsSnapshot() async {
+    final rows = await _supabase
+        .from('audit_logs')
+        .select()
+        .order('created_at', ascending: false)
+        .limit(10);
+    return List<Map<String, dynamic>>.from(rows as List<dynamic>);
+  }
+
+  Future<UserProfile?> _fetchProfileSnapshot(String uid) async {
+    final row = await _supabase
+        .from('profiles')
+        .select()
+        .eq('id', uid)
+        .maybeSingle();
+    if (row == null) return null;
+    return UserProfile.fromMap(Map<String, dynamic>.from(row));
+  }
+
+  Future<int> _fetchUserCountSnapshot() async {
+    final rows = await _supabase.from('profiles').select('id');
+    return (rows as List<dynamic>).length;
+  }
+
+  Future<List<UserProfile>> _fetchPendingVerificationsSnapshot() async {
+    final rows = await _supabase.from('profiles').select();
+    final profiles = (rows as List<dynamic>)
+        .map((json) => UserProfile.fromMap(Map<String, dynamic>.from(json as Map)))
+        .toList();
+    return profiles.where((p) {
+      final status = p.verificationStatus.trim().toLowerCase();
+      final isNotApproved = status == 'pending' || status == 'unverified';
+      if (!isNotApproved) return false;
+
+      final r = p.role.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
+      if (r.isEmpty) return false;
+      if (r == 'service_provider') return true;
+
+      return r.contains('service provider') ||
+          r.contains('service pro') ||
+          r.contains('mechanic') ||
+          r.contains('towing') ||
+          r.contains('logistics') ||
+          r.contains('rental');
+    }).toList();
+  }
+
+  Future<List<UserProfile>> _fetchAllProfilesSnapshot() async {
+    final rows = await _supabase
+        .from('profiles')
+        .select()
+        .order('created_at', ascending: false);
+    return (rows as List<dynamic>)
+        .map((json) => UserProfile.fromMap(Map<String, dynamic>.from(json as Map)))
+        .toList();
   }
 }
 
