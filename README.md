@@ -97,9 +97,11 @@ flutter run -d chrome
 ```
 
 ### 🛠️ Common Commands (Melos)
-- **Run pub get on all packages**: `melos run get`
 - **Run all tests**: `melos run test`
-- **Clean all projects**: `melos run clean`
+- **Run unit tests only**: `melos run test:unit`
+- **Run widget tests only**: `melos run test:widget`
+- **Run integration tests only**: `melos run test:integration`
+- **Collect coverage**: `melos run test:coverage`
 
 ---
 
@@ -107,6 +109,7 @@ flutter run -d chrome
 Detailed documentation files can be found in the `docs` directory (if available) or the brain artifacts:
 - **Database Schema**: Refer to `database_schema.md`
 - **Testing Guide**: Refer to `testing_guide.md`
+- **Testing Model**: Refer to `TESTING_MODEL.md`
 - **Deployment Plan**: Refer to `deployment_plan.md`
 
 Built with ❤️ by the BoostDrive Engineering Team.

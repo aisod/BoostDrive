@@ -7,7 +7,28 @@ packages:
 scripts:
   postbootstrap: dart pub global activate fvm
   test:
+    description: Run all unit and widget tests
     exec: flutter test
+    select-package-dir-exists:
+      - test
+  test:unit:
+    description: Run unit tests only (test/unit)
+    exec: flutter test test/unit
+    select-package-dir-exists:
+      - test/unit
+  test:widget:
+    description: Run widget tests only (test/widget)
+    exec: flutter test test/widget
+    select-package-dir-exists:
+      - test/widget
+  test:integration:
+    description: Run integration tests for apps
+    exec: flutter test integration_test
+    select-package-dir-exists:
+      - integration_test
+  test:coverage:
+    description: Collect coverage across packages
+    exec: flutter test --coverage
     select-package-dir-exists:
       - test
   analyze:
