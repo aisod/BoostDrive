@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:boost_drive_web/public_page_widgets.dart';
+import 'package:boost_drive_web/public_top_nav_bar.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -14,8 +16,9 @@ class RentalMarketplacePage extends ConsumerStatefulWidget {
 }
 
 class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
-  
+
   String? _selectedMake;
   String? _selectedModel;
   int? _selectedYear;
@@ -62,170 +65,284 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
     });
   }
 
+  void _showLoginDrawer() {
+    _scaffoldKey.currentState?.openEndDrawer();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'Rental Marketplace',
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          } else {
-            Navigator.of(context).pushReplacementNamed('/');
-          }
-        },
-      ),
-      actions: const [],
-      footer: const AppFooter(),
-      headerSlivers: [
-        SliverToBoxAdapter(child: _buildHero()),
-        SliverToBoxAdapter(child: _buildFilterBar()),
-      ],
-      slivers: [
-        FutureBuilder<List<Product>>(
-          future: _rentalsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return SliverToBoxAdapter(
-                child: Container(
-                  height: 200,
-                  alignment: Alignment.center,
-                  child: const CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
-                ),
-              );
-            }
-            
-            if (snapshot.hasError) {
-              return SliverToBoxAdapter(
-                child: Container(
-                  height: 200,
-                  alignment: Alignment.center,
-                  child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)),
-                ),
-              );
-            }
-            
-            final rentals = snapshot.data ?? [];
-            
-            if (rentals.isEmpty) {
-              return SliverToBoxAdapter(
-                child: Container(
-                  height: 300,
-                  alignment: Alignment.center,
-                  child: const Text('No rental vehicles available.', style: TextStyle(color: BoostDriveTheme.textDim)),
-                ),
-              );
-            }
+    final palette = PublicPagePalette.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
 
-            return SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 80),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 400,
-                  mainAxisExtent: 450,
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final product = rentals[index];
-                    return BoostProductCard(
-                      key: ValueKey('rental_card_${product.id}'),
-                      product: product,
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProductDetailPage(product: product),
+    return PremiumPageLayout(
+      scaffoldKey: _scaffoldKey,
+      appBar: BoostDrivePublicTopNavBar(
+        activeRoute: '/rent-a-car',
+        onAuthTap: _showLoginDrawer,
+      ),
+      endDrawer: Drawer(
+        width: isMobile ? MediaQuery.of(context).size.width : MediaQuery.of(context).size.width * 0.46,
+        backgroundColor: Colors.white,
+        child: BoostLoginPage(
+          onLoginSuccess: () => _scaffoldKey.currentState?.closeEndDrawer(),
+          onClose: () => _scaffoldKey.currentState?.closeEndDrawer(),
+        ),
+      ),
+      footer: const AppFooter(),
+      child: ColoredBox(
+        color: palette.pageBackground,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, isMobile ? 20 : 28, 20, 72),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1280),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHero(),
+                  const SizedBox(height: 24),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final statWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - 48) / 3;
+                      return Wrap(
+                        spacing: 24,
+                        runSpacing: 24,
+                        children: [
+                          SizedBox(
+                            width: statWidth,
+                            child: const PublicStatCard(
+                              label: 'Explore self-drive and daily-use rental inventory.',
+                              value: 'Daily Rentals',
+                            ),
+                          ),
+                          SizedBox(
+                            width: statWidth,
+                            child: const PublicStatCard(
+                              label: 'Search by make, model, year, and condition.',
+                              value: 'Quick Booking View',
+                            ),
+                          ),
+                          SizedBox(
+                            width: statWidth,
+                            child: const PublicStatCard(
+                              label: 'Matches the provided premium rental mockups in both themes.',
+                              value: 'Premium Look',
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  _buildFilterBar(),
+                  const SizedBox(height: 28),
+                  const PublicSectionHeading(
+                    title: 'Rental inventory',
+                    subtitle: 'The cards below still open the same rental detail pages and backend data. Only the presentation has been redesigned.',
+                  ),
+                  const SizedBox(height: 18),
+                  FutureBuilder<List<Product>>(
+                    future: _rentalsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const PublicFeedbackState(
+                          icon: Icons.directions_car_filled_outlined,
+                          title: 'Loading rentals',
+                          message: 'Pulling the latest rental vehicles from BoostDrive.',
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return PublicFeedbackState(
+                          icon: Icons.error_outline,
+                          title: 'Could not load rentals',
+                          message: 'The rental query failed: ${snapshot.error}',
+                          action: TextButton(
+                            onPressed: _loadRentals,
+                            child: const Text('Try again'),
                           ),
                         );
-                        if (result == true) {
-                          _loadRentals();
-                        }
-                      },
-                    );
-                  },
-                  childCount: rentals.length,
-                ),
+                      }
+
+                      final rentals = snapshot.data ?? [];
+                      if (rentals.isEmpty) {
+                        return const PublicFeedbackState(
+                          icon: Icons.no_transfer,
+                          title: 'No rental vehicles available',
+                          message: 'Try broadening your filters to see more rental options.',
+                        );
+                      }
+
+                      return LayoutBuilder(
+                        builder: (context, constraints) {
+                          final width = constraints.maxWidth;
+                          int crossAxisCount = 1;
+                          if (width > 1180) {
+                            crossAxisCount = 3;
+                          } else if (width > 760) {
+                            crossAxisCount = 2;
+                          }
+
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: rentals.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              mainAxisSpacing: 24,
+                              crossAxisSpacing: 24,
+                              childAspectRatio: width > 1180 ? 0.82 : 0.84,
+                            ),
+                            itemBuilder: (context, index) {
+                              final product = rentals[index];
+                              return BoostProductCard(
+                                key: ValueKey('rental_card_${product.id}'),
+                                product: product,
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ProductDetailPage(product: product),
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    _loadRentals();
+                                  }
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildHero() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(40, 60, 40, 60),
-      decoration: const BoxDecoration(
-        color: BoostDriveTheme.surfaceDark,
-        border: Border(bottom: BorderSide(color: Color(0x22FF6600))),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Rental Marketplace',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 48, 
-              fontWeight: FontWeight.w900, 
-              color: Colors.white,
-              letterSpacing: -1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'The premier destination to rent vehicles in Namibia. Drive your dreams forward.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 18),
-          ),
-          const SizedBox(height: 40),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (v) => _onSearchChanged(),
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search by vehicle name (e.g. Toyota Hilux)...',
-                hintStyle: const TextStyle(color: Color(0x22FF6600)),
-                prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: BoostDriveTheme.primaryColor),
-                ),
-              ),
-            ),
-          ),
-        ],
+    return PublicHeroBanner(
+      eyebrow: 'RENTAL MARKETPLACE',
+      title: 'Find polished rental offers with a cleaner booking-first storefront.',
+      subtitle: 'The rental page now mirrors the supplied premium layouts while still querying the same rental listings and opening the same detail flow.',
+      imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: PublicSearchField(
+          controller: _searchController,
+          hintText: 'Search by vehicle name (e.g. Toyota Hilux)...',
+          filledLight: true,
+          onChanged: (_) => _onSearchChanged(),
+        ),
       ),
     );
   }
 
   Widget _buildFilterBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      color: BoostDriveTheme.surfaceDark,
+    final palette = PublicPagePalette.of(context);
+
+    return PublicPageSection(
+      elevated: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const PublicSectionHeading(
+            title: 'Vehicle selection and filters',
+            subtitle: 'Filter rental inventory by vehicle fitment data while keeping the exact same backend rental search in place.',
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final columns = width > 1180 ? 4 : (width > 720 ? 2 : 1);
+              final itemWidth = columns == 1 ? width : (width - (24 * (columns - 1))) / columns;
+
+              return Wrap(
+                spacing: 24,
+                runSpacing: 20,
+                children: [
+                  SizedBox(
+                    width: itemWidth,
+                    child: PublicDropdownField(
+                      label: 'Make',
+                      value: _selectedMake,
+                      hintText: 'All makes',
+                      options: const ['Toyota', 'Volkswagen', 'Ford', 'Nissan'],
+                      onChanged: (value) {
+                        setState(() => _selectedMake = value);
+                        _loadRentals();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: PublicDropdownField(
+                      label: 'Model',
+                      value: _selectedModel,
+                      hintText: 'All models',
+                      options: const ['Hilux', 'Golf', 'Ranger', 'Navara'],
+                      onChanged: (value) {
+                        setState(() => _selectedModel = value);
+                        _loadRentals();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: PublicDropdownField(
+                      label: 'Year',
+                      value: _selectedYear?.toString(),
+                      hintText: 'All years',
+                      options: const ['2024', '2023', '2022', '2021', '2020'],
+                      onChanged: (value) {
+                        setState(() => _selectedYear = value != null ? int.parse(value) : null);
+                        _loadRentals();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: PublicDropdownField(
+                      label: 'Condition',
+                      value: _selectedCondition,
+                      hintText: 'All conditions',
+                      options: const ['all', 'new', 'used', 'salvage'],
+                      onChanged: (value) {
+                        setState(() => _selectedCondition = value ?? 'all');
+                        _loadRentals();
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 18),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Vehicle Selection & Filters',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: palette.fieldBackground,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Need a reset? Clear the fitment fields and search term to reveal the full rental inventory again.',
+                    style: TextStyle(
+                      color: palette.bodyColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
+              const SizedBox(width: 12),
               TextButton.icon(
                 onPressed: () {
                   setState(() {
@@ -237,81 +354,11 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
                   });
                   _loadRentals();
                 },
-                icon: const Icon(Icons.filter_list_off, size: 20, color: BoostDriveTheme.primaryColor),
-                label: const Text('Clear Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
-                ),
+                icon: const Icon(Icons.filter_alt_off, color: BoostDriveTheme.primaryColor),
+                label: const Text('Clear filters'),
+                style: TextButton.styleFrom(foregroundColor: BoostDriveTheme.primaryColor),
               ),
             ],
-          ),
-          const SizedBox(height: 24),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final double parentWidth = constraints.maxWidth;
-              final double screenWidth = MediaQuery.of(context).size.width;
-              final double maxWidth = (parentWidth.isFinite && parentWidth > 0) ? parentWidth : screenWidth - 48;
-              
-              return Wrap(
-                spacing: 16,
-                runSpacing: 24,
-                children: [
-                  _buildFilterItem('Make', ['Toyota', 'Volkswagen', 'Ford', 'Nissan'], _selectedMake, (v) {
-                    setState(() => _selectedMake = v);
-                    _loadRentals();
-                  }, maxWidth),
-                  _buildFilterItem('Model', ['Hilux', 'Golf', 'Ranger', 'Navara'], _selectedModel, (v) {
-                    setState(() => _selectedModel = v);
-                    _loadRentals();
-                  }, maxWidth),
-                  _buildFilterItem('Year', ['2024', '2023', '2022', '2021', '2020'], _selectedYear?.toString(), (v) {
-                    setState(() => _selectedYear = v != null ? int.parse(v) : null);
-                    _loadRentals();
-                  }, maxWidth),
-                  _buildFilterItem('Condition', ['all', 'new', 'used', 'salvage'], _selectedCondition, (v) {
-                    setState(() => _selectedCondition = v ?? 'all');
-                    _loadRentals();
-                  }, maxWidth),
-                ],
-              );
-            }
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterItem(String label, List<String> items, String? value, ValueChanged<String?> onChanged, double maxWidth) {
-    final double divisor = maxWidth > 900 ? 5 : (maxWidth > 600 ? 2 : 1);
-    final double itemWidth = (maxWidth - (16 * (divisor - 1))) / divisor;
-    
-    return SizedBox(
-      width: itemWidth.clamp(150.0, 600.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: BoostDriveTheme.backgroundDark,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Color(0x22FF6600)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: value,
-                isExpanded: true,
-                dropdownColor: BoostDriveTheme.surfaceDark,
-                icon: const Icon(Icons.keyboard_arrow_down, color: BoostDriveTheme.textDim),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                hint: Text('All $label', style: const TextStyle(color: Color(0x22FF6600), fontSize: 13)),
-                items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: onChanged,
-              ),
-            ),
           ),
         ],
       ),

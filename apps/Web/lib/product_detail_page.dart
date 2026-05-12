@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:boost_drive_web/public_page_frame.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
@@ -120,6 +121,243 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     final authState = ref.watch(authStateProvider);
     final user = authState.value?.session?.user;
     final isOwner = _currentProduct.sellerId == user?.id;
+    final pageBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 400,
+          child: Stack(
+            children: [
+              PageView.builder(
+                itemCount: _currentProduct.imageUrls.length,
+                itemBuilder: (context, index) {
+                  return Image.network(
+                    _currentProduct.imageUrls[index],
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                      child: const Icon(Icons.broken_image, size: 100),
+                    ),
+                  );
+                },
+              ),
+              if (_currentProduct.imageUrls.length > 1)
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _currentProduct.imageUrls.length,
+                      (index) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _currentProduct.title,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _currentProduct.subtitle,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: BoostDriveTheme.textDim,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'N\$ ${_currentProduct.price.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: BoostDriveTheme.primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              if (isOwner) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.visibility_outlined, size: 16, color: BoostDriveTheme.textDim),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Clicks: ${_currentProduct.clickCount ?? 0}',
+                      style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 24),
+              _buildSectionTitle(context, 'Condition'),
+              Text(_currentProduct.condition.toUpperCase(), style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 16),
+              _buildSectionTitle(context, 'Location'),
+              Text(_currentProduct.location, style: const TextStyle(fontSize: 16)),
+              if (_currentProduct.fitment != null) ...[
+                const SizedBox(height: 16),
+                _buildSectionTitle(context, 'Vehicle Fitment'),
+                Text(
+                  '${_currentProduct.fitment!['make']} ${_currentProduct.fitment!['model']} (${_currentProduct.fitment!['year']})',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+              if (_currentProduct.description.isNotEmpty) ...[
+                const SizedBox(height: 32),
+                _buildSectionTitle(context, 'Description'),
+                Text(
+                  _currentProduct.description,
+                  style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.white),
+                ),
+              ],
+              const SizedBox(height: 40),
+              if (isOwner)
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _handleEdit,
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text('Edit Listing'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 56),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: Color(0x22FF6600)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _handleDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Delete'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.withValues(alpha: 0.1),
+                          foregroundColor: Colors.redAccent,
+                          minimumSize: const Size(double.infinity, 56),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.2)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    children: [
+                      if (_existingConversationId != null) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MessagesPage(initialConversationId: _existingConversationId),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(alpha: 0.05),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(color: Color(0x22FF6600)),
+                              ),
+                            ),
+                            child: const Text(
+                              'View Conversation',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: () => _handleAction(context, ref),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: BoostDriveTheme.primaryColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(
+                            _currentProduct.category == 'rental'
+                                ? 'Rent Now'
+                                : (_existingConversationId != null ? 'Message Seller Again' : 'Message Seller'),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (user == null) {
+      return PublicPageFrame(
+        activeRoute: _guestActiveRoute(),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextButton.icon(
+                onPressed: () => Navigator.pop(context, _hasChanges),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Back'),
+              ),
+              const SizedBox(height: 12),
+              pageBody,
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -129,227 +367,19 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           onPressed: () => Navigator.pop(context, _hasChanges),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 400,
-              child: Stack(
-                children: [
-                  PageView.builder(
-                    itemCount: _currentProduct.imageUrls.length,
-                    itemBuilder: (context, index) {
-                      return Image.network(
-                        _currentProduct.imageUrls[index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                          child: const Icon(Icons.broken_image, size: 100),
-                        ),
-                      );
-                    },
-                  ),
-                  if (_currentProduct.imageUrls.length > 1)
-                    Positioned(
-                      bottom: 16,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          _currentProduct.imageUrls.length,
-                          (index) => Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _currentProduct.title,
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              _currentProduct.subtitle,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: BoostDriveTheme.textDim,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        'N\$ ${_currentProduct.price.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: BoostDriveTheme.primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (isOwner) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.visibility_outlined, size: 16, color: BoostDriveTheme.textDim),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Clicks: ${_currentProduct.clickCount ?? 0}',
-                          style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(context, 'Condition'),
-                  Text(_currentProduct.condition.toUpperCase(), style: const TextStyle(fontSize: 16)),
-                  const SizedBox(height: 16),
-                  _buildSectionTitle(context, 'Location'),
-                  Text(_currentProduct.location, style: const TextStyle(fontSize: 16)),
-                  if (_currentProduct.fitment != null) ...[
-                    const SizedBox(height: 16),
-                    _buildSectionTitle(context, 'Vehicle Fitment'),
-                    Text(
-                      '${_currentProduct.fitment!['make']} ${_currentProduct.fitment!['model']} (${_currentProduct.fitment!['year']})',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                  if (_currentProduct.description.isNotEmpty) ...[
-                    const SizedBox(height: 32),
-                    _buildSectionTitle(context, 'Description'),
-                    Text(
-                      _currentProduct.description,
-                      style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.white),
-                    ),
-                  ],
-                  const SizedBox(height: 40),
-                  
-                  if (isOwner) 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _handleEdit,
-                            icon: const Icon(Icons.edit_outlined),
-                            label: const Text('Edit Listing'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withValues(alpha: 0.05),
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 56),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: const BorderSide(color: Color(0x22FF6600)),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _handleDelete,
-                            icon: const Icon(Icons.delete_outline),
-                            label: const Text('Delete'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.withValues(alpha: 0.1),
-                              foregroundColor: Colors.redAccent,
-                              minimumSize: const Size(double.infinity, 56),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.2)),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    SizedBox(
-                      width: double.infinity,
-                      child: Column(
-                        children: [
-                          if (_existingConversationId != null) ...[
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => MessagesPage(initialConversationId: _existingConversationId),
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(alpha: 0.05),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: const BorderSide(color: Color(0x22FF6600)),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'View Conversation',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: () => _handleAction(context, ref),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: BoostDriveTheme.primaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: Text(
-                                _currentProduct.category == 'rental' 
-                                  ? 'Rent Now' 
-                                  : (_existingConversationId != null ? 'Message Seller Again' : 'Message Seller'),
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: SingleChildScrollView(child: pageBody),
     );
+  }
+
+  String _guestActiveRoute() {
+    switch (_currentProduct.category) {
+      case 'part':
+        return '/buy-parts';
+      case 'rental':
+        return '/rent-a-car';
+      default:
+        return '/marketplace';
+    }
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {

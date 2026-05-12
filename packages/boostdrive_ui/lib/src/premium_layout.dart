@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'theme.dart';
 
 class PremiumPageLayout extends StatelessWidget {
@@ -40,18 +39,19 @@ class PremiumPageLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool useSlivers = slivers != null;
     final bool useNested = headerSlivers != null;
-    
-    // Background decoration is safer than a Stack for hit-testing on Web
-    final BoxDecoration decoration = (showBackground && kIsWeb) ? const BoxDecoration(
-      color: BoostDriveTheme.backgroundDark,
-      image: DecorationImage(
-        image: AssetImage(
-          BoostDriveTheme.globalBackgroundImage,
-          package: 'boostdrive_ui',
-        ),
-        fit: BoxFit.cover,
-      ),
-    ) : const BoxDecoration(color: BoostDriveTheme.backgroundDark);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final appBarSurface = isDark
+        ? BoostDriveTheme.surfaceDark.withValues(alpha: 0.92)
+        : Colors.white.withValues(alpha: 0.96);
+    final appBarTitleColor = theme.colorScheme.onSurface;
+
+    // Keep the hook for callers that want a custom decorated background later,
+    // but remove the permanent global image and respect the active theme.
+    final BoxDecoration decoration = BoxDecoration(
+      color: showBackground ? scaffoldBg : scaffoldBg,
+    );
 
     Widget contentBody;
     
@@ -63,14 +63,14 @@ class PremiumPageLayout extends StatelessWidget {
               SliverAppBar(
                 title: Text(
                   title!,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: appBarTitleColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 actions: actions,
                 leading: leading,
-                backgroundColor: BoostDriveTheme.backgroundDark.withValues(alpha: 0.5),
+                backgroundColor: appBarSurface,
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 floating: false,
@@ -105,14 +105,14 @@ class PremiumPageLayout extends StatelessWidget {
             SliverAppBar(
               title: Text(
                 title!,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: appBarTitleColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               actions: actions,
               leading: leading,
-              backgroundColor: BoostDriveTheme.backgroundDark.withValues(alpha: 0.5),
+              backgroundColor: appBarSurface,
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               floating: false,
@@ -146,7 +146,7 @@ class PremiumPageLayout extends StatelessWidget {
 
     return Scaffold(
       key: scaffoldKey,
-      backgroundColor: BoostDriveTheme.backgroundDark,
+      backgroundColor: scaffoldBg,
       drawer: drawer,
       endDrawer: endDrawer,
       bottomNavigationBar: bottomNavigationBar,

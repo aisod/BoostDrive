@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:boost_drive_web/public_page_frame.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boost_drive_web/all_listings_page.dart';
 
@@ -7,8 +8,8 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'About BoostDrive',
+    return PublicPageFrame(
+      activeRoute: '/about',
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
@@ -119,8 +120,8 @@ class ContactPage extends StatelessWidget {
     const beige = Color(0xFFD9C2A3);
     const darkOrange = Color(0xFFC54A16);
 
-    return PremiumPageLayout(
-      title: 'Contact Us',
+    return PublicPageFrame(
+      activeRoute: '/contact',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -651,8 +652,8 @@ class CareersPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'Join Our Team',
+    return PublicPageFrame(
+      activeRoute: '/careers',
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -725,8 +726,8 @@ class PartnerProgramPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'Partner Program',
+    return PublicPageFrame(
+      activeRoute: '/partner-program',
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),

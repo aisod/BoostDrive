@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:boost_drive_web/add_listing_page.dart';
+import 'package:boost_drive_web/all_listings_page.dart';
+import 'package:boost_drive_web/company_pages.dart';
+import 'package:boost_drive_web/find_providers_page.dart';
+import 'package:boost_drive_web/new_arrivals_page.dart';
+import 'package:boost_drive_web/parts_marketplace_page.dart';
+import 'package:boost_drive_web/rental_marketplace_page.dart';
 import 'package:boost_drive_web/shop_home_page.dart';
+import 'package:boost_drive_web/support_pages.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -133,7 +141,23 @@ class BoostDriveWebApp extends ConsumerWidget {
       theme: BoostDriveTheme.lightTheme(context),
       darkTheme: BoostDriveTheme.darkTheme(context),
       themeMode: themeMode,
-      home: RepaintBoundary(child: const ShopHomePage()),
+      routes: {
+        '/': (_) => const RepaintBoundary(child: ShopHomePage()),
+        '/marketplace': (_) => const AllListingsPage(),
+        '/buy-parts': (_) => const PartsMarketplacePage(),
+        '/rent-a-car': (_) => const RentalMarketplacePage(),
+        '/sell-your-car': (_) => const AddListingPage(),
+        '/new-arrivals': (_) => const NewArrivalsPage(),
+        '/find-provider': (_) => const FindProvidersPage(),
+        '/about': (_) => const AboutPage(),
+        '/contact': (_) => const ContactPage(),
+        '/careers': (_) => const CareersPage(),
+        '/partner-program': (_) => const PartnerProgramPage(),
+        '/safety': (_) => const SafetyCenterPage(),
+        '/terms': (_) => const TermsPage(),
+        '/privacy': (_) => const PrivacyPolicyPage(),
+        '/faq': (_) => const FaqPage(),
+      },
     );
   }
 }

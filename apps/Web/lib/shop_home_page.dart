@@ -21,6 +21,7 @@ import 'package:boost_drive_web/provider_hub_page.dart';
 import 'package:boost_drive_web/find_providers_page.dart';
 import 'boostdrive_banner.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'nav_hover_underline.dart';
 import 'suspension_overlay.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
@@ -58,6 +59,74 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
 
   void _showLoginDialog() {
     _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  void _goHome() {
+    if (ModalRoute.of(context)?.settings.name == '/') return;
+    Navigator.of(context).pushNamed('/');
+  }
+
+  void _toggleThemeMode() {
+    final notifier = ref.read(themeModeProvider.notifier);
+    final currentMode = ref.read(themeModeProvider);
+    notifier.state = currentMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+  }
+
+  Widget _buildThemeToggleButton({
+    bool compact = false,
+    EdgeInsetsGeometry? margin,
+  }) {
+    final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
+    final trackWidth = compact ? 40.0 : 46.0;
+    final trackHeight = compact ? 22.0 : 26.0;
+    final knobSize = compact ? 16.0 : 20.0;
+
+    return Tooltip(
+      message: 'Switch to ${isDarkMode ? 'light' : 'dark'} mode',
+      child: Container(
+        margin: margin,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: _toggleThemeMode,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: trackWidth,
+              height: trackHeight,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: isDarkMode ? BoostDriveTheme.surfaceDark : Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: isDarkMode ? Colors.white.withValues(alpha: 0.18) : const Color(0xFF221C20),
+                  width: 1.4,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: BoostDriveTheme.primaryColor.withValues(alpha: 0.18),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: AnimatedAlign(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                alignment: isDarkMode ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  width: knobSize,
+                  height: knobSize,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? Colors.white : const Color(0xFF221C20),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _closeMegaMenu() {
@@ -454,26 +523,33 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
               const Divider(height: 1),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      if (user == null) {
-                        _showLoginDialog();
-                      } else {
-                        ref.read(authServiceProvider).signOut();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.red.shade50,
-                      foregroundColor: user == null ? Colors.white : Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    _buildThemeToggleButton(
+                      margin: const EdgeInsets.only(right: 10),
                     ),
-                    icon: Icon(user == null ? Icons.login : Icons.logout, size: 18),
-                    label: Text(user == null ? 'Login' : 'Log Out', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          if (user == null) {
+                            _showLoginDialog();
+                          } else {
+                            ref.read(authServiceProvider).signOut();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.red.shade50,
+                          foregroundColor: user == null ? Colors.white : Colors.redAccent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: Icon(user == null ? Icons.login : Icons.logout, size: 18),
+                        label: Text(user == null ? 'Login' : 'Log Out', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -485,14 +561,17 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
         elevation: 0,
         titleSpacing: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'BoostDrive',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -1, color: Colors.white),
-            ),
-          ],
+        title: GestureDetector(
+          onTap: _goHome,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'BoostDrive',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -1, color: Colors.white),
+              ),
+            ],
+          ),
         ),
         actions: [
           SingleChildScrollView(
@@ -500,11 +579,21 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                _buildThemeToggleButton(
+                  compact: true,
+                ),
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: IconButton(
-                    icon: const Icon(Icons.login),
-                    onPressed: () => _showLoginDialog(),
+                    icon: Icon(user == null ? Icons.login : Icons.logout),
+                    tooltip: user == null ? 'Login' : 'Log Out',
+                    onPressed: () {
+                      if (user == null) {
+                        _showLoginDialog();
+                      } else {
+                        ref.read(authServiceProvider).signOut();
+                      }
+                    },
                   ),
                 ),
               ],
@@ -553,94 +642,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             navBar: _buildEditorialNavBar(user),
           ),
           const SizedBox(height: 40),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 64.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isMobile)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'All Listings',
-                        style: GoogleFonts.montserrat(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Hand-picked vehicles and parts from verified sellers.',
-                        style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14),
-                      ),
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const AllListingsPage()),
-                        ),
-                        icon: const Text('View All', style: TextStyle(fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
-                        label: const Icon(Icons.arrow_forward, size: 16, color: BoostDriveTheme.primaryColor),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.05),
-                          side: const BorderSide(color: Color(0x22FF6600)),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ).copyWith(
-                          backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
-                            if (states.contains(WidgetState.hovered)) {
-                              return Colors.white.withValues(alpha: 0.1);
-                            }
-                            return Colors.white.withValues(alpha: 0.05);
-                          }),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'All Listings',
-                            style: GoogleFonts.montserrat(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Hand-picked vehicles and parts from verified sellers.',
-                            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-                          ),
-                        ],
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const AllListingsPage()),
-                        ),
-                        icon: const Text('View All', style: TextStyle(fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor)),
-                        label: const Icon(Icons.arrow_forward, size: 16, color: BoostDriveTheme.primaryColor),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.05),
-                          side: const BorderSide(color: Color(0x22FF6600)),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ).copyWith(
-                          backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
-                            if (states.contains(WidgetState.hovered)) {
-                              return Colors.white.withValues(alpha: 0.1);
-                            }
-                            return Colors.white.withValues(alpha: 0.05);
-                          }),
-                        ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 32),
-                _buildGrid(isMobile),
-              ],
-            ),
-          ),
+          _buildLandingLowerSection(isMobile),
           const SizedBox(height: 80),
         ],
       ),
@@ -655,9 +657,74 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
     );
   }
 
-  Widget _buildGrid(bool isMobile) {
+  Widget _buildLandingLowerSection(bool isMobile) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      color: isDark ? const Color(0xFF081D2B) : const Color(0xFFF3F4F6),
+      width: double.infinity,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 22, vertical: isMobile ? 18 : 26),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildFeaturedMarketplaceHeader(isMobile, isDark),
+            const SizedBox(height: 16),
+            _buildGrid(isMobile, isDark),
+            const SizedBox(height: 30),
+            if (isDark) _buildDarkServicesSection(isMobile),
+            const SizedBox(height: 28),
+            _buildWhyChooseUsSection(isMobile, isDark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeaturedMarketplaceHeader(bool isMobile, bool isDark) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isDark ? 'Featured Marketplace' : 'Featured Listings',
+                style: GoogleFonts.montserrat(
+                  fontSize: isMobile ? 18 : (isDark ? 30 : 40),
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : const Color(0xFF1C1F24),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                isDark
+                    ? 'Explore our latest vehicles, parts, and rental offers.'
+                    : 'Hand-picked premium vehicles and essential parts from our top providers.',
+                style: TextStyle(
+                  color: isDark ? const Color(0xFF8AA3B8) : const Color(0xFF757982),
+                  fontSize: isMobile ? 11 : 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        TextButton.icon(
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())),
+          iconAlignment: IconAlignment.end,
+          icon: const Icon(Icons.arrow_forward, size: 16),
+          label: Text(isDark ? 'View all' : 'View all marketplace'),
+          style: TextButton.styleFrom(
+            foregroundColor: BoostDriveTheme.primaryColor,
+            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGrid(bool isMobile, bool isDark) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 24),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 6),
       child: FutureBuilder<List<Product>>(
         future: _featuredProductsFuture,
         builder: (context, snapshot) {
@@ -669,20 +736,25 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             return const Center(child: Text('No products found.'));
           }
           final products = snapshot.data!;
+          final featuredProducts = products.take(3).toList();
           return GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 400,
-              mainAxisExtent: 450,
-              crossAxisSpacing: 24,
-              mainAxisSpacing: 24,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isMobile ? 1 : 3,
+              childAspectRatio: isDark ? (isMobile ? 0.92 : 0.9) : (isMobile ? 0.95 : 0.82),
+              crossAxisSpacing: isMobile ? 10 : 14,
+              mainAxisSpacing: isMobile ? 10 : 14,
             ),
-            itemCount: products.length > 4 ? 4 : products.length,
-            itemBuilder: (context, index) => BoostProductCard(
-              product: products[index],
+            itemCount: featuredProducts.length,
+            itemBuilder: (context, index) => _buildLandingProductCard(
+              product: featuredProducts[index],
+              isDark: isDark,
               onTap: () async {
-                final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => ProductDetailPage(product: products[index])));
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProductDetailPage(product: featuredProducts[index])),
+                );
                 if (result == true) {
                   setState(() {
                     _featuredProductsFuture = _productService.getFeaturedProducts();
@@ -692,6 +764,532 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildLandingProductCard({
+    required Product product,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    final chipLabel = switch (product.category) {
+      'car' => 'FOR SALE',
+      'rental' => 'FOR RENT',
+      _ => 'SPARES',
+    };
+    final ctaLabel = switch (product.category) {
+      'rental' => 'Book Now',
+      'part' => 'Add to Cart',
+      _ => 'View Details',
+    };
+    final cardBg = isDark ? const Color(0xFF0C2636) : Colors.white;
+    final titleColor = isDark ? Colors.white : const Color(0xFF22252A);
+    final metaColor = isDark ? const Color(0xFF93A8B8) : const Color(0xFF878C93);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(isDark ? 12 : 24),
+          border: Border.all(color: isDark ? const Color(0xFF1C3A4B) : const Color(0xFFE4E6EA)),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(isDark ? 8 : 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(isDark ? 10 : 18),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: product.imageUrl.isNotEmpty
+                            ? Image.network(product.imageUrl, fit: BoxFit.cover)
+                            : Container(color: isDark ? const Color(0xFF173243) : const Color(0xFFF3F4F6)),
+                      ),
+                      Positioned(
+                        left: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF19384A) : const Color(0xFFE7EDF4),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Text(
+                            chipLabel,
+                            style: TextStyle(
+                              color: isDark ? const Color(0xFFB4C8D7) : const Color(0xFF667085),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                product.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: titleColor, fontSize: isDark ? 12 : 34 / 2, fontWeight: FontWeight.w700, height: 1.15),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'N\$ ${product.price.toStringAsFixed(product.price % 1 == 0 ? 0 : 2)}${product.category == 'rental' ? '/day' : ''}',
+                style: TextStyle(color: BoostDriveTheme.primaryColor, fontSize: isDark ? 14 : 31 / 2, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                product.subtitle.isEmpty ? product.location : product.subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: metaColor, fontSize: 11),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onTap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: product.category == 'part' ? BoostDriveTheme.primaryColor : Colors.transparent,
+                    foregroundColor: product.category == 'part' ? Colors.white : BoostDriveTheme.primaryColor,
+                    side: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.8)),
+                    minimumSize: Size(0, isDark ? 32 : 40),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    textStyle: TextStyle(fontSize: isDark ? 9 : 12, fontWeight: FontWeight.w700),
+                  ),
+                  child: Text(ctaLabel),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLightServicesSection(bool isMobile) {
+    final cards = [
+      (Icons.verified_user_outlined, 'Secure Transactions', 'Every listing and transaction is verified for your peace of mind.'),
+      (Icons.support_agent, 'Expert Support', 'Our team is ready to assist with buying, selling, or renting.'),
+      (Icons.location_on_outlined, 'Namibia-wide Network', 'Connecting drivers from Windhoek to Swakopmund and beyond.'),
+    ];
+    return isMobile
+        ? Column(
+            children: cards
+                .map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _buildWhyChooseUsCard(
+                      icon: item.$1,
+                      title: item.$2,
+                      body: item.$3,
+                      isDark: false,
+                    ),
+                  ),
+                )
+                .toList(),
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: cards
+                .map(
+                  (item) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: _buildWhyChooseUsCard(
+                        icon: item.$1,
+                        title: item.$2,
+                        body: item.$3,
+                        isDark: false,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          );
+  }
+
+  Widget _buildDarkServicesSection(bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text(
+              'Comprehensive Services',
+              style: GoogleFonts.montserrat(color: Colors.white, fontSize: isMobile ? 20 : 29, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: isMobile ? 292 : 236,
+            child: isMobile
+                ? Column(
+                    children: [
+                      Expanded(child: _buildDarkServiceImageCard()),
+                      const SizedBox(height: 10),
+                      Expanded(child: _buildDarkServiceOrangeCard()),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(flex: 3, child: _buildDarkServiceImageCard()),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            Expanded(child: _buildDarkServiceOrangeCard()),
+                            const SizedBox(height: 10),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Expanded(child: _buildDarkServiceMiniCard(Icons.car_repair, 'Vehicle Parts')),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: _buildDarkServiceMiniCard(Icons.build_circle_outlined, 'Self Service')),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhyChooseUsSection(bool isMobile, bool isDark) {
+    final items = [
+      (
+        Icons.verified_outlined,
+        'Verified Listings',
+        'Browse trusted vehicles, parts, and rentals from a marketplace built for confidence.'
+      ),
+      (
+        Icons.support_agent_outlined,
+        'Dedicated Support',
+        'Get help with buying, selling, rentals, and provider discovery whenever you need guidance.'
+      ),
+      (
+        Icons.bolt_outlined,
+        'Fast Discovery',
+        'Jump between listings, providers, and categories quickly with a cleaner browsing experience.'
+      ),
+      (
+        Icons.public_outlined,
+        'Nationwide Reach',
+        'Connect with automotive buyers, sellers, and service providers across Namibia in one place.'
+      ),
+    ];
+
+    final sectionBg = isDark ? const Color(0xFF0B2332) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF1B3C4E) : const Color(0xFFE5E7EB);
+    final headingColor = isDark ? Colors.white : const Color(0xFF1F2933);
+    final bodyColor = isDark ? const Color(0xFF94A9B8) : const Color(0xFF6B7280);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: sectionBg,
+        borderRadius: BorderRadius.circular(isDark ? 18 : 28),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 18 : 24,
+        vertical: isMobile ? 22 : 28,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Why Choose Us',
+            style: GoogleFonts.montserrat(
+              fontSize: isMobile ? 22 : 32,
+              fontWeight: FontWeight.w800,
+              color: headingColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'BoostDrive brings buyers, sellers, renters, and providers together in one polished automotive destination.',
+            style: TextStyle(
+              color: bodyColor,
+              fontSize: isMobile ? 13 : 14,
+              height: 1.5,
+            ),
+          ),
+          if (!isDark) ...[
+            const SizedBox(height: 22),
+            _buildLightServicesSection(isMobile),
+          ],
+          const SizedBox(height: 22),
+          isMobile
+              ? Column(
+                  children: items
+                      .map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _buildWhyChooseUsCard(
+                            icon: item.$1,
+                            title: item.$2,
+                            body: item.$3,
+                            isDark: isDark,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: items
+                      .map(
+                        (item) => Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: _buildWhyChooseUsCard(
+                              icon: item.$1,
+                              title: item.$2,
+                              body: item.$3,
+                              isDark: isDark,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhyChooseUsCard({
+    required IconData icon,
+    required String title,
+    required String body,
+    required bool isDark,
+  }) {
+    final cardBg = isDark ? const Color(0xFF102B3B) : const Color(0xFFF9FAFB);
+    final titleColor = isDark ? Colors.white : const Color(0xFF20262D);
+    final bodyColor = isDark ? const Color(0xFF8FA4B5) : const Color(0xFF6B7280);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1C3A4B) : const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 22),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            style: TextStyle(
+              color: titleColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            body,
+            style: TextStyle(
+              color: bodyColor,
+              fontSize: 12.5,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDarkServiceImageCard() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0B2232),
+            Color(0xFF14364B),
+            Color(0xFF081722),
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: -40,
+            top: -25,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          Positioned(
+            right: -30,
+            bottom: -20,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.18),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.35)],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            top: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                  ),
+                  child: const Text(
+                    'TRUSTED SERVICES',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Find vetted providers\nfor roadside help,\nparts, and repairs.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: OutlinedButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage())),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white70),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(110, 34),
+                  textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+                child: const Text('FIND A PROVIDER'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDarkServiceOrangeCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: BoostDriveTheme.primaryColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('HIRE A PROVIDER', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700)),
+          SizedBox(height: 8),
+          Text('A reliable provider for assistance or vehicle repair.', style: TextStyle(color: Colors.white, fontSize: 12)),
+          Spacer(),
+          Icon(Icons.north_east_rounded, color: Colors.white),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDarkServiceMiniCard(IconData icon, String title) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF142D3F),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF9BB3C2), size: 18),
+          const Spacer(),
+          Text(title, style: const TextStyle(color: Color(0xFFB3C3CE), fontSize: 11)),
+        ],
       ),
     );
   }
@@ -752,124 +1350,147 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
 
   /// Customer nav: "Find a Provider" → FindProvidersPage. Provider nav: "Services requested" → ProviderHubPage.
   Widget _buildEditorialNavBar(dynamic user) {
-    return Row(
-      children: [
-        // Brand Logo in Nav
-        Padding(
-          padding: const EdgeInsets.only(left: 24),
-          child: Text(
-            "BoostDrive",
-            style: GoogleFonts.montserrat(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1,
-              color: Colors.white,
+    final List<Widget> navChildren = user == null
+        ? [
+            _EditorialNavLink(text: 'Marketplace', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
+            _EditorialNavLink(text: 'Buy parts', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsMarketplacePage())), isDark: true),
+            _EditorialNavLink(text: 'Rent a car', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
+            _EditorialNavLink(text: 'Sell your car', onTap: () => _showLoginDialog(), isDark: true),
+            _EditorialNavLink(text: 'New arrivals', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewArrivalsPage())), isDark: true),
+            _EditorialNavLink(text: 'Find a Provider', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage())), isDark: true),
+            _EditorialNavDropdown(
+              title: 'Company',
+              items: [
+                _DropdownItem(label: 'About us', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage()))),
+                _DropdownItem(label: 'Contact', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContactPage()))),
+                _DropdownItem(label: 'Careers', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CareersPage()))),
+                _DropdownItem(label: 'Partner program', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerProgramPage()))),
+              ],
             ),
-          ),
-        ),
-        const Spacer(),
-        // Role-based Nav Structure
-        if (user == null) ...[
-          _EditorialNavLink(text: 'Marketplace', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
-          _EditorialNavLink(text: 'Buy parts', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsMarketplacePage())), isDark: true),
-          _EditorialNavLink(text: 'Rent a car', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
-          _EditorialNavLink(text: 'Sell your car', onTap: () => _showLoginDialog(), isDark: true),
-          _EditorialNavLink(text: 'New arrivals', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewArrivalsPage())), isDark: true),
-          _EditorialNavLink(text: 'Find a Provider', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage())), isDark: true),
-          _EditorialNavDropdown(
-            title: 'Company',
-            items: [
-              _DropdownItem(label: 'About us', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage()))),
-              _DropdownItem(label: 'Contact', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContactPage()))),
-              _DropdownItem(label: 'Careers', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CareersPage()))),
-              _DropdownItem(label: 'Partner program', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerProgramPage()))),
-            ],
-          ),
-          _EditorialNavDropdown(
-            title: 'Support',
-            items: [
-              _DropdownItem(label: 'Safety center', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyCenterPage()))),
-              _DropdownItem(label: 'Terms of service', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsPage()))),
-              _DropdownItem(label: 'Privacy policy', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
-              _DropdownItem(label: 'FAQ', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage()))),
-            ],
-          ),
-        ] else ...[
-          _EditorialNavLink(text: 'MARKETPLACE', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
-          _EditorialNavLink(text: 'MESSAGES', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage())), isDark: true),
-          
-          Consumer(
-            builder: (context, ref, _) {
-              final profile = ref.watch(userProfileProvider(user.id)).value;
-              if (profile == null) return const SizedBox.shrink();
-              
-              final isProvider = _isProviderRole(profile.role);
-              if (isProvider) {
-                return const SizedBox.shrink();
-              } else {
+            _EditorialNavDropdown(
+              title: 'Support',
+              items: [
+                _DropdownItem(label: 'Safety center', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyCenterPage()))),
+                _DropdownItem(label: 'Terms of service', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsPage()))),
+                _DropdownItem(label: 'Privacy policy', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
+                _DropdownItem(label: 'FAQ', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage()))),
+              ],
+            ),
+          ]
+        : [
+            _EditorialNavLink(text: 'MARKETPLACE', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
+            _EditorialNavLink(text: 'MESSAGES', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage())), isDark: true),
+            Consumer(
+              builder: (context, ref, _) {
+                final profile = ref.watch(userProfileProvider(user.id)).value;
+                if (profile == null || _isProviderRole(profile.role)) {
+                  return const SizedBox.shrink();
+                }
+
                 return Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     _EditorialNavLink(text: 'MY LISTINGS', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SellerDashboardPage())), isDark: true),
                     _EditorialNavLink(text: 'RENTALS', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
                   ],
                 );
-              }
-            },
-          ),
-          
-          _EditorialNavLink( 
-            text: 'DASHBOARD', 
-            onTap: () {
-               final profile = ref.read(userProfileProvider(user.id)).value;
-               if (profile != null) {
-                 Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
-               }
-            }, 
-            isDark: true
-          ),
-          
-          const SizedBox(width: 16),
-          Consumer(
-            builder: (context, ref, _) {
-              return Row(
-                children: [
-                  _buildNotificationBell(ref, user.id),
-                  const SizedBox(width: 16),
-                  _buildProfileIcon(ref, user.id),
-                ],
-              );
-            },
-          ),
-        ],
-        
-        // AUTH CTA (Pill Button)
-        Container(
-          margin: const EdgeInsets.only(left: 20),
-          child: ElevatedButton(
-            onPressed: () {
-              if (user == null) {
-                _showLoginDialog();
-              } else {
-                ref.read(authServiceProvider).signOut();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: BoostDriveTheme.primaryColor,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: const StadiumBorder(),
-              elevation: 0,
+              },
             ),
-            child: Text(
-              user == null ? 'Login' : 'Log Out',
-              style: GoogleFonts.montserrat(
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
+            _EditorialNavLink(
+              text: 'DASHBOARD',
+              onTap: () {
+                final profile = ref.read(userProfileProvider(user.id)).value;
+                if (profile != null) {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
+                }
+              },
+              isDark: true,
+            ),
+          ];
+
+    final List<Widget> trailingChildren = [
+      if (user != null)
+        Consumer(
+          builder: (context, ref, _) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildNotificationBell(ref, user.id),
+                const SizedBox(width: 12),
+                _buildProfileIcon(ref, user.id),
+                const SizedBox(width: 12),
+              ],
+            );
+          },
+        ),
+      _buildThemeToggleButton(),
+      Container(
+        margin: const EdgeInsets.only(left: 12),
+        child: ElevatedButton(
+          onPressed: () {
+            if (user == null) {
+              _showLoginDialog();
+            } else {
+              ref.read(authServiceProvider).signOut();
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: BoostDriveTheme.primaryColor,
+            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+            shape: const StadiumBorder(),
+            elevation: 0,
+          ),
+          child: Text(
+            user == null ? 'Login' : 'Log Out',
+            style: GoogleFonts.montserrat(
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ),
+    ];
+
+    return Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 24),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: _goHome,
+              child: Text(
+                "BoostDrive",
+                style: GoogleFonts.montserrat(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
         ),
-        const SizedBox(width: 40),
+        const SizedBox(width: 24),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: navChildren,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: trailingChildren,
+        ),
+        const SizedBox(width: 24),
       ],
     );
   }
@@ -1294,29 +1915,30 @@ class _EditorialNavDropdownState extends State<_EditorialNavDropdown> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: MouseRegion(
-        onEnter: (_) {
-          setState(() => _isHovered = true);
-          _showOverlay();
+      child: BoostNavHoverUnderline(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        onHoverChanged: (isHovered) {
+          if (isHovered) {
+            setState(() => _isHovered = true);
+            _showOverlay();
+          } else {
+            _hideOverlay();
+          }
         },
-        onExit: (_) => _hideOverlay(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.title,
-                style: GoogleFonts.montserrat(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.title,
+              style: GoogleFonts.montserrat(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
               ),
-              const SizedBox(width: 4),
-              const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
-            ],
-          ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
+          ],
         ),
       ),
     );
@@ -1332,20 +1954,15 @@ class _EditorialNavLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Text(
-            text,
-            style: GoogleFonts.montserrat(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
+    return BoostNavHoverUnderline(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      onTap: onTap,
+      child: Text(
+        text,
+        style: GoogleFonts.montserrat(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: isDark ? Colors.white : Colors.black87,
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:boost_drive_web/public_page_frame.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 
 class SafetyCenterPage extends StatelessWidget {
@@ -6,8 +7,8 @@ class SafetyCenterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'Safety Center',
+    return PublicPageFrame(
+      activeRoute: '/safety',
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -98,8 +99,8 @@ class TermsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'Terms of Service',
+    return PublicPageFrame(
+      activeRoute: '/terms',
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 800),
@@ -144,8 +145,8 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'Privacy Policy',
+    return PublicPageFrame(
+      activeRoute: '/privacy',
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 800),
@@ -189,8 +190,8 @@ class FaqPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'Frequently Asked Questions',
+    return PublicPageFrame(
+      activeRoute: '/faq',
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),

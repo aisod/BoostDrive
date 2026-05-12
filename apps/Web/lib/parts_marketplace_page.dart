@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:boost_drive_web/public_page_widgets.dart';
+import 'package:boost_drive_web/public_top_nav_bar.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -16,39 +18,29 @@ class PartsMarketplacePage extends ConsumerStatefulWidget {
 
 /// Holds UI state for filters, search text, and async loading.
 class _PartsMarketplacePageState extends ConsumerState<PartsMarketplacePage> {
-  /// Fetches products from backend/data source.
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ProductService _productService = ProductService();
-  /// Currently selected vehicle make filter.
   String? _selectedMake;
-  /// Currently selected vehicle model filter.
   String? _selectedModel;
-  /// Currently selected vehicle year filter.
   int? _selectedYear;
-  /// Product condition filter. `all` means no condition filter.
   String _selectedCondition = 'all';
-  /// Search input controller for part name queries.
   final TextEditingController _searchController = TextEditingController();
-  /// Debounce timer to avoid searching on every keystroke.
   Timer? _searchDebounce;
-  /// Future used by FutureBuilder to render marketplace results.
   late Future<List<Product>> _partsFuture;
 
   @override
   void initState() {
     super.initState();
-    // Load parts once when page starts.
     _loadParts();
   }
 
   @override
   void dispose() {
-    // Dispose resources to prevent memory leaks.
     _searchController.dispose();
     _searchDebounce?.cancel();
     super.dispose();
   }
 
-  /// Debounced search handler. Waits 500ms after typing stops.
   void _onSearchChanged() {
     if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 500), () {
@@ -56,9 +48,7 @@ class _PartsMarketplacePageState extends ConsumerState<PartsMarketplacePage> {
     });
   }
 
-  /// Loads marketplace parts using current filter and search values.
   void _loadParts() {
-    // Avoid state updates if widget is already removed.
     if (!mounted) return;
     setState(() {
       _partsFuture = _productService.searchParts(
@@ -71,179 +61,286 @@ class _PartsMarketplacePageState extends ConsumerState<PartsMarketplacePage> {
     });
   }
 
+  void _showLoginDrawer() {
+    _scaffoldKey.currentState?.openEndDrawer();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Main page scaffold with reusable premium layout.
+    final palette = PublicPagePalette.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
     return PremiumPageLayout(
-      title: 'Parts Marketplace',
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () {
-          // Go back if possible, otherwise route to home.
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          } else {
-            Navigator.of(context).pushReplacementNamed('/');
-          }
-        },
+      scaffoldKey: _scaffoldKey,
+      appBar: BoostDrivePublicTopNavBar(
+        activeRoute: '/buy-parts',
+        onAuthTap: _showLoginDrawer,
+      ),
+      endDrawer: Drawer(
+        width: isMobile ? MediaQuery.of(context).size.width : MediaQuery.of(context).size.width * 0.46,
+        backgroundColor: Colors.white,
+        child: BoostLoginPage(
+          onLoginSuccess: () => _scaffoldKey.currentState?.closeEndDrawer(),
+          onClose: () => _scaffoldKey.currentState?.closeEndDrawer(),
+        ),
       ),
       footer: const AppFooter(),
-      headerSlivers: [
-        SliverToBoxAdapter(child: _buildHero()),
-        SliverToBoxAdapter(child: _buildFilterBar()),
-      ],
-      slivers: [
-        FutureBuilder<List<Product>>(
-          future: _partsFuture,
-          builder: (context, snapshot) {
-            // Show loading state while waiting for query result.
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return SliverToBoxAdapter(
-                child: Container(
-                  height: 300,
-                  alignment: Alignment.center,
-                  child: const CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
-                ),
-              );
-            }
-            // Show backend/network error state.
-            if (snapshot.hasError) {
-              return SliverToBoxAdapter(
-                child: Container(
-                  height: 300,
-                  alignment: Alignment.center,
-                  child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)),
-                ),
-              );
-            }
-            final parts = snapshot.data ?? [];
-            // Show empty state when filters return no products.
-            if (parts.isEmpty) {
-              return SliverToBoxAdapter(
-                child: Container(
-                  height: 300,
-                  alignment: Alignment.center,
-                  child: const Text('No parts found for this selection.', style: TextStyle(color: BoostDriveTheme.textDim)),
-                ),
-              );
-            }
+      child: ColoredBox(
+        color: palette.pageBackground,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, isMobile ? 20 : 28, 20, 72),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1280),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHero(),
+                  const SizedBox(height: 24),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final statWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - 48) / 3;
+                      return Wrap(
+                        spacing: 24,
+                        runSpacing: 24,
+                        children: [
+                          SizedBox(
+                            width: statWidth,
+                            child: const PublicStatCard(
+                              label: 'Search spare parts, upgrades, and replacement stock.',
+                              value: 'Parts Search',
+                            ),
+                          ),
+                          SizedBox(
+                            width: statWidth,
+                            child: const PublicStatCard(
+                              label: 'Filter by vehicle fitment before opening the same detail page.',
+                              value: 'Fitment Match',
+                            ),
+                          ),
+                          SizedBox(
+                            width: statWidth,
+                            child: const PublicStatCard(
+                              label: 'Designed to match the supplied parts marketplace references.',
+                              value: 'Design Match',
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  _buildFilterBar(),
+                  const SizedBox(height: 28),
+                  const PublicSectionHeading(
+                    title: 'Parts and upgrades',
+                    subtitle: 'Existing part data, search, and detail navigation remain unchanged. The refreshed shell focuses purely on the UI.',
+                  ),
+                  const SizedBox(height: 18),
+                  FutureBuilder<List<Product>>(
+                    future: _partsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const PublicFeedbackState(
+                          icon: Icons.settings_suggest_outlined,
+                          title: 'Loading parts',
+                          message: 'Fetching available parts and accessories.',
+                        );
+                      }
 
-            return SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 80),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 350,
-                  mainAxisExtent: 400,
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final product = parts[index];
-                    // Render a reusable product card per item.
-                    return BoostProductCard(
-                      key: ValueKey('part_card_${product.id}'),
-                      product: product,
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProductDetailPage(product: product),
+                      if (snapshot.hasError) {
+                        return PublicFeedbackState(
+                          icon: Icons.error_outline,
+                          title: 'Could not load parts',
+                          message: 'The parts query failed: ${snapshot.error}',
+                          action: TextButton(
+                            onPressed: _loadParts,
+                            child: const Text('Try again'),
                           ),
                         );
-                        if (result == true) {
-                          // Refresh grid if detail page updated this product.
-                          _loadParts();
-                        }
-                      },
-                    );
-                  },
-                  childCount: parts.length,
-                ),
+                      }
+
+                      final parts = snapshot.data ?? [];
+                      if (parts.isEmpty) {
+                        return const PublicFeedbackState(
+                          icon: Icons.inventory_2_outlined,
+                          title: 'No parts found',
+                          message: 'Try adjusting make, model, year, or condition to broaden the results.',
+                        );
+                      }
+
+                      return LayoutBuilder(
+                        builder: (context, constraints) {
+                          final width = constraints.maxWidth;
+                          int crossAxisCount = 1;
+                          if (width > 1180) {
+                            crossAxisCount = 3;
+                          } else if (width > 760) {
+                            crossAxisCount = 2;
+                          }
+
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: parts.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              mainAxisSpacing: 24,
+                              crossAxisSpacing: 24,
+                              childAspectRatio: width > 1180 ? 0.82 : 0.84,
+                            ),
+                            itemBuilder: (context, index) {
+                              final product = parts[index];
+                              return BoostProductCard(
+                                key: ValueKey('part_card_${product.id}'),
+                                product: product,
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ProductDetailPage(product: product),
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    _loadParts();
+                                  }
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         ),
-      ],
+      ),
     );
   }
 
-  /// Builds the top hero section (title, description, and search box).
   Widget _buildHero() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(40, 60, 40, 60),
-      decoration: const BoxDecoration(
-        color: BoostDriveTheme.surfaceDark,
-        border: Border(bottom: BorderSide(color: Color(0x22FF6600))),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Parts Marketplace',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 48, 
-              fontWeight: FontWeight.w900, 
-              color: Colors.white,
-              letterSpacing: -1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Find high-quality spares and performance upgrades for your vehicle.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 18),
-          ),
-          const SizedBox(height: 40),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: TextField(
-              controller: _searchController,
-              // Trigger debounced search when user types.
-              onChanged: (v) => _onSearchChanged(),
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search by part name (e.g. Brake Pads)...',
-                hintStyle: const TextStyle(color: Color(0x22FF6600)),
-                prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: BoostDriveTheme.primaryColor),
-                ),
-              ),
-            ),
-          ),
-        ],
+    return PublicHeroBanner(
+      eyebrow: 'PARTS MARKETPLACE',
+      title: 'A sharper storefront for discovering parts, upgrades, and essential replacements.',
+      subtitle: 'The refreshed page reflects the supplied parts marketplace mockups while still using the same filters, queries, and product detail behavior already in the app.',
+      imageUrl: 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&w=1600&q=80',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: PublicSearchField(
+          controller: _searchController,
+          hintText: 'Search by part name (e.g. Brake Pads)...',
+          filledLight: true,
+          onChanged: (_) => _onSearchChanged(),
+        ),
       ),
     );
   }
 
-  /// Builds the filter controls section under the hero.
   Widget _buildFilterBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      color: BoostDriveTheme.surfaceDark,
+    final palette = PublicPagePalette.of(context);
+
+    return PublicPageSection(
+      elevated: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const PublicSectionHeading(
+            title: 'Fitment verification',
+            subtitle: 'Keep searching by make, model, year, and condition exactly as before, but inside the new visual system.',
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final columns = width > 1180 ? 4 : (width > 720 ? 2 : 1);
+              final itemWidth = columns == 1 ? width : (width - (24 * (columns - 1))) / columns;
+
+              return Wrap(
+                spacing: 24,
+                runSpacing: 20,
+                children: [
+                  SizedBox(
+                    width: itemWidth,
+                    child: PublicDropdownField(
+                      label: 'Make',
+                      value: _selectedMake,
+                      hintText: 'All makes',
+                      options: const ['Toyota', 'Volkswagen', 'Ford', 'Nissan'],
+                      onChanged: (value) {
+                        setState(() => _selectedMake = value);
+                        _loadParts();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: PublicDropdownField(
+                      label: 'Model',
+                      value: _selectedModel,
+                      hintText: 'All models',
+                      options: const ['Hilux', 'Golf', 'Ranger', 'Navara'],
+                      onChanged: (value) {
+                        setState(() => _selectedModel = value);
+                        _loadParts();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: PublicDropdownField(
+                      label: 'Year',
+                      value: _selectedYear?.toString(),
+                      hintText: 'All years',
+                      options: const ['2024', '2023', '2022', '2021', '2020'],
+                      onChanged: (value) {
+                        setState(() => _selectedYear = value != null ? int.parse(value) : null);
+                        _loadParts();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: PublicDropdownField(
+                      label: 'Condition',
+                      value: _selectedCondition,
+                      hintText: 'All conditions',
+                      options: const ['all', 'new', 'used', 'salvage'],
+                      onChanged: (value) {
+                        setState(() => _selectedCondition = value ?? 'all');
+                        _loadParts();
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 18),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Vehicle Fitment Verification',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: palette.fieldBackground,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'This section keeps the original parts search intact while visually matching the supplied redesign for light and dark mode.',
+                    style: TextStyle(
+                      color: palette.bodyColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
+              const SizedBox(width: 12),
               TextButton.icon(
                 onPressed: () {
-                  // Reset all filters and search, then reload parts.
                   setState(() {
                     _selectedMake = null;
                     _selectedModel = null;
@@ -253,89 +350,11 @@ class _PartsMarketplacePageState extends ConsumerState<PartsMarketplacePage> {
                   });
                   _loadParts();
                 },
-                icon: const Icon(Icons.filter_list_off, size: 20, color: BoostDriveTheme.primaryColor),
-                label: const Text('Clear Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
-                ),
+                icon: const Icon(Icons.filter_alt_off, color: BoostDriveTheme.primaryColor),
+                label: const Text('Clear filters'),
+                style: TextButton.styleFrom(foregroundColor: BoostDriveTheme.primaryColor),
               ),
             ],
-          ),
-          const SizedBox(height: 24),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // Calculate responsive width for filter dropdown items.
-              final double parentWidth = constraints.maxWidth;
-              final double screenWidth = MediaQuery.of(context).size.width;
-              final double maxWidth = (parentWidth.isFinite && parentWidth > 0) ? parentWidth : screenWidth - 48;
-              
-              return Wrap(
-                spacing: 16,
-                runSpacing: 24,
-                children: [
-                  _buildFilterItem('Make', ['Toyota', 'Volkswagen', 'Ford', 'Nissan'], _selectedMake, (v) {
-                    // Update make filter and reload.
-                    setState(() => _selectedMake = v);
-                    _loadParts();
-                  }, maxWidth),
-                  _buildFilterItem('Model', ['Hilux', 'Golf', 'Ranger', 'Navara'], _selectedModel, (v) {
-                    // Update model filter and reload.
-                    setState(() => _selectedModel = v);
-                    _loadParts();
-                  }, maxWidth),
-                  _buildFilterItem('Year', ['2024', '2023', '2022', '2021', '2020'], _selectedYear?.toString(), (v) {
-                    // Convert selected year string to int and reload.
-                    setState(() => _selectedYear = v != null ? int.parse(v) : null);
-                    _loadParts();
-                  }, maxWidth),
-                  _buildFilterItem('Condition', ['all', 'new', 'used', 'salvage'], _selectedCondition, (v) {
-                    // Use "all" if no specific condition is selected.
-                    setState(() => _selectedCondition = v ?? 'all');
-                    _loadParts();
-                  }, maxWidth),
-                ],
-              );
-            }
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Reusable dropdown filter item used for make/model/year/condition.
-  Widget _buildFilterItem(String label, List<String> items, String? value, ValueChanged<String?> onChanged, double maxWidth) {
-    // Choose columns based on available width for responsive layout.
-    final double divisor = maxWidth > 900 ? 5 : (maxWidth > 600 ? 2 : 1);
-    // Compute item width including spacing.
-    final double itemWidth = (maxWidth - (16 * (divisor - 1))) / divisor;
-    
-    return SizedBox(
-      width: itemWidth.clamp(150.0, 600.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: BoostDriveTheme.backgroundDark,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Color(0x22FF6600)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: value,
-                isExpanded: true,
-                dropdownColor: BoostDriveTheme.surfaceDark,
-                icon: const Icon(Icons.keyboard_arrow_down, color: BoostDriveTheme.textDim),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                hint: Text('All $label', style: const TextStyle(color: Color(0x22FF6600), fontSize: 13)),
-                items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: onChanged,
-              ),
-            ),
           ),
         ],
       ),

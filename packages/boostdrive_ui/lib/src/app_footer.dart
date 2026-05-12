@@ -9,12 +9,19 @@ class AppFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final footerBg = isDark ? BoostDriveTheme.backgroundDark.withValues(alpha: 0.92) : Colors.white;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1D2939);
+    final bodyColor = isDark ? BoostDriveTheme.textDim : const Color(0xFF667085);
+    final dividerColor = isDark ? const Color(0x22FF6600) : const Color(0xFFE4E7EC);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFEAECEF);
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        color: footerBg,
+        border: Border(top: BorderSide(color: borderColor)),
       ),
       padding: EdgeInsets.symmetric(
         vertical: isMobile ? 40 : 80, 
@@ -26,24 +33,34 @@ class AppFooter extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildAboutSection(),
+                _buildAboutSection(
+                  titleColor: titleColor,
+                  bodyColor: bodyColor,
+                ),
+                // copied theme colors from parent section
                 const SizedBox(height: 48),
                 _FooterColumn(
                   title: 'Marketplace',
                   links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
                   onTap: (val) => onLinkTap?.call('Marketplace', val),
+                  titleColor: titleColor,
+                  linkColor: bodyColor,
                 ),
                 const SizedBox(height: 32),
                 _FooterColumn(
                   title: 'Company',
                   links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
                   onTap: (val) => onLinkTap?.call('Company', val),
+                  titleColor: titleColor,
+                  linkColor: bodyColor,
                 ),
                 const SizedBox(height: 32),
                 _FooterColumn(
                   title: 'Support',
                   links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
                   onTap: (val) => onLinkTap?.call('Support', val),
+                  titleColor: titleColor,
+                  linkColor: bodyColor,
                 ),
               ],
             )
@@ -54,7 +71,10 @@ class AppFooter extends StatelessWidget {
                 // Logo & About
                 Expanded(
                   flex: 3,
-                  child: _buildAboutSection(),
+                  child: _buildAboutSection(
+                    titleColor: titleColor,
+                    bodyColor: bodyColor,
+                  ),
                 ),
                 const Spacer(),
                 Expanded(
@@ -63,6 +83,8 @@ class AppFooter extends StatelessWidget {
                     title: 'Marketplace',
                     links: const ['Buy Parts', 'Rent a Car', 'Sell Your Vehicle', 'New Arrivals'],
                     onTap: (val) => onLinkTap?.call('Marketplace', val),
+                    titleColor: titleColor,
+                    linkColor: bodyColor,
                   ),
                 ),
                 Expanded(
@@ -71,6 +93,8 @@ class AppFooter extends StatelessWidget {
                     title: 'Company',
                     links: const ['About Us', 'Contact', 'Careers', 'Partner Program'],
                     onTap: (val) => onLinkTap?.call('Company', val),
+                    titleColor: titleColor,
+                    linkColor: bodyColor,
                   ),
                 ),
                 Expanded(
@@ -79,49 +103,51 @@ class AppFooter extends StatelessWidget {
                     title: 'Support',
                     links: const ['Safety Center', 'Terms of Service', 'Privacy Policy', 'FAQ'],
                     onTap: (val) => onLinkTap?.call('Support', val),
+                    titleColor: titleColor,
+                    linkColor: bodyColor,
                   ),
                 ),
               ],
             ),
           const SizedBox(height: 80),
-          const Divider(color: Color(0x22FF6600)),
+          Divider(color: dividerColor),
           const SizedBox(height: 32),
           if (isMobile)
-            const Column(
+            Column(
               children: [
                 Text(
                   '© 2026 BoostDrive Namibia. All rights reserved.',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                  style: TextStyle(color: bodyColor, fontSize: 13),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.location_on, size: 14, color: Colors.white),
+                    Icon(Icons.location_on, size: 14, color: titleColor),
                     const SizedBox(width: 4),
-                    const Text(
+                    Text(
                       'Windhoek, Namibia',
-                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                      style: TextStyle(color: bodyColor, fontSize: 13),
                     ),
                   ],
                 ),
               ],
             )
           else
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   '© 2026 BoostDrive Namibia. All rights reserved.',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                  style: TextStyle(color: bodyColor, fontSize: 13),
                 ),
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.location_on, size: 14, color: Colors.white),
-                    SizedBox(width: 4),
+                    Icon(Icons.location_on, size: 14, color: titleColor),
+                    const SizedBox(width: 4),
                     Text(
                       'Windhoek, Namibia',
-                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                      style: TextStyle(color: bodyColor, fontSize: 13),
                     ),
                   ],
                 ),
@@ -132,8 +158,11 @@ class AppFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildAboutSection() {
-    return const Column(
+  Widget _buildAboutSection({
+    required Color titleColor,
+    required Color bodyColor,
+  }) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -141,13 +170,13 @@ class AppFooter extends StatelessWidget {
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: titleColor,
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Text(
           'The leading automotive platform in Namibia. Buy parts, rent vehicles, and sell cars with confidence.',
-          style: TextStyle(color: BoostDriveTheme.textDim, height: 1.6),
+          style: TextStyle(color: bodyColor, height: 1.6),
         ),
         // SOCIALS REMOVED
       ],
@@ -159,11 +188,15 @@ class _FooterColumn extends StatelessWidget {
   final String title;
   final List<String> links;
   final Function(String) onTap;
+  final Color titleColor;
+  final Color linkColor;
 
   const _FooterColumn({
     required this.title,
     required this.links,
     required this.onTap,
+    required this.titleColor,
+    required this.linkColor,
   });
 
   @override
@@ -173,8 +206,8 @@ class _FooterColumn extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: titleColor,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -186,7 +219,7 @@ class _FooterColumn extends StatelessWidget {
                 onTap: () => onTap(link),
                 child: Text(
                   link,
-                  style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 14),
+                  style: TextStyle(color: linkColor, fontSize: 14),
                 ),
               ),
             )),

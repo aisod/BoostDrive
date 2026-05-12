@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:boost_drive_web/public_page_frame.dart';
+import 'package:boost_drive_web/public_page_widgets.dart';
+import 'package:boost_drive_web/public_top_nav_bar.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -22,6 +25,7 @@ class FindProvidersPage extends ConsumerStatefulWidget {
 }
 
 class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   /// 'all' | 'mechanic' | 'towing' | 'parts' | 'rental' | 'service_station'
   String _serviceFilter = 'all';
   final TextEditingController _locationController = TextEditingController();
@@ -61,6 +65,10 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
         setState(() {});
       }
     });
+  }
+
+  void _showLoginDrawer() {
+    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   String? _getServiceTypeForProvider() {
@@ -109,6 +117,8 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
   Widget _buildCustomerView() {
     final serviceType = _getServiceTypeForProvider();
     final providersAsync = ref.watch(verifiedProvidersProvider(serviceType));
+    final palette = PublicPagePalette.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
 
     // Client-side search and location filtering
     final filteredProvidersAsync = providersAsync.whenData((list) {
@@ -169,29 +179,89 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
     });
 
     return PremiumPageLayout(
-      title: 'Find a Provider',
+      scaffoldKey: _scaffoldKey,
+      appBar: BoostDrivePublicTopNavBar(
+        activeRoute: '/find-provider',
+        onAuthTap: _showLoginDrawer,
+      ),
+      endDrawer: Drawer(
+        width: isMobile ? MediaQuery.of(context).size.width : MediaQuery.of(context).size.width * 0.46,
+        backgroundColor: Colors.white,
+        child: BoostLoginPage(
+          onLoginSuccess: () => _scaffoldKey.currentState?.closeEndDrawer(),
+          onClose: () => _scaffoldKey.currentState?.closeEndDrawer(),
+        ),
+      ),
+      footer: const AppFooter(),
       child: RepaintBoundary(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 24),
-                  _buildSearchBar(),
-                  const SizedBox(height: 20),
-                  _buildQuickLinks(),
-                  const SizedBox(height: 24),
-                  _buildCategoryFilters(),
-                  const SizedBox(height: 16),
-                  _buildSortAndViewToggle(),
-                  const SizedBox(height: 24),
-                  _buildProviderContent(sortedProvidersAsync, serviceType),
-                ],
+        child: ColoredBox(
+          color: palette.pageBackground,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20, isMobile ? 20 : 28, 20, 72),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1280),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 24),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final statWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - 48) / 3;
+                        return Wrap(
+                          spacing: 24,
+                          runSpacing: 24,
+                          children: [
+                            SizedBox(
+                              width: statWidth,
+                              child: const PublicStatCard(
+                                label: 'Search verified mechanics, towing, rental, and parts providers.',
+                                value: 'Verified Network',
+                              ),
+                            ),
+                            SizedBox(
+                              width: statWidth,
+                              child: const PublicStatCard(
+                                label: 'Sort by availability, experience, and provider type.',
+                                value: 'Smart Discovery',
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    PublicPageSection(
+                      elevated: true,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const PublicSectionHeading(
+                            title: 'Search and compare providers',
+                            subtitle: 'Filter providers without touching the existing verification, sorting, or messaging behavior already built into BoostDrive.',
+                          ),
+                          const SizedBox(height: 18),
+                          _buildSearchBar(),
+                          const SizedBox(height: 18),
+                          _buildQuickLinks(),
+                          const SizedBox(height: 20),
+                          _buildCategoryFilters(),
+                          const SizedBox(height: 18),
+                          _buildSortAndViewToggle(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    const PublicSectionHeading(
+                      title: 'Providers ready to help',
+                      subtitle: 'Browse verified service businesses, compare specialties, and open the same provider detail flow as before.',
+                    ),
+                    const SizedBox(height: 18),
+                    _buildProviderContent(sortedProvidersAsync, serviceType),
+                  ],
+                ),
               ),
             ),
           ),
@@ -201,111 +271,67 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 16),
-                SizedBox(width: 8),
-                Text(
-                  'Back',
-                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'Find a Provider',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Book a service, compare mechanics, or find towing. Not in an emergency? Browse verified providers below.',
-          style: TextStyle(fontSize: 14, color: BoostDriveTheme.textDim, height: 1.5),
-        ),
-      ],
+    return PublicHeroBanner(
+      eyebrow: 'FIND A PROVIDER',
+      title: 'Discover trusted automotive services through a more polished provider hub.',
+      subtitle: 'Search mechanics, towing, rentals, and parts businesses with the same live provider data and customer actions already connected in BoostDrive.',
+      imageUrl: 'https://images.unsplash.com/photo-1486006920555-c77dcf18193c?auto=format&fit=crop&w=1600&q=80',
     );
   }
 
-  Widget _buildSearchBar() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              flex: 2,
-              child: TextField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  labelText: 'Location',
-                  hintText: 'e.g. Windhoek, Walvis Bay',
-                  filled: true,
-                  fillColor: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.location_on_outlined, color: BoostDriveTheme.primaryColor, size: 20),
-                ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (_) => _debounceUpdateSearch(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 3,
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: 'Search',
-                  hintText: 'e.g. Brake Pad Replacement, Flatbed Towing',
-                  filled: true,
-                  fillColor: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.search, color: BoostDriveTheme.primaryColor, size: 20),
-                ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (_) => _debounceUpdateSearch(),
-              ),
-            ),
-          ],
+  Widget _buildSearchBar({bool heroMode = false}) {
+    final isMobile = MediaQuery.of(context).size.width < 900;
+    final fields = [
+      Expanded(
+        flex: 2,
+        child: PublicSearchField(
+          controller: _locationController,
+          hintText: 'Location, town, or region',
+          icon: Icons.location_on_outlined,
+          filledLight: heroMode,
+          onChanged: (_) => _debounceUpdateSearch(),
         ),
-      ],
-    );
+      ),
+      SizedBox(width: isMobile ? 0 : 12, height: isMobile ? 12 : 0),
+      Expanded(
+        flex: 3,
+        child: PublicSearchField(
+          controller: _searchController,
+          hintText: 'Search mechanics, towing, parts, rentals...',
+          filledLight: heroMode,
+          onChanged: (_) => _debounceUpdateSearch(),
+        ),
+      ),
+    ];
+
+    return isMobile
+        ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: fields)
+        : Row(children: fields);
   }
 
-  Widget _buildQuickLinks() {
+  Widget _buildQuickLinks({bool heroMode = false}) {
     return Wrap(
       spacing: 12,
-      runSpacing: 8,
+      runSpacing: 10,
       children: [
         _QuickLinkChip(
           icon: Icons.near_me,
           label: 'Nearby Me',
+          heroMode: heroMode,
           isSelected: _sortBy == 'closest',
           onTap: () => setState(() => _sortBy = 'closest'),
         ),
         _QuickLinkChip(
           icon: Icons.star_outline,
           label: 'Highly Rated',
+          heroMode: heroMode,
           isSelected: _sortBy == 'rated',
           onTap: () => setState(() => _sortBy = 'rated'),
         ),
         _QuickLinkChip(
           icon: Icons.schedule,
           label: 'Available Now',
+          heroMode: heroMode,
           isSelected: _availableFilter,
           onTap: () => setState(() => _availableFilter = !_availableFilter),
         ),
@@ -314,14 +340,18 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
   }
 
   Widget _buildCategoryFilters() {
+    final palette = PublicPagePalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Category', style: TextStyle(fontSize: 12, color: BoostDriveTheme.textDim, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
+        Text(
+          'Provider Category',
+          style: TextStyle(fontSize: 12, color: palette.mutedColor, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 10,
-          runSpacing: 8,
+          runSpacing: 10,
           children: [
             _FilterChip(label: 'All', isSelected: _serviceFilter == 'all', onTap: () => setState(() => _serviceFilter = 'all')),
             _FilterChip(label: 'Mechanics', isSelected: _serviceFilter == 'mechanic', onTap: () => setState(() => _serviceFilter = 'mechanic')),
@@ -329,36 +359,26 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
             _FilterChip(label: 'Service Stations', isSelected: _serviceFilter == 'service_station', onTap: () => setState(() => _serviceFilter = 'service_station')),
             _FilterChip(label: 'Parts', isSelected: _serviceFilter == 'parts', onTap: () => setState(() => _serviceFilter = 'parts')),
             _FilterChip(label: 'Rental', isSelected: _serviceFilter == 'rental', onTap: () => setState(() => _serviceFilter = 'rental')),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Advanced filters'),
-                      content: const Text('Distance, specialization, and rating filters coming soon.'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-                      ],
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: BoostDriveTheme.primaryColor),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.tune, size: 18, color: BoostDriveTheme.primaryColor),
-                      SizedBox(width: 8),
-                      Text('Filter', style: TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 13, fontWeight: FontWeight.w600)),
+            OutlinedButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Advanced filters'),
+                    content: const Text('Distance, specialization, and rating filters coming soon.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
                     ],
                   ),
-                ),
+                );
+              },
+              icon: const Icon(Icons.tune, size: 18),
+              label: const Text('Advanced filters'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: BoostDriveTheme.primaryColor,
+                side: BorderSide(color: palette.borderColor),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
               ),
             ),
           ],
@@ -368,12 +388,13 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
   }
 
   Widget _buildSortAndViewToggle() {
+    final palette = PublicPagePalette.of(context);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text('Sort by', style: TextStyle(fontSize: 12, color: BoostDriveTheme.textDim)),
+        Text('Sort by', style: TextStyle(fontSize: 12, color: palette.mutedColor, fontWeight: FontWeight.w700)),
         _SortChip(label: 'Closest', value: 'closest', selected: _sortBy == 'closest', onTap: () => setState(() => _sortBy = 'closest')),
         _SortChip(label: 'Highest Rated', value: 'rated', selected: _sortBy == 'rated', onTap: () => setState(() => _sortBy = 'rated')),
         _SortChip(label: 'Most Experienced', value: 'experienced', selected: _sortBy == 'experienced', onTap: () => setState(() => _sortBy = 'experienced')),
@@ -397,33 +418,20 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
         return _buildProviderList(list);
       },
       loading: () => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(48),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
-              const SizedBox(height: 16),
-              Text('Loading providers…', style: TextStyle(color: BoostDriveTheme.textDim)),
-            ],
-          ),
+        child: const PublicFeedbackState(
+          icon: Icons.autorenew,
+          title: 'Loading providers',
+          message: 'Fetching verified providers from BoostDrive.',
         ),
       ),
       error: (err, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
-              const SizedBox(height: 16),
-              Text('Could not load providers. Try again.', style: TextStyle(color: BoostDriveTheme.textDim)),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => ref.invalidate(verifiedProvidersProvider(serviceType)),
-                child: const Text('Retry'),
-              ),
-            ],
+        child: PublicFeedbackState(
+          icon: Icons.error_outline,
+          title: 'Could not load providers',
+          message: 'The provider query failed. Try refreshing this list.',
+          action: TextButton(
+            onPressed: () => ref.invalidate(verifiedProvidersProvider(serviceType)),
+            child: const Text('Retry'),
           ),
         ),
       ),
@@ -431,25 +439,10 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
   }
 
   Widget _buildMapPlaceholder() {
-    return Container(
-      height: 400,
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0x22FF6600)),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.map_outlined, size: 64, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.5)),
-            const SizedBox(height: 16),
-            Text('Map view coming soon', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16)),
-            const SizedBox(height: 8),
-            Text('Pins for each provider with Navigate', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13)),
-          ],
-        ),
-      ),
+    return const PublicFeedbackState(
+      icon: Icons.map_outlined,
+      title: 'Map view coming soon',
+      message: 'The list and filters are live today. Map pins and navigation overlays can be layered into this redesigned shell next.',
     );
   }
 
@@ -458,50 +451,40 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
     final message = isTowing
         ? 'No towing services found in this area yet. Try expanding your search radius or select "All" to see other providers.'
         : 'No providers match this filter yet. Try "All" or a different category, or check back as we onboard more providers.';
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.person_search, size: 64, color: BoostDriveTheme.textDim.withValues(alpha: 0.5)),
-          const SizedBox(height: 16),
-          Text(
-            isTowing ? 'No towing services here' : 'No providers found',
-            style: TextStyle(fontSize: 18, color: BoostDriveTheme.textDim, fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(
-              message,
-              style: TextStyle(fontSize: 14, color: BoostDriveTheme.textDim),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
+    return PublicFeedbackState(
+      icon: Icons.person_search,
+      title: isTowing ? 'No towing services here' : 'No providers found',
+      message: message,
     );
   }
 
   Widget _buildProviderList(List<UserProfile> list) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: list.length,
-      itemBuilder: (context, index) {
-        final p = list[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _ProviderCard(
-            profile: p,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => _ProviderDetailPage(profile: p),
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = width > 1140 ? 3 : (width > 760 ? 2 : 1);
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: list.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+            childAspectRatio: width > 1140 ? 0.98 : 1.02,
           ),
+          itemBuilder: (context, index) {
+            final p = list[index];
+            return _ProviderCard(
+              profile: p,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => _ProviderDetailPage(profile: p),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -513,32 +496,43 @@ class _QuickLinkChip extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool isSelected;
+  final bool heroMode;
 
   const _QuickLinkChip({
     required this.icon,
     required this.label,
     required this.onTap,
     this.isSelected = false,
+    this.heroMode = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    final backgroundColor = heroMode
+        ? (isSelected
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.16))
+        : (isSelected
+            ? BoostDriveTheme.primaryColor
+            : palette.fieldBackground);
+    final foregroundColor = heroMode
+        ? (isSelected ? const Color(0xFF221C20) : Colors.white)
+        : (isSelected ? Colors.white : palette.titleColor);
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected 
-              ? BoostDriveTheme.primaryColor.withValues(alpha: 0.4) 
-              : BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: isSelected 
-                ? BoostDriveTheme.primaryColor 
-                : BoostDriveTheme.primaryColor.withValues(alpha: 0.4),
-              width: isSelected ? 1.5 : 1,
+              color: heroMode
+                  ? Colors.white.withValues(alpha: isSelected ? 0 : 0.22)
+                  : (isSelected ? BoostDriveTheme.primaryColor : palette.borderColor),
             ),
           ),
           child: Row(
@@ -547,13 +541,13 @@ class _QuickLinkChip extends StatelessWidget {
               Icon(
                 icon, 
                 size: 18, 
-                color: isSelected ? Colors.white : BoostDriveTheme.primaryColor
+                color: foregroundColor,
               ),
               const SizedBox(width: 6),
               Text(
                 label, 
                 style: TextStyle(
-                  color: Colors.white, 
+                  color: foregroundColor, 
                   fontSize: 13, 
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600
                 )
@@ -576,17 +570,18 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            color: isSelected ? BoostDriveTheme.primaryColor : palette.fieldBackground,
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: isSelected ? BoostDriveTheme.primaryColor : Color(0x22FF6600),
+              color: isSelected ? BoostDriveTheme.primaryColor : palette.borderColor,
               width: 1,
             ),
           ),
@@ -594,7 +589,7 @@ class _FilterChip extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 13,
-              color: isSelected ? Colors.white : BoostDriveTheme.textDim,
+              color: isSelected ? Colors.white : palette.titleColor,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
@@ -615,17 +610,18 @@ class _SortChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            color: selected ? BoostDriveTheme.primaryColor : palette.fieldBackground,
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? BoostDriveTheme.primaryColor : Color(0x22FF6600),
+              color: selected ? BoostDriveTheme.primaryColor : palette.borderColor,
               width: 1,
             ),
           ),
@@ -633,7 +629,7 @@ class _SortChip extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 13,
-              color: selected ? Colors.white : BoostDriveTheme.textDim,
+              color: selected ? Colors.white : palette.titleColor,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
@@ -652,11 +648,12 @@ class _ListMapToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Color(0x22FF6600)),
+        color: palette.fieldBackground,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: palette.borderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -694,6 +691,7 @@ class _ToggleSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -701,24 +699,71 @@ class _ToggleSegment extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
+            color: selected ? BoostDriveTheme.primaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: selected ? BoostDriveTheme.primaryColor : BoostDriveTheme.textDim),
+              Icon(icon, size: 18, color: selected ? Colors.white : palette.bodyColor),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? Colors.white : BoostDriveTheme.textDim,
+                  color: selected ? Colors.white : palette.titleColor,
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? foregroundColor;
+
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+    this.foregroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    final color = foregroundColor ?? palette.bodyColor;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 280),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: palette.fieldBackground,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -735,7 +780,6 @@ class _ProviderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activePromos = ref.watch(activePromotionsProvider(profile.primaryServiceCategory)).value ?? [];
     final hasPromo = activePromos.isNotEmpty;
-
     final roleLabel = _roleDisplayName(profile.role ?? 'mechanic');
     final isVerified = (profile.verificationStatus ?? '').toLowerCase() == 'approved';
     final businessContactString = (profile.businessContactNumber ?? '').trim();
@@ -747,191 +791,212 @@ class _ProviderCard extends ConsumerWidget {
     final personalContactNumber = (profile.phoneNumber ?? '').trim();
     final hasBusinessContact = businessNumbers.isNotEmpty;
     final hasPersonalContact = personalContactNumber.isNotEmpty;
+    final palette = PublicPagePalette.of(context);
+    final tags = [
+      ...profile.brandExpertise.take(2).map((key) => UserProfile.getSpecializationLabel(key)),
+      ...profile.serviceTags.take(2).map((key) => UserProfile.getSpecializationLabel(key)),
+    ].toSet().toList();
+    final locationText = (profile.serviceAreaDescription ?? '').isNotEmpty
+        ? profile.serviceAreaDescription!
+        : ((profile.workshopAddress ?? '').isNotEmpty ? profile.workshopAddress! : 'Service area on request');
+    final hoursText = (profile.workingHours ?? '').isNotEmpty ? profile.workingHours! : 'Availability on request';
+    final bio = (profile.businessBio ?? '').trim();
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.zero,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Color(0x22FF6600)),
-        ),
-        child: Row(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: palette.cardBackground,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: palette.borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: palette.isDark
+                    ? Colors.black.withValues(alpha: 0.16)
+                    : const Color(0xFFD7C8BF).withValues(alpha: 0.3),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                child: Text(
-                  getInitials(profile.displayName),
-                  style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            profile.displayName,
-                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isVerified) ...[
-                          const SizedBox(width: 8),
-                          Icon(Icons.verified, color: BoostDriveTheme.primaryColor, size: 20),
-                        ] else ...[
-                          const SizedBox(width: 8),
-                          Icon(Icons.schedule, size: 18, color: BoostDriveTheme.textDim),
-                        ],
-                        if (hasPromo) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
-                            ),
-                            child: const Text(
-                              'PROMO',
-                              style: TextStyle(
-                                color: Colors.orange,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            roleLabel,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BoostDriveTheme.primaryColor),
-                          ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.near_me, size: 14, color: BoostDriveTheme.textDim),
-                            const SizedBox(width: 4),
-                            Text(
-                              (profile.serviceAreaDescription ?? '').isNotEmpty ? (profile.serviceAreaDescription ?? '') : '— km away',
-                              style: TextStyle(fontSize: 12, color: BoostDriveTheme.textDim),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.star, size: 14, color: Colors.amber.shade700),
-                            const SizedBox(width: 2),
-                            Text('— ★', style: TextStyle(fontSize: 12, color: BoostDriveTheme.textDim)),
-                            if (profile.yearsInOperation != null) ...[
-                              const SizedBox(width: 6),
-                              Text('•', style: TextStyle(color: Color(0x22FF6600), fontSize: 12)),
-                              const SizedBox(width: 6),
-                              Text('${profile.yearsInOperation} Yrs Exp', style: TextStyle(fontSize: 12, color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600)),
-                            ],
-                          ],
-                        ),
-                        Text(
-                          (profile.workingHours ?? '').isNotEmpty ? (profile.workingHours ?? '') : 'Open Now',
-                          style: TextStyle(fontSize: 11, color: Colors.green.shade400, fontWeight: FontWeight.w600),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ],
-                    ),
-                    if ((profile.brandExpertise ?? []).isNotEmpty || (profile.serviceTags ?? []).isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            ...profile.brandExpertise.take(2).map((key) => Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: _SmallSpecializationChip(label: UserProfile.getSpecializationLabel(key)),
-                            )),
-                            ...profile.serviceTags.take(1).map((key) => Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: _SmallSpecializationChip(label: UserProfile.getSpecializationLabel(key)),
-                            )),
-                            if (profile.brandExpertise.length + profile.serviceTags.length > 3)
-                              Text(
-                                '+${profile.brandExpertise.length + profile.serviceTags.length - 3} more',
-                                style: TextStyle(fontSize: 11, color: BoostDriveTheme.textDim, fontStyle: FontStyle.italic),
-                              ),
-                          ],
-                        ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.14),
+                    child: Text(
+                      getInitials(profile.displayName),
+                      style: const TextStyle(
+                        color: BoostDriveTheme.primaryColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
                       ),
-                    ],
-                    if (hasBusinessContact || hasPersonalContact) ...[
-                      const SizedBox(height: 8),
-                      if (hasBusinessContact)
-                        ...businessNumbers.map((number) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: GestureDetector(
-                            onTap: () => _launchTel(context, number),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(Icons.business_outlined, size: 14, color: BoostDriveTheme.primaryColor),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: SelectableText(
-                                    'Business: $number',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: BoostDriveTheme.primaryColor,
-                                      fontWeight: FontWeight.w600,
-                                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              profile.displayName,
+                              style: TextStyle(
+                                color: palette.titleColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (isVerified)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.verified, size: 14, color: BoostDriveTheme.primaryColor),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Verified',
+                                      style: TextStyle(
+                                        color: BoostDriveTheme.primaryColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                            if (hasPromo)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Text(
+                                  'Promo',
+                                  style: TextStyle(
+                                    color: Colors.orange,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          roleLabel,
+                          style: TextStyle(
+                            color: palette.bodyColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
                           ),
-                        )),
-                    ],
-                  ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                bio.isNotEmpty
+                    ? bio
+                    : 'Verified provider profile on BoostDrive. View this profile to see services, experience, and contact information.',
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: palette.bodyColor,
+                  fontSize: 14,
+                  height: 1.55,
                 ),
               ),
-              if (hasBusinessContact)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showContactNumbersDialog(
-                    context,
-                    businessNumbers: businessNumbers,
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _InfoPill(icon: Icons.near_me, label: locationText),
+                  _InfoPill(
+                    icon: Icons.schedule,
+                    label: hoursText,
+                    foregroundColor: Colors.green.shade700,
                   ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Icon(Icons.phone_outlined, color: BoostDriveTheme.primaryColor, size: 24),
-                  ),
+                  if (profile.yearsInOperation != null)
+                    _InfoPill(
+                      icon: Icons.history,
+                      label: '${profile.yearsInOperation} years experience',
+                    ),
+                  if (hasPersonalContact || hasBusinessContact)
+                    _InfoPill(
+                      icon: Icons.phone_outlined,
+                      label: hasBusinessContact ? businessNumbers.first : personalContactNumber,
+                    ),
+                ],
+              ),
+              if (tags.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: tags
+                      .map((tag) => _SmallSpecializationChip(label: tag))
+                      .toList(),
                 ),
+              ],
+              const Spacer(),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  if (hasBusinessContact || hasPersonalContact)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          if (hasBusinessContact) {
+                            _showContactNumbersDialog(context, businessNumbers: businessNumbers);
+                          } else {
+                            _launchTel(context, personalContactNumber);
+                          }
+                        },
+                        icon: const Icon(Icons.phone_outlined, size: 18),
+                        label: const Text('Contact'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: BoostDriveTheme.primaryColor,
+                          side: BorderSide(color: palette.borderColor),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                  if (hasBusinessContact || hasPersonalContact) const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: onTap,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: BoostDriveTheme.primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('View Profile'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -1113,6 +1178,7 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
   @override
   Widget build(BuildContext context) {
     final profile = widget.profile;
+    final currentUser = ref.watch(currentUserProvider);
     final roleLabel = _ProviderCard._roleDisplayName(profile.role ?? 'mechanic');
     final isVerified = (profile.verificationStatus ?? '').toLowerCase() == 'approved';
     final businessContactString = (profile.businessContactNumber ?? '').trim();
@@ -1126,13 +1192,7 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
     final hasPersonalContact = personalContactNumber.isNotEmpty;
     final primaryContactNumber = hasBusinessContact ? businessNumbers.first : personalContactNumber;
 
-    return PremiumPageLayout(
-      title: profile.displayName,
-      leading: GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: const Icon(Icons.arrow_back, color: Colors.white),
-      ),
-      child: Center(
+    final pageBody = Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
           child: Padding(
@@ -1536,7 +1596,35 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
             ),
           ),
         ),
+      );
+
+    if (currentUser == null) {
+      return PublicPageFrame(
+        activeRoute: '/find-provider',
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Back'),
+              ),
+              const SizedBox(height: 12),
+              pageBody,
+            ],
+          ),
+        ),
+      );
+    }
+
+    return PremiumPageLayout(
+      title: profile.displayName,
+      leading: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: const Icon(Icons.arrow_back, color: Colors.white),
       ),
+      child: pageBody,
     );
   }
 }
@@ -1673,16 +1761,21 @@ class _SmallSpecializationChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.5), width: 1),
+        color: palette.fieldBackground,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: palette.borderColor),
       ),
       child: Text(
         label,
-        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          color: palette.titleColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

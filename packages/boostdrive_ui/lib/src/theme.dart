@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class BoostDriveTheme {
   // Brand Colors - New High-end palette
@@ -9,8 +8,6 @@ class BoostDriveTheme {
   static const Color surfaceDark = Color(0xFF1A262E); 
   static const Color accentColor = Color(0xFFFF8C00);
   static const Color backgroundLight = Color(0xFFF5F7F8);
-  
-  static const String globalBackgroundImage = 'assets/images/range_rover_hero.png';
   
   static const Color textBody = Color(0xFFEBEBF5);
   static const Color textDim = Color(0xFF90B2CB); // Based on HTML slate-500/slate-400

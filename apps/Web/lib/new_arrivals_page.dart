@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:boost_drive_web/public_page_frame.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -23,8 +24,8 @@ class _NewArrivalsPageState extends ConsumerState<NewArrivalsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumPageLayout(
-      title: 'New Arrivals',
+    return PublicPageFrame(
+      activeRoute: '/new-arrivals',
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 64.0, vertical: 40),
         child: Column(
