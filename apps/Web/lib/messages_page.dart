@@ -13,6 +13,8 @@ import 'package:record/record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:boost_drive_web/dashboard_shell.dart';
 
 class MessagesPage extends ConsumerStatefulWidget {
   final String? initialConversationId;
@@ -1095,67 +1097,77 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     );
 
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final palette = DashboardPalette.of(context);
 
     if (isMobile) {
-      return Scaffold(
-        backgroundColor: BoostDriveTheme.backgroundDark,
-        appBar: AppBar(
-          backgroundColor: BoostDriveTheme.primaryColor,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(
-            _selectedConversationId == null ? 'Messages' : 'Chat',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          leading: _selectedConversationId != null
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+      return DashboardAppShell(
+        activeTab: DashboardNavTab.messages,
+        child: Column(
+          children: [
+            if (_selectedConversationId != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
                   onPressed: () => setState(() => _selectedConversationId = null),
-                )
-              : null,
+                  icon: Icon(Icons.arrow_back, color: palette.primary),
+                  label: Text(
+                    'Back to inbox',
+                    style: GoogleFonts.montserrat(fontWeight: FontWeight.w600, color: palette.primary),
+                  ),
+                ),
+              ),
+            Expanded(
+              child: _selectedConversationId == null
+                  ? _buildConversationList(user.id)
+                  : _buildChatView(user.id, isSuspended: isSuspended),
+            ),
+          ],
         ),
-        body: _selectedConversationId == null
-            ? _buildConversationList(user.id)
-            : _buildChatView(user.id, isSuspended: isSuspended),
       );
     }
 
-    return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
-      body: Row(
-        children: [
-          // Conversations List
-          SizedBox(
-            width: 350,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      'Messages',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+    return DashboardAppShell(
+      activeTab: DashboardNavTab.messages,
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height - 64,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 350,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: palette.card,
+                  border: Border(right: BorderSide(color: palette.cardBorder)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                      child: Text(
+                        'Messages',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: palette.title,
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(child: _buildConversationList(user.id)),
-                ],
+                    Expanded(child: _buildConversationList(user.id)),
+                  ],
+                ),
               ),
             ),
-          ),
-          // Chat View
-          Expanded(
-            child: _selectedConversationId == null
-                ? _buildEmptyState()
-                : _buildChatView(user.id, isSuspended: isSuspended),
-          ),
-        ],
+            Expanded(
+              child: Container(
+                color: palette.background,
+                child: _selectedConversationId == null
+                    ? _buildEmptyState()
+                    : _buildChatView(user.id, isSuspended: isSuspended),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1235,10 +1247,11 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     return ref.watch(userConversationsProvider(userId)).when(
       data: (conversations) {
         if (conversations.isEmpty) {
-          return const Center(
+          final palette = DashboardPalette.of(context);
+          return Center(
             child: Text(
               'No conversations yet',
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(color: palette.muted),
             ),
           );
         }
@@ -1253,7 +1266,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
 
         return ListView.separated(
           itemCount: sortedConversations.length,
-          separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0x22FF6600)),
+          separatorBuilder: (context, index) => Divider(
+            height: 1,
+            color: DashboardPalette.of(context).cardBorder,
+          ),
           itemBuilder: (context, index) {
             final conv = sortedConversations[index];
             final isSelected = conv['id'] == _selectedConversationId;
@@ -1282,14 +1298,15 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             // When this conversation is open, show 0 so the badge disappears immediately
             final unreadCount = isSelected ? 0 : (unreadCounts[conv['id']] ?? 0);
 
-            // Selected row uses white background with dark text for contrast.
-            final fgColor = isSelected ? Colors.black87 : Colors.white;
-            final fgDim = isSelected ? Colors.black54 : Colors.white70;
-            final fgDimmer = isSelected ? Colors.black45 : Colors.white54;
+            final palette = DashboardPalette.of(context);
+            final fgColor = isSelected ? palette.title : palette.title;
+            final fgDim = palette.body;
+            final fgDimmer = palette.muted;
 
             return ListTile(
               selected: isSelected,
-              selectedTileColor: Colors.white,
+              selectedTileColor: palette.primaryFixed.withValues(alpha: 0.35),
+              tileColor: palette.card,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: ref.watch(userProfileProvider(otherUserId)).when(
                 data: (profile) => _buildOtherUserAvatar(profile, radius: 20, darkBg: true),
@@ -1313,13 +1330,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isDirectMessage ? Colors.orange : Colors.white,
+                        color: isDirectMessage ? palette.primaryBright : palette.secondaryContainer,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         listingType.toUpperCase(),
                         style: TextStyle(
-                          color: isDirectMessage ? Colors.white : Colors.black87,
+                          color: isDirectMessage ? Colors.white : palette.title,
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
                         ),
@@ -1340,7 +1357,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   Text(
                     productTitle,
                     style: TextStyle(
-                      color: isSelected ? Colors.black87 : BoostDriveTheme.primaryColor,
+                      color: palette.primary,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),

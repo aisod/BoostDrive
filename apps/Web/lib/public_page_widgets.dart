@@ -27,19 +27,481 @@ class PublicPagePalette {
     required this.fieldBackground,
   });
 
+  Color get primary => isDark ? const Color(0xFFF95E14) : const Color(0xFFCD4700);
+  Color get primaryText => isDark ? const Color(0xFFFFB59A) : const Color(0xFFA43700);
+  Color get onPrimaryContainer => isDark ? const Color(0xFF4F1700) : const Color(0xFFFFFBFF);
+
   factory PublicPagePalette.of(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return PublicPagePalette(
       isDark: isDark,
-      pageBackground: isDark ? const Color(0xFF101B22) : const Color(0xFFF8F3F0),
-      sectionBackground: isDark ? const Color(0xFF132028) : const Color(0xFFFFFBF8),
-      cardBackground: isDark ? const Color(0xFF18242C) : Colors.white,
-      elevatedCardBackground: isDark ? const Color(0xFF1D2B34) : const Color(0xFFF3E7DE),
-      borderColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE9DED8),
-      titleColor: isDark ? Colors.white : const Color(0xFF1F1A17),
-      bodyColor: isDark ? const Color(0xFFB9C6CF) : const Color(0xFF6D635D),
-      mutedColor: isDark ? const Color(0xFF8CA0AD) : const Color(0xFF8F847C),
-      fieldBackground: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF7EEE8),
+      pageBackground: isDark ? const Color(0xFF09151B) : const Color(0xFFF9F9F9),
+      sectionBackground: isDark ? const Color(0xFF121D24) : const Color(0xFFF3F3F3),
+      cardBackground: isDark ? const Color(0xFF162128) : Colors.white,
+      elevatedCardBackground: isDark ? const Color(0xFF202B33) : const Color(0xFFEEEEEE),
+      borderColor: isDark ? const Color(0xFF5A4138) : const Color(0xFFE3BFB2),
+      titleColor: isDark ? const Color(0xFFD8E4EE) : const Color(0xFF1A1C1C),
+      bodyColor: isDark ? const Color(0xFFE3BFB2) : const Color(0xFF5A4138),
+      mutedColor: isDark ? const Color(0xFFAA8A7E) : const Color(0xFF8F7066),
+      fieldBackground: isDark ? const Color(0xFF2B363E) : const Color(0xFFE2E2E2),
+    );
+  }
+}
+
+class PublicPageContainer extends StatelessWidget {
+  final Widget child;
+  final double maxWidth;
+
+  const PublicPageContainer({
+    super.key,
+    required this.child,
+    this.maxWidth = 1180,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 900;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 32, vertical: isMobile ? 28 : 48),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class PublicBackLink extends StatelessWidget {
+  final VoidCallback? onPressed;
+
+  const PublicBackLink({super.key, this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: onPressed ?? () => Navigator.maybePop(context),
+        icon: Icon(Icons.arrow_back, color: palette.titleColor, size: 18),
+        label: Text(
+          'Back',
+          style: GoogleFonts.montserrat(
+            color: palette.titleColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PublicPageTitle extends StatelessWidget {
+  final String? eyebrow;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  const PublicPageTitle({
+    super.key,
+    this.eyebrow,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (eyebrow != null) ...[
+          Text(
+            eyebrow!.toUpperCase(),
+            style: GoogleFonts.montserrat(
+              color: palette.primaryText,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.montserrat(
+                  fontSize: isMobile ? 32 : 48,
+                  fontWeight: FontWeight.w800,
+                  color: palette.titleColor,
+                  letterSpacing: -1.2,
+                  height: 1.05,
+                ),
+              ),
+            ),
+            if (trailing != null) trailing!,
+          ],
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            subtitle!,
+            style: GoogleFonts.montserrat(
+              fontSize: isMobile ? 15 : 18,
+              color: palette.bodyColor,
+              height: 1.55,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class PublicSplitSection extends StatelessWidget {
+  final Widget leading;
+  final Widget trailing;
+  final bool imageFirstOnMobile;
+
+  const PublicSplitSection({
+    super.key,
+    required this.leading,
+    required this.trailing,
+    this.imageFirstOnMobile = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 900;
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: imageFirstOnMobile
+            ? [trailing, const SizedBox(height: 24), leading]
+            : [leading, const SizedBox(height: 24), trailing],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: leading),
+        const SizedBox(width: 32),
+        Expanded(child: trailing),
+      ],
+    );
+  }
+}
+
+class PublicNetworkImage extends StatelessWidget {
+  final String imageUrl;
+  final double aspectRatio;
+  final double borderRadius;
+
+  const PublicNetworkImage({
+    super.key,
+    required this.imageUrl,
+    this.aspectRatio = 4 / 3,
+    this.borderRadius = 24,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: AspectRatio(
+        aspectRatio: aspectRatio,
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => ColoredBox(
+            color: palette.elevatedCardBackground,
+            child: Icon(Icons.image_outlined, color: palette.mutedColor, size: 48),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PublicPrimaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final bool expanded;
+  final IconData? icon;
+
+  const PublicPrimaryButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.expanded = false,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    final button = ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: palette.primary,
+        foregroundColor: palette.onPrimaryContainer,
+        elevation: palette.isDark ? 4 : 2,
+        shadowColor: palette.primary.withValues(alpha: 0.25),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        textStyle: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700),
+      ),
+      child: Row(
+        mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(label),
+          if (icon != null) ...[const SizedBox(width: 8), Icon(icon, size: 18)],
+        ],
+      ),
+    );
+    return expanded ? SizedBox(width: double.infinity, child: button) : button;
+  }
+}
+
+class PublicOutlinedButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+
+  const PublicOutlinedButton({super.key, required this.label, this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: palette.titleColor,
+        side: BorderSide(color: palette.borderColor),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      ),
+      child: Text(label, style: GoogleFonts.montserrat(fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+class PublicOrangeBand extends StatelessWidget {
+  final String title;
+  final String body;
+  final Widget? child;
+
+  const PublicOrangeBand({
+    super.key,
+    required this.title,
+    required this.body,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: palette.primary,
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.montserrat(
+              color: palette.onPrimaryContainer,
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            body,
+            style: GoogleFonts.montserrat(
+              color: palette.onPrimaryContainer.withValues(alpha: 0.9),
+              fontSize: 15,
+              height: 1.55,
+            ),
+          ),
+          if (child != null) ...[const SizedBox(height: 20), child!],
+        ],
+      ),
+    );
+  }
+}
+
+class PublicFeatureCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  final bool highlighted;
+
+  const PublicFeatureCard({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.highlighted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: highlighted ? palette.primary : palette.cardBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: highlighted ? palette.primary : palette.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: highlighted
+                  ? palette.onPrimaryContainer.withValues(alpha: 0.12)
+                  : palette.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: highlighted ? palette.onPrimaryContainer : palette.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: GoogleFonts.montserrat(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: highlighted ? palette.onPrimaryContainer : palette.titleColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            body,
+            style: GoogleFonts.montserrat(
+              fontSize: 14,
+              height: 1.55,
+              color: highlighted
+                  ? palette.onPrimaryContainer.withValues(alpha: 0.88)
+                  : palette.bodyColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PublicFaqTile extends StatefulWidget {
+  final String question;
+  final String answer;
+
+  const PublicFaqTile({super.key, required this.question, required this.answer});
+
+  @override
+  State<PublicFaqTile> createState() => _PublicFaqTileState();
+}
+
+class _PublicFaqTileState extends State<PublicFaqTile> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    return PublicPageSection(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 12),
+          initiallyExpanded: _expanded,
+          onExpansionChanged: (v) => setState(() => _expanded = v),
+          iconColor: palette.primaryText,
+          collapsedIconColor: palette.mutedColor,
+          title: Text(
+            widget.question,
+            style: GoogleFonts.montserrat(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: palette.titleColor,
+            ),
+          ),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.answer,
+                style: GoogleFonts.montserrat(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: palette.bodyColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PublicLegalSection extends StatelessWidget {
+  final String title;
+  final String body;
+  final int? index;
+
+  const PublicLegalSection({
+    super.key,
+    required this.title,
+    required this.body,
+    this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            index != null ? '$index. $title' : title,
+            style: GoogleFonts.montserrat(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: palette.titleColor,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            body,
+            style: GoogleFonts.montserrat(
+              fontSize: 15,
+              height: 1.7,
+              color: palette.bodyColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

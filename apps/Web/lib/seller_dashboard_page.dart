@@ -6,8 +6,9 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 
-import 'package:boost_drive_web/edit_listing_page.dart';
 import 'package:boost_drive_web/add_listing_page.dart';
+import 'package:boost_drive_web/dashboard_shell.dart';
+import 'package:boost_drive_web/edit_listing_page.dart';
 
 /// Seller dashboard where users manage their marketplace listings.
 class SellerDashboardPage extends ConsumerStatefulWidget {
@@ -54,159 +55,123 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
       );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1117), // Dark-themed background
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1117),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          'My Listings',
-          style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+    final profile = ref.watch(userProfileProvider(user.id)).value;
+    final displayName = profile?.fullName ?? 'Seller';
+
+    return DashboardAppShell(
+      activeTab: DashboardNavTab.listings,
+      sidebar: SellerDashboardSidebar(
+        displayName: displayName,
+        onAddListing: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage())),
+        onSettings: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSettingsPage())),
       ),
-      body: ref.watch(sellerProductsProvider(user.id)).when(
-        // Show dashboard when seller products are loaded.
-        data: (products) {
-          return SingleChildScrollView(
-            controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-            child: Column(
+      child: DashboardPageContainer(
+        child: ref.watch(sellerProductsProvider(user.id)).when(
+          data: (products) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeaderStats(products),
-                const SizedBox(height: 48),
-                _buildTabs(),
                 const SizedBox(height: 32),
+                _buildTabs(),
+                const SizedBox(height: 24),
                 _buildFilteredListings(products),
               ],
-            ),
-          );
-        },
-        // Show spinner while product data is loading.
-        loading: () => const Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
-        // Show readable error if products fail to load.
-        error: (err, _) => Center(child: Text('Error loading listings: $err', style: const TextStyle(color: Colors.red))),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error loading listings: $err', style: TextStyle(color: DashboardPalette.of(context).error))),
+        ),
       ),
     );
   }
 
-  /// Builds top metrics row and "Add New Listing" button.
   Widget _buildHeaderStats(List<Product> products) {
-    int activeCount = products.where((p) => p.status == 'active').length;
-    int pendingCount = products.where((p) => p.status == 'pending').length;
-    int totalViews = products.fold(0, (sum, p) => sum + (p.clickCount ?? 0));
+    final palette = DashboardPalette.of(context);
+    final activeCount = products.where((p) => p.status == 'active').length;
+    final pendingCount = products.where((p) => p.status == 'pending').length;
+    final totalViews = products.fold(0, (sum, p) => sum + (p.clickCount ?? 0));
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Dashboard Overview',
-                style: GoogleFonts.montserrat(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatBox('Active Listings', activeCount.toString(), Icons.inventory_2_outlined),
-                  const SizedBox(width: 24),
-                  _buildStatBox('Pending Approval', pendingCount.toString(), Icons.hourglass_empty),
-                  const SizedBox(width: 24),
-                  _buildStatBox('Total Views / Leads', totalViews.toString(), Icons.trending_up),
+                  Text(
+                    'My Listings',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: palette.title,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Manage your active vehicle inventory and leads.',
+                    style: GoogleFonts.montserrat(fontSize: 16, color: palette.body),
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            DashboardPillButton(
+              label: 'Add New Listing',
+              icon: Icons.add_circle_outline,
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage())),
+            ),
+          ],
         ),
-        ElevatedButton.icon(
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage()));
+        const SizedBox(height: 24),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 700;
+            final stats = [
+              DashboardStatCard(label: 'Active Listings', value: '$activeCount', icon: Icons.check_circle_outline),
+              DashboardStatCard(label: 'Pending Approval', value: '$pendingCount', icon: Icons.pending_actions_outlined, iconTint: palette.tertiaryFixed),
+              DashboardStatCard(label: 'Total Views / Leads', value: '$totalViews', icon: Icons.trending_up),
+            ];
+            if (isNarrow) {
+              return Column(children: stats.map((s) => Padding(padding: const EdgeInsets.only(bottom: 16), child: s)).toList());
+            }
+            return Row(
+              children: [
+                Expanded(child: stats[0]),
+                const SizedBox(width: 16),
+                Expanded(child: stats[1]),
+                const SizedBox(width: 16),
+                Expanded(child: stats[2]),
+              ],
+            );
           },
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: Text(
-            'Add New Listing',
-            style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: BoostDriveTheme.primaryColor,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 4,
-          ),
         ),
       ],
     );
   }
 
-  /// Reusable stat card widget used in dashboard header.
-  Widget _buildStatBox(String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: BoostDriveTheme.primaryColor, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: GoogleFonts.montserrat(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              value,
-              style: GoogleFonts.montserrat(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
+  Widget _buildTabs() {
+    final palette = DashboardPalette.of(context);
+    return TabBar(
+      controller: _tabController,
+      isScrollable: true,
+      indicatorColor: palette.primaryBright,
+      indicatorWeight: 3,
+      labelColor: palette.primary,
+      unselectedLabelColor: palette.body,
+      dividerColor: palette.cardBorder,
+      tabs: _tabs
+          .map(
+            (t) => Tab(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(t, style: GoogleFonts.montserrat(fontWeight: FontWeight.w600)),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Builds tab bar for listing status filters.
-  Widget _buildTabs() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        isScrollable: true,
-        indicatorColor: BoostDriveTheme.primaryColor,
-        indicatorWeight: 4,
-        labelColor: BoostDriveTheme.primaryColor,
-        unselectedLabelColor: Colors.white60,
-        tabs: _tabs.map((t) => Tab(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(t, style: GoogleFonts.montserrat(fontWeight: FontWeight.bold)),
-          ),
-        )).toList(),
-      ),
+          )
+          .toList(),
     );
   }
 
@@ -240,49 +205,35 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
 
   /// Empty-state section shown when current tab has no listings.
   Widget _buildEmptyState(String currentTab) {
-    return Container(
-      padding: const EdgeInsets.all(64),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05), style: BorderStyle.solid),
-      ),
+    final palette = DashboardPalette.of(context);
+    return DashboardCard(
+      padding: const EdgeInsets.all(48),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            currentTab == 'Rejected' ? Icons.warning_amber_rounded : Icons.store_mall_directory_outlined, 
-            size: 80, 
-            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.5)
+            currentTab == 'Rejected' ? Icons.warning_amber_rounded : Icons.store_mall_directory_outlined,
+            size: 72,
+            color: palette.primary.withValues(alpha: 0.6),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
-            currentTab == 'All' || currentTab == 'Active' 
-              ? "You haven't listed anything yet!"
-              : "No $currentTab listings found.",
-            style: GoogleFonts.montserrat(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            "Start selling your spare parts or vehicles to the BoostDrive community today.",
-            style: const TextStyle(color: Colors.white60, fontSize: 16),
+            currentTab == 'All' || currentTab == 'Active'
+                ? "You haven't listed anything yet!"
+                : 'No $currentTab listings found.',
+            style: GoogleFonts.montserrat(color: palette.title, fontSize: 22, fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-             onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage()));
-             },
-             style: ElevatedButton.styleFrom(
-               backgroundColor: BoostDriveTheme.primaryColor,
-               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-             ),
-             child: Text(
-               'Create Your First Listing',
-               style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.bold),
-             ),
+          const SizedBox(height: 10),
+          Text(
+            'Start selling your spare parts or vehicles to the BoostDrive community today.',
+            style: GoogleFonts.montserrat(color: palette.body, fontSize: 15),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          DashboardPillButton(
+            label: 'Create Your First Listing',
+            icon: Icons.add,
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage())),
           ),
         ],
       ),
@@ -291,17 +242,13 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
 
   /// Full listing card with image, meta, and inline action buttons.
   Widget _buildListingCard(Product p) {
+    final palette = DashboardPalette.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: palette.cardBorder),
+        boxShadow: palette.cardShadowLow,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(

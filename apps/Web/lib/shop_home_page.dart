@@ -22,6 +22,8 @@ import 'package:boost_drive_web/find_providers_page.dart';
 import 'boostdrive_banner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'nav_hover_underline.dart';
+import 'public_nav_dropdown.dart';
+import 'dashboard_router.dart';
 import 'suspension_overlay.dart';
 
 class ShopHomePage extends ConsumerStatefulWidget {
@@ -349,7 +351,11 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
         backgroundColor: Colors.white,
         child: BoostLoginPage(
           onLoginSuccess: () {
-            _scaffoldKey.currentState?.closeEndDrawer();
+            handleWebLoginSuccess(
+              context,
+              ref,
+              closeDrawer: () => _scaffoldKey.currentState?.closeEndDrawer(),
+            );
           },
           onClose: () {
             _scaffoldKey.currentState?.closeEndDrawer();
@@ -530,24 +536,24 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                     ),
                     Expanded(
                       flex: 2,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          if (user == null) {
-                            _showLoginDialog();
-                          } else {
-                            ref.read(authServiceProvider).signOut();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.red.shade50,
-                          foregroundColor: user == null ? Colors.white : Colors.redAccent,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        icon: Icon(user == null ? Icons.login : Icons.logout, size: 18),
-                        label: Text(user == null ? 'Login' : 'Log Out', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      if (user == null) {
+                        _showLoginDialog();
+                      } else {
+                        ref.read(authServiceProvider).signOut();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: user == null ? BoostDriveTheme.primaryColor : Colors.red.shade50,
+                      foregroundColor: user == null ? Colors.white : Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: Icon(user == null ? Icons.login : Icons.logout, size: 18),
+                    label: Text(user == null ? 'Login' : 'Log Out', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
                     ),
                   ],
                 ),
@@ -564,13 +570,13 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
         title: GestureDetector(
           onTap: _goHome,
           child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'BoostDrive',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -1, color: Colors.white),
-              ),
-            ],
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'BoostDrive',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -1, color: Colors.white),
+            ),
+          ],
           ),
         ),
         actions: [
@@ -651,9 +657,9 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
       Positioned.fill(
         child: SuspensionOverlay(
           reason: user != null ? ref.watch(userProfileProvider(user!.id)).valueOrNull?.suspensionReason : null,
-        ),
-      ),
-    ],
+                        ),
+                      ),
+                    ],
     );
   }
 
@@ -665,8 +671,8 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 22, vertical: isMobile ? 18 : 26),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
             _buildFeaturedMarketplaceHeader(isMobile, isDark),
             const SizedBox(height: 16),
             _buildGrid(isMobile, isDark),
@@ -705,9 +711,9 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                   fontSize: isMobile ? 11 : 12,
                 ),
               ),
-            ],
-          ),
-        ),
+        ],
+      ),
+    ),
         TextButton.icon(
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())),
           iconAlignment: IconAlignment.end,
@@ -716,9 +722,9 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           style: TextButton.styleFrom(
             foregroundColor: BoostDriveTheme.primaryColor,
             textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
-          ),
         ),
-      ],
+      ),
+    ],
     );
   }
 
@@ -939,17 +945,17 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: isMobile ? 292 : 236,
-            child: isMobile
-                ? Column(
-                    children: [
-                      Expanded(child: _buildDarkServiceImageCard()),
-                      const SizedBox(height: 10),
-                      Expanded(child: _buildDarkServiceOrangeCard()),
-                    ],
-                  )
-                : Row(
+          isMobile
+              ? Column(
+                  children: [
+                    _buildDarkServiceImageCard(compact: true),
+                    const SizedBox(height: 10),
+                    SizedBox(height: 132, child: _buildDarkServiceOrangeCard()),
+                  ],
+                )
+              : SizedBox(
+                  height: 236,
+                  child: Row(
                     children: [
                       Expanded(flex: 3, child: _buildDarkServiceImageCard()),
                       const SizedBox(width: 10),
@@ -973,7 +979,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                       ),
                     ],
                   ),
-          ),
+                ),
         ],
       ),
     );
@@ -1146,7 +1152,70 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
     );
   }
 
-  Widget _buildDarkServiceImageCard() {
+  Widget _buildDarkServiceImageCard({bool compact = false}) {
+    if (compact) {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0B2232),
+              Color(0xFF14364B),
+              Color(0xFF081722),
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              child: const Text(
+                'TRUSTED SERVICES',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Find vetted providers for roadside help, parts, and repairs.',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage())),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white70),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              ),
+              child: const Text('FIND A PROVIDER'),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
@@ -1296,40 +1365,14 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
 
 
   Widget _getDashboardForRole(String role) {
-    // Make role matching resilient to inconsistent formatting in DB
-    // (spaces vs underscores vs hyphens, extra whitespace, etc).
-    final cleaned = role.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), ' ');
-
-    if (cleaned == 'admin' || cleaned == 'super_admin' || cleaned == 'super admin') {
-      return SuperAdminDashboardPage();
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      final profile = ref.read(userProfileProvider(user.id)).valueOrNull;
+      if (profile != null) {
+        return dashboardWidgetForProfile(profile);
+      }
     }
-
-    // Seller/shop roles.
-    if (cleaned == 'seller' || cleaned.contains('seller')) {
-      return SellerDashboardPage();
-    }
-
-    // Service provider / mechanic / towing / logistics / rental roles.
-    // Some accounts store role as just "provider".
-    if (cleaned == 'service_provider') return ProviderHubPage();
-
-    final isServiceProviderRole =
-        cleaned.contains('service provider') ||
-        cleaned.contains('service pro');
-
-    final isProvider =
-        isServiceProviderRole ||
-        cleaned.contains('mechanic') ||
-        cleaned.contains('towing') ||
-        cleaned.contains('logistics') ||
-        cleaned.contains('rental');
-
-    if (isProvider) {
-      return ProviderHubPage();
-    }
-
-  // Fallback: customer dashboard.
-    return CustomerDashboardPage();
+    return dashboardWidgetForRole(role);
   }
 
   /// True if the role is a service provider (mechanic, towing, seller, etc.) who sees "Services requested" in nav.
@@ -1352,39 +1395,62 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
   Widget _buildEditorialNavBar(dynamic user) {
     final List<Widget> navChildren = user == null
         ? [
-            _EditorialNavLink(text: 'Marketplace', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
-            _EditorialNavLink(text: 'Buy parts', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsMarketplacePage())), isDark: true),
-            _EditorialNavLink(text: 'Rent a car', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
-            _EditorialNavLink(text: 'Sell your car', onTap: () => _showLoginDialog(), isDark: true),
-            _EditorialNavLink(text: 'New arrivals', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewArrivalsPage())), isDark: true),
-            _EditorialNavLink(text: 'Find a Provider', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage())), isDark: true),
-            _EditorialNavDropdown(
-              title: 'Company',
-              items: [
-                _DropdownItem(label: 'About us', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage()))),
-                _DropdownItem(label: 'Contact', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContactPage()))),
-                _DropdownItem(label: 'Careers', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CareersPage()))),
-                _DropdownItem(label: 'Partner program', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerProgramPage()))),
+          _EditorialNavLink(text: 'Marketplace', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
+          _EditorialNavLink(text: 'Buy parts', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsMarketplacePage())), isDark: true),
+          _EditorialNavLink(text: 'Rent a car', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
+          _EditorialNavLink(text: 'Sell your car', onTap: () => _showLoginDialog(), isDark: true),
+          _EditorialNavLink(text: 'New arrivals', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewArrivalsPage())), isDark: true),
+          _EditorialNavLink(text: 'Find a Provider', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage())), isDark: true),
+            BoostNavHoverDropdown(
+              label: 'Company',
+              isActive: false,
+              fontSize: 16,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              items: const [
+                BoostNavDropdownItem(label: 'About us', route: '/about'),
+                BoostNavDropdownItem(label: 'Contact', route: '/contact'),
+                BoostNavDropdownItem(label: 'Careers', route: '/careers'),
+                BoostNavDropdownItem(label: 'Partner program', route: '/partner-program'),
               ],
             ),
-            _EditorialNavDropdown(
-              title: 'Support',
-              items: [
-                _DropdownItem(label: 'Safety center', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyCenterPage()))),
-                _DropdownItem(label: 'Terms of service', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsPage()))),
-                _DropdownItem(label: 'Privacy policy', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
-                _DropdownItem(label: 'FAQ', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage()))),
+            BoostNavHoverDropdown(
+              label: 'Support',
+              isActive: false,
+              fontSize: 16,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              items: const [
+                BoostNavDropdownItem(label: 'Safety center', route: '/safety'),
+                BoostNavDropdownItem(label: 'Terms of service', route: '/terms'),
+                BoostNavDropdownItem(label: 'Privacy policy', route: '/privacy'),
+                BoostNavDropdownItem(label: 'FAQ', route: '/faq'),
               ],
             ),
           ]
         : [
-            _EditorialNavLink(text: 'MARKETPLACE', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
-            _EditorialNavLink(text: 'MESSAGES', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage())), isDark: true),
-            Consumer(
-              builder: (context, ref, _) {
-                final profile = ref.watch(userProfileProvider(user.id)).value;
+          _EditorialNavLink(text: 'MARKETPLACE', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllListingsPage())), isDark: true),
+          Consumer(
+            builder: (context, ref, _) {
+              final profile = ref.watch(userProfileProvider(user.id)).value;
+              final isProvider = profile != null && _isProviderRole(profile.role);
+              return _EditorialNavLink(
+                text: isProvider ? 'SERVICES REQUESTED' : 'FIND A PROVIDER',
+                onTap: () {
+                  if (isProvider) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderHubPage()));
+                  } else {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage()));
+                  }
+                },
+                isDark: true,
+              );
+            },
+          ),
+          _EditorialNavLink(text: 'MESSAGES', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage())), isDark: true),
+          Consumer(
+            builder: (context, ref, _) {
+              final profile = ref.watch(userProfileProvider(user.id)).value;
                 if (profile == null || _isProviderRole(profile.role)) {
-                  return const SizedBox.shrink();
+                return const SizedBox.shrink();
                 }
 
                 return Row(
@@ -1394,62 +1460,62 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                     _EditorialNavLink(text: 'RENTALS', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
                   ],
                 );
-              },
-            ),
-            _EditorialNavLink(
-              text: 'DASHBOARD',
-              onTap: () {
-                final profile = ref.read(userProfileProvider(user.id)).value;
-                if (profile != null) {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
-                }
-              },
+            },
+          ),
+          _EditorialNavLink( 
+            text: 'DASHBOARD', 
+            onTap: () {
+               final profile = ref.read(userProfileProvider(user.id)).value;
+               if (profile != null) {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => _getDashboardForRole(profile.role)));
+               }
+            }, 
               isDark: true,
-            ),
+          ),
           ];
-
+          
     final List<Widget> trailingChildren = [
       if (user != null)
-        Consumer(
-          builder: (context, ref, _) {
-            return Row(
+          Consumer(
+            builder: (context, ref, _) {
+              return Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildNotificationBell(ref, user.id),
+                children: [
+                  _buildNotificationBell(ref, user.id),
                 const SizedBox(width: 12),
-                _buildProfileIcon(ref, user.id),
+                  _buildProfileIcon(ref, user.id),
                 const SizedBox(width: 12),
-              ],
-            );
-          },
-        ),
-      _buildThemeToggleButton(),
-      Container(
-        margin: const EdgeInsets.only(left: 12),
-        child: ElevatedButton(
-          onPressed: () {
-            if (user == null) {
-              _showLoginDialog();
-            } else {
-              ref.read(authServiceProvider).signOut();
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: BoostDriveTheme.primaryColor,
-            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
-            shape: const StadiumBorder(),
-            elevation: 0,
+                ],
+              );
+            },
           ),
-          child: Text(
-            user == null ? 'Login' : 'Log Out',
-            style: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w700,
+      _buildThemeToggleButton(),
+        Container(
+        margin: const EdgeInsets.only(left: 12),
+          child: ElevatedButton(
+            onPressed: () {
+              if (user == null) {
+                _showLoginDialog();
+              } else {
+                ref.read(authServiceProvider).signOut();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: BoostDriveTheme.primaryColor,
+            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+              shape: const StadiumBorder(),
+              elevation: 0,
+            ),
+            child: Text(
+              user == null ? 'Login' : 'Log Out',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w700,
               fontSize: 15,
+              ),
             ),
           ),
         ),
-      ),
     ];
 
     return Row(
@@ -1821,130 +1887,6 @@ class _DrawerNavTile extends StatelessWidget {
   }
 }
 
-class _DropdownItem {
-  final String label;
-  final VoidCallback onTap;
-  _DropdownItem({required this.label, required this.onTap});
-}
-
-class _EditorialNavDropdown extends StatefulWidget {
-  final String title;
-  final List<_DropdownItem> items;
-
-  const _EditorialNavDropdown({
-    required this.title,
-    required this.items,
-  });
-
-  @override
-  State<_EditorialNavDropdown> createState() => _EditorialNavDropdownState();
-}
-
-class _EditorialNavDropdownState extends State<_EditorialNavDropdown> {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-  bool _isHovered = false;
-
-  void _showOverlay() {
-    if (_overlayEntry != null) return;
-
-    final overlay = Overlay.of(context);
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: 220,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: const Offset(0, 45),
-          child: MouseRegion(
-            onEnter: (_) => setState(() => _isHovered = true),
-            onExit: (_) => _hideOverlay(),
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: widget.items.map((item) => _buildItem(item)).toList(),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    overlay.insert(_overlayEntry!);
-  }
-
-  void _hideOverlay() {
-    setState(() => _isHovered = false);
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (!_isHovered) {
-        _overlayEntry?.remove();
-        _overlayEntry = null;
-      }
-    });
-  }
-
-  Widget _buildItem(_DropdownItem item) {
-    return InkWell(
-      onTap: () {
-        _overlayEntry?.remove();
-        _overlayEntry = null;
-        item.onTap();
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Text(
-          item.label,
-          style: GoogleFonts.montserrat(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: BoostNavHoverUnderline(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        onHoverChanged: (isHovered) {
-          if (isHovered) {
-            setState(() => _isHovered = true);
-            _showOverlay();
-          } else {
-            _hideOverlay();
-          }
-        },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.title,
-              style: GoogleFonts.montserrat(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _EditorialNavLink extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
@@ -1956,13 +1898,15 @@ class _EditorialNavLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return BoostNavHoverUnderline(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      onTap: onTap,
-      child: Text(
-        text,
-        style: GoogleFonts.montserrat(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : Colors.black87,
+          onTap: onTap,
+          child: Text(
+            text,
+        maxLines: 1,
+        softWrap: false,
+            style: GoogleFonts.montserrat(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black87,
         ),
       ),
     );

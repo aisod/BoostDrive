@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boost_drive_web/public_page_widgets.dart';
-import 'package:boost_drive_web/public_top_nav_bar.dart';
+import 'package:boost_drive_web/public_page_frame.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -16,7 +16,6 @@ class RentalMarketplacePage extends ConsumerStatefulWidget {
 }
 
 class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
 
   String? _selectedMake;
@@ -65,30 +64,13 @@ class _RentalMarketplacePageState extends ConsumerState<RentalMarketplacePage> {
     });
   }
 
-  void _showLoginDrawer() {
-    _scaffoldKey.currentState?.openEndDrawer();
-  }
-
   @override
   Widget build(BuildContext context) {
     final palette = PublicPagePalette.of(context);
     final isMobile = MediaQuery.of(context).size.width < 900;
 
-    return PremiumPageLayout(
-      scaffoldKey: _scaffoldKey,
-      appBar: BoostDrivePublicTopNavBar(
-        activeRoute: '/rent-a-car',
-        onAuthTap: _showLoginDrawer,
-      ),
-      endDrawer: Drawer(
-        width: isMobile ? MediaQuery.of(context).size.width : MediaQuery.of(context).size.width * 0.46,
-        backgroundColor: Colors.white,
-        child: BoostLoginPage(
-          onLoginSuccess: () => _scaffoldKey.currentState?.closeEndDrawer(),
-          onClose: () => _scaffoldKey.currentState?.closeEndDrawer(),
-        ),
-      ),
-      footer: const AppFooter(),
+    return PublicPageFrame(
+      activeRoute: '/rent-a-car',
       child: ColoredBox(
         color: palette.pageBackground,
         child: SingleChildScrollView(

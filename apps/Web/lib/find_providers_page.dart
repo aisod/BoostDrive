@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boost_drive_web/public_page_frame.dart';
 import 'package:boost_drive_web/public_page_widgets.dart';
-import 'package:boost_drive_web/public_top_nav_bar.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -25,7 +24,6 @@ class FindProvidersPage extends ConsumerStatefulWidget {
 }
 
 class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   /// 'all' | 'mechanic' | 'towing' | 'parts' | 'rental' | 'service_station'
   String _serviceFilter = 'all';
   final TextEditingController _locationController = TextEditingController();
@@ -65,10 +63,6 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
         setState(() {});
       }
     });
-  }
-
-  void _showLoginDrawer() {
-    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   String? _getServiceTypeForProvider() {
@@ -178,21 +172,8 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
       return sorted;
     });
 
-    return PremiumPageLayout(
-      scaffoldKey: _scaffoldKey,
-      appBar: BoostDrivePublicTopNavBar(
-        activeRoute: '/find-provider',
-        onAuthTap: _showLoginDrawer,
-      ),
-      endDrawer: Drawer(
-        width: isMobile ? MediaQuery.of(context).size.width : MediaQuery.of(context).size.width * 0.46,
-        backgroundColor: Colors.white,
-        child: BoostLoginPage(
-          onLoginSuccess: () => _scaffoldKey.currentState?.closeEndDrawer(),
-          onClose: () => _scaffoldKey.currentState?.closeEndDrawer(),
-        ),
-      ),
-      footer: const AppFooter(),
+    return PublicPageFrame(
+      activeRoute: '/find-provider',
       child: RepaintBoundary(
         child: ColoredBox(
           color: palette.pageBackground,

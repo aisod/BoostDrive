@@ -11,6 +11,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'theme.dart';
 import 'boostdrive_stepper.dart';
+import 'dashboard_palette.dart';
+import 'dashboard_ui_components.dart';
 
 /// Editable name/phone row for SOS emergency contacts (backed by [EmergencyContact] on save).
 class _EmergencyContactFieldPair {
@@ -3121,25 +3123,36 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           return _buildProviderProfileScaffold(profile, isWide);
         }
 
+        final dashPalette = DashboardPalette.of(context);
         return Scaffold(
-          backgroundColor: const Color(0xFFFFFFFF),
+          backgroundColor: dashPalette.background,
           appBar: AppBar(
-            backgroundColor: BoostDriveTheme.primaryColor,
-            elevation: 0,
+            backgroundColor: dashPalette.navBar,
+            elevation: 4,
+            shadowColor: Colors.black.withValues(alpha: 0.12),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
               'Profile Settings',
-              style: TextStyle(fontFamily: 'Manrope', 
+              style: TextStyle(
+                fontFamily: 'Montserrat',
                 color: Colors.white,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 fontSize: 18,
               ),
             ),
-            centerTitle: true,
+            centerTitle: false,
             actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                onPressed: () {},
+              ),
+              IconButton(
+                icon: const Icon(Icons.help_outline, color: Colors.white),
+                onPressed: () {},
+              ),
               if (_isEditing)
                 IconButton(
                   icon: const Icon(Icons.check, color: Colors.white),
@@ -3225,8 +3238,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   Widget _buildProfileHeader(UserProfile profile) {
     final isProvider = _isProviderRole(profile.role);
-    
-    return Column(
+    final palette = DashboardPalette.of(context);
+
+    return DashboardCard(
+      padding: const EdgeInsets.all(32),
+      child: Column(
       children: [
         MouseRegion(
           cursor: SystemMouseCursors.click,
@@ -3301,10 +3317,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 16),
         Text(
           profile.fullName.isEmpty ? 'Set Name' : profile.fullName,
-          style: TextStyle(fontFamily: 'Manrope', 
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF000000),
+          style: GoogleFonts.montserrat(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: palette.title,
           ),
         ),
         if (isProvider) ...[
@@ -3339,13 +3355,14 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             profile.isSeller
                 ? 'BoostDrive Seller since ${profile.createdAt.year}'
                 : 'BoostDrive Customer since ${profile.createdAt.year}',
-            style: TextStyle(fontFamily: 'Manrope', 
-              fontSize: 13,
+            style: GoogleFonts.montserrat(
+              fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF000000),
+              color: palette.body,
             ),
           ),
       ],
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boost_drive_web/public_page_frame.dart';
+import 'package:boost_drive_web/public_page_widgets.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
@@ -122,19 +123,19 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
   }
 
   void _showSuccessDialog() {
-    // Show success confirmation and return to marketplace flow.
+    final palette = PublicPagePalette.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
           width: 400,
           padding: const EdgeInsets.all(40),
           decoration: BoxDecoration(
-            color: BoostDriveTheme.surfaceDark,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Color(0x22FF6600)),
+            color: palette.cardBackground,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: palette.borderColor),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -148,26 +149,24 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
                 child: const Icon(Icons.check_circle_outline, color: Colors.green, size: 64),
               ),
               const SizedBox(height: 32),
-              const Text(
+              Text(
                 'Listing Published!',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: palette.titleColor),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Your listing has been successfully listed on BoostDrive.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16, height: 1.5),
+                style: TextStyle(color: palette.bodyColor, fontSize: 16, height: 1.5),
               ),
               const SizedBox(height: 40),
-              ElevatedButton(
+              PublicPrimaryButton(
+                label: 'Back to Marketplace',
+                expanded: true,
                 onPressed: () {
-                  Navigator.pop(context, true); // Return true to signal refresh
-                  Navigator.pop(context, true); // Return to home
+                  Navigator.pop(dialogContext, true);
+                  Navigator.pop(context, true);
                 },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                ),
-                child: const Text('Back to Marketplace'),
               ),
             ],
           ),
@@ -176,223 +175,338 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
     );
   }
 
+  InputDecoration _fieldDecoration(BuildContext context, String label, {String? hint, String? prefix}) {
+    final palette = PublicPagePalette.of(context);
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixText: prefix,
+      filled: true,
+      fillColor: palette.fieldBackground,
+      labelStyle: TextStyle(color: palette.mutedColor, fontWeight: FontWeight.w600),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: palette.borderColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: palette.borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: palette.primary, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
     return PublicPageFrame(
       activeRoute: '/sell-your-car',
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextButton.icon(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back'),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Card(
-                  color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.9),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
-                    side: const BorderSide(color: Color(0x22FF6600)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(48.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(Icons.add_business, color: BoostDriveTheme.primaryColor),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Publish Your Listing',
-                                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                                    ),
-                                    Text(
-                                      'Join Namibia\'s fastest growing marketplace.',
-                                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 48),
-                          _buildSectionTitle('Basic Information'),
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: DropdownButtonFormField<String>(
-                                  initialValue: _category,
-                                  decoration: const InputDecoration(labelText: 'Category'),
-                                  dropdownColor: BoostDriveTheme.surfaceDark,
-                                  items: const [
-                                    DropdownMenuItem(value: 'car', child: Text('Car for Sale')),
-                                    DropdownMenuItem(value: 'part', child: Text('Spare Part')),
-                                    DropdownMenuItem(value: 'rental', child: Text('Vehicle for Rent')),
-                                  ],
-                                  onChanged: (v) => setState(() => _category = v!),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 1,
-                                child: DropdownButtonFormField<String>(
-                                  initialValue: _condition,
-                                  decoration: const InputDecoration(labelText: 'Condition'),
-                                  dropdownColor: BoostDriveTheme.surfaceDark,
-                                  items: const [
-                                    DropdownMenuItem(value: 'new', child: Text('New')),
-                                    DropdownMenuItem(value: 'used', child: Text('Used')),
-                                    DropdownMenuItem(value: 'salvage', child: Text('Salvage')),
-                                  ],
-                                  onChanged: (v) => setState(() => _condition = v!),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          TextFormField(
-                            controller: _titleController,
-                            decoration: const InputDecoration(
-                              labelText: 'Listing Title',
-                              hintText: 'e.g., 2024 Toyota Hilux GD-6',
-                            ),
-                            validator: (v) => v!.isEmpty ? 'Enter a title' : null,
-                          ),
-                          const SizedBox(height: 24),
-                          TextFormField(
-                            controller: _subtitleController,
-                            decoration: const InputDecoration(
-                              labelText: 'Subtitle / Key Features',
-                              hintText: 'e.g., Double Cab 4x4, Blue, 12,000km',
-                            ),
-                            validator: (v) => v!.isEmpty ? 'Enter a subtitle' : null,
-                          ),
-                          const SizedBox(height: 48),
-                          _buildSectionTitle('Pricing & Location'),
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _priceController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Price',
-                                    prefixText: 'N\$ ',
-                                  ),
-                                  validator: (v) => double.tryParse(v ?? '') == null ? 'Enter a valid price' : null,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _locationController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'City / Region',
-                                    hintText: 'e.g., Windhoek',
-                                  ),
-                                  validator: (v) => v!.isEmpty ? 'Enter a location' : null,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          TextFormField(
-                            controller: _descriptionController,
-                            maxLines: null,
-                            minLines: 8,
-                            keyboardType: TextInputType.multiline,
-                            decoration: const InputDecoration(
-                              labelText: 'Detailed Description',
-                              hintText: 'Provide a comprehensive description of your item...',
-                              alignLabelWithHint: true,
-                            ),
-                            onChanged: (v) => setState(() {}),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return 'Description is required';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 48),
-                          _buildSectionTitle('Media Assets'),
-                          const SizedBox(height: 24),
-                          BoostImagePicker(
-                            onChanged: (images) => setState(() => _selectedImages = images),
-                            label: 'Vehicle Photos',
-                            maxImages: 10,
-                          ),
-                          const SizedBox(height: 64),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 64,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: BoostDriveTheme.primaryColor,
-                                foregroundColor: Colors.white,
-                                elevation: 8,
-                                shadowColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.4),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              ),
-                              child: _isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text(
-                                      'Publish Your Listing',
-                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                    ),
-                            ),
-                          ),
-                        ],
+      child: ColoredBox(
+        color: palette.pageBackground,
+        child: PublicPageContainer(
+          maxWidth: 800,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.arrow_back, color: palette.titleColor),
+                    ),
+                    Text(
+                      'Add New Listing',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: palette.titleColor,
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: palette.cardBackground,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: palette.borderColor),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: palette.isDark ? 0.25 : 0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: palette.primary.withValues(alpha: 0.06),
+                          border: Border(bottom: BorderSide(color: palette.borderColor)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: palette.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(Icons.add_business, color: palette.primary),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Publish Your Listing',
+                                    style: TextStyle(
+                                      fontSize: isMobile ? 24 : 28,
+                                      fontWeight: FontWeight.w800,
+                                      color: palette.titleColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Join Namibia\'s fastest growing marketplace.',
+                                    style: TextStyle(color: palette.bodyColor, fontSize: 15),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSectionTitle(context, 'Basic Information'),
+                              const SizedBox(height: 20),
+                              isMobile
+                                  ? Column(
+                                      children: [
+                                        DropdownButtonFormField<String>(
+                                          initialValue: _category,
+                                          decoration: _fieldDecoration(context, 'Category'),
+                                          dropdownColor: palette.cardBackground,
+                                          items: const [
+                                            DropdownMenuItem(value: 'car', child: Text('Car for Sale')),
+                                            DropdownMenuItem(value: 'part', child: Text('Spare Part')),
+                                            DropdownMenuItem(value: 'rental', child: Text('Vehicle for Rent')),
+                                          ],
+                                          onChanged: (v) => setState(() => _category = v!),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        DropdownButtonFormField<String>(
+                                          initialValue: _condition,
+                                          decoration: _fieldDecoration(context, 'Condition'),
+                                          dropdownColor: palette.cardBackground,
+                                          items: const [
+                                            DropdownMenuItem(value: 'new', child: Text('New')),
+                                            DropdownMenuItem(value: 'used', child: Text('Used')),
+                                            DropdownMenuItem(value: 'salvage', child: Text('Salvage')),
+                                          ],
+                                          onChanged: (v) => setState(() => _condition = v!),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: DropdownButtonFormField<String>(
+                                            initialValue: _category,
+                                            decoration: _fieldDecoration(context, 'Category'),
+                                            dropdownColor: palette.cardBackground,
+                                            items: const [
+                                              DropdownMenuItem(value: 'car', child: Text('Car for Sale')),
+                                              DropdownMenuItem(value: 'part', child: Text('Spare Part')),
+                                              DropdownMenuItem(value: 'rental', child: Text('Vehicle for Rent')),
+                                            ],
+                                            onChanged: (v) => setState(() => _category = v!),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: DropdownButtonFormField<String>(
+                                            initialValue: _condition,
+                                            decoration: _fieldDecoration(context, 'Condition'),
+                                            dropdownColor: palette.cardBackground,
+                                            items: const [
+                                              DropdownMenuItem(value: 'new', child: Text('New')),
+                                              DropdownMenuItem(value: 'used', child: Text('Used')),
+                                              DropdownMenuItem(value: 'salvage', child: Text('Salvage')),
+                                            ],
+                                            onChanged: (v) => setState(() => _condition = v!),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              const SizedBox(height: 20),
+                              TextFormField(
+                                controller: _titleController,
+                                decoration: _fieldDecoration(
+                                  context,
+                                  'Listing Title',
+                                  hint: 'e.g., 2024 Toyota Hilux GD-6',
+                                ),
+                                validator: (v) => v!.isEmpty ? 'Enter a title' : null,
+                              ),
+                              const SizedBox(height: 20),
+                              TextFormField(
+                                controller: _subtitleController,
+                                decoration: _fieldDecoration(
+                                  context,
+                                  'Subtitle / Key Features',
+                                  hint: 'e.g., Double Cab 4x4, Blue, 12,000km',
+                                ),
+                                validator: (v) => v!.isEmpty ? 'Enter a subtitle' : null,
+                              ),
+                              const SizedBox(height: 36),
+                              _buildSectionTitle(context, 'Pricing & Location'),
+                              const SizedBox(height: 20),
+                              isMobile
+                                  ? Column(
+                                      children: [
+                                        TextFormField(
+                                          controller: _priceController,
+                                          keyboardType: TextInputType.number,
+                                          decoration: _fieldDecoration(context, 'Price', prefix: 'N\$ '),
+                                          validator: (v) =>
+                                              double.tryParse(v ?? '') == null ? 'Enter a valid price' : null,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextFormField(
+                                          controller: _locationController,
+                                          decoration: _fieldDecoration(
+                                            context,
+                                            'City / Region',
+                                            hint: 'e.g., Windhoek',
+                                          ),
+                                          validator: (v) => v!.isEmpty ? 'Enter a location' : null,
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextFormField(
+                                            controller: _priceController,
+                                            keyboardType: TextInputType.number,
+                                            decoration: _fieldDecoration(context, 'Price', prefix: 'N\$ '),
+                                            validator: (v) =>
+                                                double.tryParse(v ?? '') == null ? 'Enter a valid price' : null,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: TextFormField(
+                                            controller: _locationController,
+                                            decoration: _fieldDecoration(
+                                              context,
+                                              'City / Region',
+                                              hint: 'e.g., Windhoek',
+                                            ),
+                                            validator: (v) => v!.isEmpty ? 'Enter a location' : null,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              const SizedBox(height: 20),
+                              TextFormField(
+                                controller: _descriptionController,
+                                maxLines: null,
+                                minLines: 8,
+                                keyboardType: TextInputType.multiline,
+                                decoration: _fieldDecoration(
+                                  context,
+                                  'Detailed Description',
+                                  hint: 'Provide a comprehensive description of your item...',
+                                ).copyWith(alignLabelWithHint: true),
+                                onChanged: (v) => setState(() {}),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) return 'Description is required';
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 36),
+                              _buildSectionTitle(context, 'Media Assets'),
+                              const SizedBox(height: 20),
+                              BoostImagePicker(
+                                onChanged: (images) => setState(() => _selectedImages = images),
+                                label: 'Vehicle Photos',
+                                maxImages: 10,
+                              ),
+                              const SizedBox(height: 40),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: palette.primary,
+                                    foregroundColor: palette.onPrimaryContainer,
+                                    disabledBackgroundColor: palette.primary.withValues(alpha: 0.5),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                        )
+                                      : const Text(
+                                          'Publish Your Listing',
+                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    // Reusable section title with accent line.
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    final palette = PublicPagePalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-            color: BoostDriveTheme.primaryColor,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.4,
+            color: palette.primary,
           ),
         ),
-        const SizedBox(height: 4),
-        Container(width: 40, height: 2, color: BoostDriveTheme.primaryColor),
+        const SizedBox(height: 6),
+        Container(width: 40, height: 2, color: palette.primary),
       ],
     );
   }

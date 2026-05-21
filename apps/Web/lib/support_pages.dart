@@ -1,95 +1,108 @@
 import 'package:flutter/material.dart';
 import 'package:boost_drive_web/public_page_frame.dart';
+import 'package:boost_drive_web/public_page_widgets.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 
 class SafetyCenterPage extends StatelessWidget {
   const SafetyCenterPage({super.key});
 
+  static const _heroImage =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuBXYXmDh2eMF6ugDVywLrDKuOMRm-1D9eMLVxpKx0UI3p37Zziq1zwq23tteUc_2IuwT1I6JswZUwJag2GcDY-VTmyjkBfjLqcVzgHXmcXGimakopxtqnedjg5ms__KDnSBFAD_TUdKavoYmaTe6-OBnONOhP8a8Heo6xBtVmz-asJDLxE5sflsINvQ8tLdCW1tvpiyTQ6GnESdH8mH8lbmn144rNQeUobVuUlpZR0jLZJuoT7c0zixK9UP0C0K75ikuRBNzCTyIao';
+
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
     return PublicPageFrame(
       activeRoute: '/safety',
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSafetyTip(
-                  icon: Icons.verified_user_outlined,
-                  title: 'Verify Before You Buy',
-                  content: 'Always inspect the vehicle or part in person before making any payments. Use our messaging system to ask detailed questions.',
-                ),
-                const SizedBox(height: 32),
-                _buildSafetyTip(
-                  icon: Icons.chat_bubble_outline,
-                  title: 'Keep Chat on BoostDrive',
-                  content: 'Never share personal financial information or move conversations to other platforms. Our in-app chat is secure and monitored for your safety.',
-                ),
-                const SizedBox(height: 32),
-                _buildSafetyTip(
-                  icon: Icons.warning_amber_rounded,
-                  title: 'Spotting Scams',
-                  content: 'Be wary of sellers asking for deposits without viewing the item, or prices that seem too good to be true.',
-                ),
-                const SizedBox(height: 48),
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.emergency_share, color: Colors.red, size: 32),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Emergency Assistance', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                            Text('If you are in immediate danger, please call 112 or local authorities immediately.', style: TextStyle(color: BoostDriveTheme.textDim)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSafetyTip({required IconData icon, required String title, required String content}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
-        ),
-        const SizedBox(width: 24),
-        Expanded(
+      child: ColoredBox(
+        color: palette.pageBackground,
+        child: PublicPageContainer(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 8),
-              Text(content, style: const TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.5)),
+              PublicHeroBanner(
+                eyebrow: 'Safety Center',
+                title: 'Buy and sell with confidence',
+                subtitle: 'Practical guidance to help you stay safe across every BoostDrive transaction.',
+                imageUrl: _heroImage,
+              ),
+              const SizedBox(height: 32),
+              isMobile
+                  ? Column(
+                      children: const [
+                        PublicFeatureCard(
+                          icon: Icons.verified_user_outlined,
+                          title: 'Verify Before You Buy',
+                          body: 'Always inspect the vehicle or part in person before making any payments. Use our messaging system to ask detailed questions.',
+                        ),
+                        SizedBox(height: 16),
+                        PublicFeatureCard(
+                          icon: Icons.chat_bubble_outline,
+                          title: 'Keep Chat on BoostDrive',
+                          body: 'Never share personal financial information or move conversations to other platforms. Our in-app chat is secure and monitored.',
+                          highlighted: true,
+                        ),
+                        SizedBox(height: 16),
+                        PublicFeatureCard(
+                          icon: Icons.warning_amber_rounded,
+                          title: 'Spotting Scams',
+                          body: 'Be wary of sellers asking for deposits without viewing the item, or prices that seem too good to be true.',
+                        ),
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Expanded(
+                          child: PublicFeatureCard(
+                            icon: Icons.verified_user_outlined,
+                            title: 'Verify Before You Buy',
+                            body: 'Always inspect the vehicle or part in person before making any payments.',
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: PublicFeatureCard(
+                            icon: Icons.chat_bubble_outline,
+                            title: 'Keep Chat on BoostDrive',
+                            body: 'Never share personal financial information or move conversations to other platforms.',
+                            highlighted: true,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: PublicFeatureCard(
+                            icon: Icons.warning_amber_rounded,
+                            title: 'Spotting Scams',
+                            body: 'Be wary of sellers asking for deposits without viewing the item.',
+                          ),
+                        ),
+                      ],
+                    ),
+              const SizedBox(height: 28),
+              PublicOrangeBand(
+                title: 'Emergency Assistance',
+                body: 'If you are in immediate danger, please call 112 or local authorities immediately.',
+                child: Row(
+                  children: [
+                    Icon(Icons.local_police_outlined, color: palette.onPrimaryContainer),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Police 10111  •  Ambulance 211 111',
+                      style: TextStyle(
+                        color: palette.onPrimaryContainer,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -97,42 +110,46 @@ class SafetyCenterPage extends StatelessWidget {
 class TermsPage extends StatelessWidget {
   const TermsPage({super.key});
 
+  static const _heroImage =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCqRlcd-GKnXKOH9csvsZtHgeUGMp11giD4cx2sRpVGLhl5QZuARAhMXaNjJNk2PNtf4upWxpHKGPup_I2LBJOTUNXa9EyGwsIVYy4XYXAOOhkG1xl6QK9frZm_gkBddnC4_IIix3kd3SWbQPw6i5gzSuwVtPKey1rf7A2myuJ1IT46h6sY87I8AXAZXBD3TAvgnnfLilYtuKPBwqlCJ-j1WsWnwyow08XbU7R64FdvoUsZ2T0tcE4ZnPIhllBpcrAS8gcCOwjoKbI';
+
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+
     return PublicPageFrame(
       activeRoute: '/terms',
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 800),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Last Updated: February 2026', style: TextStyle(color: BoostDriveTheme.textDim)),
-                SizedBox(height: 32),
-                Text(
-                  '1. Acceptance of Terms',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'By accessing and using BoostDrive, you accept and agree to be bound by the terms and provision of this agreement.',
-                  style: TextStyle(color: BoostDriveTheme.textDim, height: 1.6),
-                ),
-                SizedBox(height: 24),
-                Text(
-                  '2. Use License',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Permission is granted to temporarily download one copy of the materials (information or software) on BoostDrive for personal, non-commercial transitory viewing only.',
-                  style: TextStyle(color: BoostDriveTheme.textDim, height: 1.6),
-                ),
-                // Add more lorem ipsum or generic terms as needed
-              ],
-            ),
+      child: ColoredBox(
+        color: palette.pageBackground,
+        child: PublicPageContainer(
+          maxWidth: 900,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PublicPageTitle(
+                title: 'Terms of Service',
+                subtitle: 'Last Updated: February 2026',
+              ),
+              const SizedBox(height: 28),
+              PublicNetworkImage(imageUrl: _heroImage, aspectRatio: 21 / 9),
+              const SizedBox(height: 32),
+              const PublicLegalSection(
+                index: 1,
+                title: 'Acceptance of Terms',
+                body: 'By accessing and using BoostDrive, you accept and agree to be bound by the terms and provision of this agreement.',
+              ),
+              const PublicLegalSection(
+                index: 2,
+                title: 'Use License',
+                body: 'Permission is granted to temporarily download one copy of the materials (information or software) on BoostDrive for personal, non-commercial transitory viewing only.',
+              ),
+              const SizedBox(height: 12),
+              PublicPrimaryButton(
+                label: 'Contact Legal Support',
+                icon: Icons.mail_outline,
+                onPressed: () {},
+              ),
+            ],
           ),
         ),
       ),
@@ -143,41 +160,98 @@ class TermsPage extends StatelessWidget {
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
 
+  static const _heroImage =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCFGsfbPiwiG2uZB3JVpAvyvIHYtqsNfsyKVOR9EkpXA5JvAdVsUhh9luSFPb9Z7yh03cfZLHM72KUbwS3v-YxzRyxCfDpGQqVKOG4Qz1YrRtjVQMa38bbckVJcJ-FPhWFXMBN_TR9iaYzkhbDVdDlbc8Vu97sC1hMf4oRj0YzVxageiMTESYjmEni7w6hzb0yaDo-DYh5_Idvlmty2BuzDpWY_BjkZ1EfMSRJAGyzmmZt1Ybn4oE0X24_IsS7-WcVvdV3wHNo2ouk';
+
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
     return PublicPageFrame(
       activeRoute: '/privacy',
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 800),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Your privacy matters to us.', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                SizedBox(height: 32),
-                Text(
-                  'Information We Collect',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor),
+      child: ColoredBox(
+        color: palette.pageBackground,
+        child: PublicPageContainer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PublicHeroBanner(
+                eyebrow: 'Privacy Policy',
+                title: 'Your privacy matters to us',
+                subtitle: 'How we collect, use, and protect your information on BoostDrive.',
+                imageUrl: _heroImage,
+              ),
+              const SizedBox(height: 32),
+              PublicPageSection(
+                child: const PublicLegalSection(
+                  title: 'Introduction',
+                  body: 'BoostDrive is committed to protecting your personal information and being transparent about how we use it across our marketplace and services.',
                 ),
-                SizedBox(height: 12),
-                Text(
-                  'We collect information you provide directly to us, such as when you create an account, list a vehicle, or communicate with other users.',
-                  style: TextStyle(color: BoostDriveTheme.textDim, height: 1.6),
+              ),
+              const SizedBox(height: 20),
+              PublicSectionHeading(
+                title: 'Information We Collect',
+                subtitle: 'Data you provide directly and data collected automatically when you use the platform.',
+              ),
+              const SizedBox(height: 16),
+              isMobile
+                  ? Column(
+                      children: const [
+                        PublicFeatureCard(
+                          icon: Icons.person_outline,
+                          title: 'Personal Information',
+                          body: 'Name, email, phone number, and account details when you register or list items.',
+                        ),
+                        SizedBox(height: 12),
+                        PublicFeatureCard(
+                          icon: Icons.payments_outlined,
+                          title: 'Transaction Data',
+                          body: 'Booking, messaging, and listing activity related to your marketplace use.',
+                        ),
+                        SizedBox(height: 12),
+                        PublicFeatureCard(
+                          icon: Icons.devices_outlined,
+                          title: 'Digital Footprint',
+                          body: 'Device information, usage analytics, and cookies to improve platform performance.',
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: const [
+                        Expanded(
+                          child: PublicFeatureCard(
+                            icon: Icons.person_outline,
+                            title: 'Personal Information',
+                            body: 'Name, email, phone number, and account details.',
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: PublicFeatureCard(
+                            icon: Icons.payments_outlined,
+                            title: 'Transaction Data',
+                            body: 'Booking, messaging, and listing activity.',
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: PublicFeatureCard(
+                            icon: Icons.devices_outlined,
+                            title: 'Digital Footprint',
+                            body: 'Device information and usage analytics.',
+                          ),
+                        ),
+                      ],
+                    ),
+              const SizedBox(height: 28),
+              PublicPageSection(
+                child: const PublicLegalSection(
+                  title: 'How We Use Your Information',
+                  body: 'We use the information we collect to provide, maintain, and improve our services, to facilitate transactions, and to communicate with you about your account and listings.',
                 ),
-                SizedBox(height: 24),
-                Text(
-                  'How We Use Your Information',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: BoostDriveTheme.primaryColor),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'We use the information we collect to provide, maintain, and improve our services, to facilitate transactions, and to communicate with you.',
-                  style: TextStyle(color: BoostDriveTheme.textDim, height: 1.6),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -188,62 +262,74 @@ class PrivacyPolicyPage extends StatelessWidget {
 class FaqPage extends StatelessWidget {
   const FaqPage({super.key});
 
+  static const _heroImage =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAAKE5mi7BvLhjS0Hv9MyhXh5NR6VruFBjPkmjL2tcZ3ALRYW3nVlnc1R-ONhmJERBy8rejVOyEgapwNU82qyT493w2--OJ5xvrBrrwNbVgZINXq-vOn7qVcex-h5lYjDmnVY0Ah-wkF7SUwTcYzorkayLCgTj4G8OfTSi1MXCKjipIk_-e3SrM3pMbr1S8oiv81te_tEksXYQr55lTbyqzwrj1x68XjjFcxKp3nFCKLvaC9Y9aJLndh0_XFYK97Pt1wSOEm3LS5I4';
+
   @override
   Widget build(BuildContext context) {
+    final palette = PublicPagePalette.of(context);
+
     return PublicPageFrame(
       activeRoute: '/faq',
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-            child: ListView(
-              shrinkWrap: true,
-              children: const [
-                _FaqItem(
-                  question: 'How do I sell my car?',
-                  answer: 'Simply create an account, click "Add New Listing" or "Sell Your Vehicle", upload photos, and set your price. It takes less than 5 minutes!',
+      child: ColoredBox(
+        color: palette.pageBackground,
+        child: PublicPageContainer(
+          maxWidth: 900,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PublicHeroBanner(
+                eyebrow: 'Support',
+                title: 'Frequently Asked Questions',
+                subtitle: 'Answers about buying, selling, renting, and using BoostDrive in Namibia.',
+                imageUrl: _heroImage,
+              ),
+              const SizedBox(height: 28),
+              const PublicFaqTile(
+                question: 'How do I sell my car?',
+                answer: 'Simply create an account, click "Sell your car", upload photos, and set your price. It takes less than 5 minutes!',
+              ),
+              const SizedBox(height: 12),
+              const PublicFaqTile(
+                question: 'Is it free to list?',
+                answer: 'Basic listings are free for all personal users. Dealerships can upgrade to a Premium plan for enhanced visibility and bulk tools.',
+              ),
+              const SizedBox(height: 12),
+              const PublicFaqTile(
+                question: 'How does the rental process work?',
+                answer: 'Browse available rentals, select your dates, and click "Rent Now". You\'ll need to confirm your booking with a payment to secure the vehicle.',
+              ),
+              const SizedBox(height: 12),
+              const PublicFaqTile(
+                question: 'Can I return a spare part?',
+                answer: 'Return policies depend on the individual seller. We recommend discussing terms in the chat before purchasing.',
+              ),
+              const SizedBox(height: 28),
+              PublicPageSection(
+                child: Column(
+                  children: [
+                    Text(
+                      'Still have questions?',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: palette.titleColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Our support team is ready to help with anything not covered here.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: palette.bodyColor, height: 1.5),
+                    ),
+                    const SizedBox(height: 16),
+                    PublicPrimaryButton(label: 'Contact Support'),
+                  ],
                 ),
-                _FaqItem(
-                  question: 'Is it free to list?',
-                  answer: 'Basic listings are free for all personal users. Dealerships can upgrade to a Premium plan for enhanced visibility and bulk tools.',
-                ),
-                _FaqItem(
-                  question: 'How does the rental process work?',
-                  answer: 'Browse available rentals, select your dates, and click "Rent Now". You\'ll need to confirm your booking with a payment to secure the vehicle.',
-                ),
-                _FaqItem(
-                  question: 'Can I return a spare part?',
-                  answer: 'Return policies depend on the individual seller. We recommend discussing terms in the chat before purchasing.',
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FaqItem extends StatelessWidget {
-  final String question;
-  final String answer;
-
-  const _FaqItem({required this.question, required this.answer});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(question, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-          const SizedBox(height: 8),
-          Text(answer, style: const TextStyle(fontSize: 16, color: BoostDriveTheme.textDim, height: 1.5)),
-          const SizedBox(height: 16),
-          const Divider(color: Color(0x22FF6600)),
-        ],
       ),
     );
   }

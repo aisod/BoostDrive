@@ -3,20 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:boost_drive_web/authenticated_top_nav.dart';
 import 'nav_hover_underline.dart';
+import 'public_nav_dropdown.dart';
 
 class BoostDrivePublicTopNavBar extends ConsumerWidget implements PreferredSizeWidget {
   final String activeRoute;
   final VoidCallback onAuthTap;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
 
   const BoostDrivePublicTopNavBar({
     super.key,
     required this.activeRoute,
     required this.onAuthTap,
+    this.scaffoldKey,
   });
 
-  // Keep the original field name for hot-reload compatibility.
-  static const List<_NavItemData> _items = [
+  static const List<_NavItemData> _guestItems = [
     _NavItemData(label: 'Marketplace', route: '/marketplace'),
     _NavItemData(label: 'Buy parts', route: '/buy-parts'),
     _NavItemData(label: 'Rent a car', route: '/rent-a-car'),
@@ -47,17 +50,112 @@ class BoostDrivePublicTopNavBar extends ConsumerWidget implements PreferredSizeW
     Navigator.of(context).pushNamed('/');
   }
 
+  List<Widget> _buildGuestNavLinks(BuildContext context, dynamic user) {
+    return [
+      ..._guestItems.map(
+        (item) => _DesktopNavLink(
+          label: item.label,
+          isActive: activeRoute == item.route,
+          fontSize: 15,
+          horizontalPadding: 16,
+          verticalPadding: 14,
+          onTap: () {
+            if (item.route == '/sell-your-car' && user == null) {
+              onAuthTap();
+              return;
+            }
+            if (activeRoute == item.route) return;
+            Navigator.of(context).pushNamed(item.route);
+          },
+        ),
+      ),
+      _DesktopNavDropdown(
+        label: 'Company',
+        isActive: _companyItems.any((item) => item.route == activeRoute),
+        items: _companyItems,
+        fontSize: 15,
+        horizontalPadding: 16,
+        verticalPadding: 14,
+      ),
+      _DesktopNavDropdown(
+        label: 'Support',
+        isActive: _supportItems.any((item) => item.route == activeRoute),
+        items: _supportItems,
+        fontSize: 15,
+        horizontalPadding: 16,
+        verticalPadding: 14,
+      ),
+    ];
+  }
+
+  List<Widget> _buildGuestTrailingActions(BuildContext context, WidgetRef ref, {required bool compact}) {
+    return [
+      _ThemeModeSwitch(compact: compact),
+      SizedBox(width: compact ? 8 : 12),
+      compact
+          ? Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: TextButton(
+                onPressed: onAuthTap,
+                style: TextButton.styleFrom(
+                  foregroundColor: BoostDriveTheme.primaryColor,
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: const StadiumBorder(),
+                ),
+                child: const Text(
+                  'Login',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+              ),
+            )
+          : Container(
+              margin: const EdgeInsets.only(left: 0),
+              child: ElevatedButton(
+                onPressed: onAuthTap,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: BoostDriveTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+                  shape: const StadiumBorder(),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Login',
+                  style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+              ),
+            ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isMobile = MediaQuery.of(context).size.width < 900;
     final user = ref.watch(currentUserProvider);
     final isGuest = user == null;
 
+    if (!isGuest) {
+      return BoostDriveAuthenticatedTopNav(
+        activeItem: authenticatedNavHighlightForRoute(activeRoute),
+        scaffoldKey: scaffoldKey,
+        showMenuButton: isMobile,
+      );
+    }
+
     if (isMobile) {
       return AppBar(
         backgroundColor: BoostDriveTheme.primaryColor,
         elevation: 0,
-        titleSpacing: 16,
+        titleSpacing: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        leading: scaffoldKey != null
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                tooltip: 'Menu',
+                onPressed: () => scaffoldKey!.currentState?.openDrawer(),
+              )
+            : null,
         title: GestureDetector(
           onTap: () => _goHome(context),
           child: const Text(
@@ -70,33 +168,7 @@ class BoostDrivePublicTopNavBar extends ConsumerWidget implements PreferredSizeW
             ),
           ),
         ),
-        actions: [
-          const SizedBox(width: 4),
-          const _ThemeModeSwitch(compact: true),
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.only(right: 14),
-            child: TextButton(
-              onPressed: () {
-                if (user == null) {
-                  onAuthTap();
-                } else {
-                  ref.read(authServiceProvider).signOut();
-                }
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: BoostDriveTheme.primaryColor,
-                backgroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: const StadiumBorder(),
-              ),
-              child: Text(
-                user == null ? 'Login' : 'Log Out',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-              ),
-            ),
-          ),
-        ],
+        actions: _buildGuestTrailingActions(context, ref, compact: true),
       );
     }
 
@@ -129,79 +201,19 @@ class BoostDrivePublicTopNavBar extends ConsumerWidget implements PreferredSizeW
                 Expanded(
                   child: Align(
                     alignment: Alignment.centerRight,
-                    child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerRight,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ..._items.map(
-                                  (item) => _DesktopNavLink(
-                                    label: item.label,
-                                    isActive: activeRoute == item.route,
-                                    fontSize: 16,
-                                    horizontalPadding: 16,
-                                    verticalPadding: 20,
-                                    onTap: () {
-                                      if (item.route == '/sell-your-car' && user == null) {
-                                        onAuthTap();
-                                        return;
-                                      }
-                                      if (activeRoute == item.route) return;
-                                      Navigator.of(context).pushNamed(item.route);
-                                    },
-                                  ),
-                                ),
-                                if (isGuest) ...[
-                                  _DesktopNavDropdown(
-                                    label: 'Company',
-                                    isActive: _companyItems.any((item) => item.route == activeRoute),
-                                    items: _companyItems,
-                                    fontSize: 16,
-                                    horizontalPadding: 16,
-                                    verticalPadding: 20,
-                                  ),
-                                  _DesktopNavDropdown(
-                                    label: 'Support',
-                                    isActive: _supportItems.any((item) => item.route == activeRoute),
-                                    items: _supportItems,
-                                    fontSize: 16,
-                                    horizontalPadding: 16,
-                                    verticalPadding: 20,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          )
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const _ThemeModeSwitch(),
-                Container(
-                  margin: const EdgeInsets.only(left: 12),
-                  child: ElevatedButton(
-                  onPressed: () {
-                    if (user == null) {
-                      onAuthTap();
-                    } else {
-                      ref.read(authServiceProvider).signOut();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: BoostDriveTheme.primaryColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
-                    shape: const StadiumBorder(),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    user == null ? 'Login' : 'Log Out',
-                    style: GoogleFonts.montserrat(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: _buildGuestNavLinks(context, user),
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(width: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildGuestTrailingActions(context, ref, compact: false),
                 ),
               ],
             ),
@@ -237,6 +249,8 @@ class _DesktopNavLink extends StatelessWidget {
       onTap: onTap,
       child: Text(
         label,
+        maxLines: 1,
+        softWrap: false,
         style: GoogleFonts.montserrat(
           color: Colors.white.withValues(alpha: isActive ? 1 : 0.84),
           fontSize: fontSize,
@@ -266,53 +280,14 @@ class _DesktopNavDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: label,
-      offset: const Offset(0, 34),
-      color: Colors.white,
-      elevation: 10,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      onSelected: (route) {
-        if (route == ModalRoute.of(context)?.settings.name) return;
-        Navigator.of(context).pushNamed(route);
-      },
-      itemBuilder: (context) => items
-          .map(
-            (item) => PopupMenuItem<String>(
-              value: item.route,
-              child: Text(
-                item.label,
-                style: GoogleFonts.montserrat(
-                  color: const Color(0xFF221C20),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          )
+    return BoostNavHoverDropdown(
+      label: label,
+      isActive: isActive,
+      fontSize: fontSize,
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
+      items: items
+          .map((item) => BoostNavDropdownItem(label: item.label, route: item.route))
           .toList(),
-      child: BoostNavHoverUnderline(
-        isActive: isActive,
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: GoogleFonts.montserrat(
-                color: Colors.white.withValues(alpha: isActive ? 1 : 0.84),
-                fontSize: fontSize,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: fontSize + 3,
-              color: Colors.white.withValues(alpha: isActive ? 1 : 0.84),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

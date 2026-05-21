@@ -113,6 +113,25 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
     return 'Something went wrong. Please try again later.';
   }
 
+  void _finishAuthenticatedSession({
+    String successTitle = 'Login Successful',
+    String successMessage = 'Welcome back to BoostDrive!',
+  }) {
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (widget.onLoginSuccess != null) {
+      widget.onLoginSuccess!();
+      return;
+    }
+
+    _showSuccessDialog(successTitle, successMessage, onDismiss: () {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+    });
+  }
+
   void _login(String email, String password) async {
     setState(() {
       _isLoading = true;
@@ -124,16 +143,7 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
       final authService = ref.read(authServiceProvider);
       // Use signInWithUsernameOrEmail to handle both email and username inputs
       await authService.signInWithUsernameOrEmail(identifier: email, password: password);
-      
-      if (widget.onLoginSuccess != null) {
-        _showSuccessDialog('Login Successful', 'Welcome back to BoostDrive!', onDismiss: widget.onLoginSuccess);
-      } else if (mounted) {
-        _showSuccessDialog('Login Successful', 'Welcome back to BoostDrive!', onDismiss: () {
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context);
-          }
-        });
-      }
+      _finishAuthenticatedSession();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -229,13 +239,10 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
           );
 
           setState(() => _isLoading = false);
-          if (widget.onLoginSuccess != null) {
-            _showSuccessDialog(
-              'Account Created', 
-              'Your account has been successfully created.', 
-              onDismiss: widget.onLoginSuccess
-            );
-          }
+          _finishAuthenticatedSession(
+            successTitle: 'Account Created',
+            successMessage: 'Your account has been successfully created.',
+          );
         } else {
           setState(() {
             _verificationId = email; // Store email for OTP verification
@@ -355,7 +362,10 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
         }
         
         if (widget.onLoginSuccess != null) {
-          _showSuccessDialog('Account Created', 'Your account has been successfully created.', onDismiss: widget.onLoginSuccess);
+          _finishAuthenticatedSession(
+            successTitle: 'Account Created',
+            successMessage: 'Your account has been successfully created.',
+          );
         } else if (mounted) {
           _showSuccessDialog('Account Created', 'Your account has been successfully created.', onDismiss: () {
              if (Navigator.canPop(context)) {
@@ -425,34 +435,6 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
     );
   }
 
-  void _signInWithGoogle() async {
-    try {
-      await ref.read(authServiceProvider).signInWithGoogle();
-      if (!kIsWeb && mounted) {
-        final user = ref.read(currentUserProvider);
-        if (user != null) {
-          _showSuccessDialog('Login Successful', 'Successfully signed in with Google.');
-        }
-      }
-    } catch (e) {
-      if (mounted) setState(() => _errorText = _getFriendlyErrorMessage(e));
-    }
-  }
-
-  void _signInWithApple() async {
-    try {
-      await ref.read(authServiceProvider).signInWithApple();
-      if (!kIsWeb && mounted) {
-        final user = ref.read(currentUserProvider);
-        if (user != null) {
-          _showSuccessDialog('Login Successful', 'Successfully signed in with Apple.');
-        }
-      }
-    } catch (e) {
-      if (mounted) setState(() => _errorText = _getFriendlyErrorMessage(e));
-    }
-  }
-
   void _showSuccessDialog(String title, String message, {VoidCallback? onDismiss}) {
     showDialog(
       context: context,
@@ -496,49 +478,37 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      return Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: NetworkImage("https://lh3.googleusercontent.com/aida-public/AB6AXuCuAfnKgvQTFU8mdXJOK2OJrSdpcF6QMKvI6MtCv2T_PuowUTuBUYTxnovRCWOeMgWX20Fdpa6ngazsCa0_-jipGQq37sUi9ZbskUd73-uZkY2403hVqKMhDUMbsBkd0ziAG9ADrjcCgutXcPUyzcwP7yp9jbq_dO_Jma3E8CGlLryK-nu_xr2gv3rVZxLZj3aEas8jNt4q2C2SP0dCSVuSaqeNQnM_AVkU5VYP5KnqN10-3azckFoWgiw7Jkar42nxdR9aCLkX6Ps"),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Colors.black54, BlendMode.darken),
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          BoostLoginWidget(
+            onLogin: _login,
+            onSignUp: _signUp,
+            onVerifyOtp: _verifyOtp,
+            onResendOtp: _resendCode,
+            onCancelOtp: () {
+              setState(() {
+                _verificationId = null;
+                _errorText = null;
+                _isLoading = false;
+              });
+            },
+            onClose: widget.onClose,
+            onForgotPassword: _showForgotPasswordDialog,
+            isLoading: _isLoading,
+            isOtpSent: _verificationId != null,
+            errorText: _errorText,
           ),
-        ),
-        child: Center(
-          child: Stack(
-            children: [
-              const Positioned(
-                top: 10,
-                right: 70,
-                child: SizedBox(
-                  height: 48,
-                  width: 48,
-                  child: HtmlElementView(viewType: 'recaptcha-container'),
-                ),
-              ),
-              BoostLoginWidget(
-                onLogin: _login,
-                onSignUp: _signUp,
-                onVerifyOtp: _verifyOtp,
-                onResendOtp: _resendCode,
-                onCancelOtp: () {
-                  setState(() {
-                    _verificationId = null;
-                    _errorText = null;
-                    _isLoading = false;
-                  });
-                },
-                onClose: widget.onClose,
-                onForgotPassword: _showForgotPasswordDialog,
-                onGoogleSignIn: _signInWithGoogle,
-                onAppleSignIn: _signInWithApple,
-                isLoading: _isLoading,
-                isOtpSent: _verificationId != null,
-                errorText: _errorText,
-              ),
-            ],
+          const Positioned(
+            top: 10,
+            right: 70,
+            child: SizedBox(
+              height: 48,
+              width: 48,
+              child: HtmlElementView(viewType: 'recaptcha-container'),
+            ),
           ),
-        ),
+        ],
       );
     }
 
@@ -560,8 +530,6 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
             },
             onClose: widget.onClose,
             onForgotPassword: _showForgotPasswordDialog,
-            onGoogleSignIn: _signInWithGoogle,
-            onAppleSignIn: _signInWithApple,
             isLoading: _isLoading,
             isOtpSent: _verificationId != null,
             errorText: _errorText,

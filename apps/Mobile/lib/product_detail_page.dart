@@ -10,6 +10,7 @@ import 'cart_page.dart';
 
 import 'edit_listing_page.dart';
 import 'chat_page.dart';
+import 'listing_owner_inquiries_panel.dart';
 
 /// Product details page for buyers and sellers.
 class ProductDetailPage extends ConsumerStatefulWidget {
@@ -26,15 +27,39 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   late Product _currentProduct;
   bool _hasChanges = false;
   bool _hasTrackedClick = false;
+  late final PageController _imagePageController;
+  int _imageIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    // Start with product passed from previous page.
     _currentProduct = widget.product;
-    // Track a view click once page appears.
+    _imagePageController = PageController();
     WidgetsBinding.instance.addPostFrameCallback((_) => _trackListingClick());
   }
+
+  @override
+  void dispose() {
+    _imagePageController.dispose();
+    super.dispose();
+  }
+
+  List<String> get _imageUrls => _currentProduct.imageUrls.where((u) => u.trim().isNotEmpty).toList();
+
+  Color _pageBg(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF09151B) : const Color(0xFFF9F9F9);
+
+  Color _cardBg(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF162128) : Colors.white;
+
+  Color _titleColor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFFD8E4EE) : const Color(0xFF1A1C1C);
+
+  Color _bodyColor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFFE3BFB2) : const Color(0xFF5A4138);
+
+  Color _primaryText(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFFFFB59A) : const Color(0xFFA43700);
 
   Future<void> _trackListingClick() async {
     // Only track one click per page open.
@@ -102,24 +127,61 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     }
   }
 
+  String _priceLabel() {
+    final amount = 'N\$ ${_currentProduct.price.toStringAsFixed(2)}';
+    if (_currentProduct.category == 'rental') return '$amount / day';
+    return amount;
+  }
+
+  Widget _mobileSpecCard(BuildContext context, IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _bodyColor(context).withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.25 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: BoostDriveTheme.primaryColor),
+          const SizedBox(height: 8),
+          Text(label, style: TextStyle(fontSize: 12, color: _bodyColor(context))),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _titleColor(context)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Determine if logged-in user is owner to switch available actions.
     final authState = ref.watch(authStateProvider);
     final user = authState.value?.session?.user;
     final isOwner = _currentProduct.sellerId == user?.id;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
+      backgroundColor: _pageBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(''), 
+        title: const Text(''),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: Colors.black.withValues(alpha: 0.45),
             shape: BoxShape.circle,
           ),
           child: IconButton(
@@ -134,41 +196,64 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 350,
+              height: 380,
               child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  PageView.builder(
-                    itemCount: _currentProduct.imageUrls.isNotEmpty ? _currentProduct.imageUrls.length : 1,
-                    itemBuilder: (context, index) {
-                      if (_currentProduct.imageUrls.isEmpty) {
-                         return Container(color: Colors.grey[900], child: const Icon(Icons.image_not_supported, size: 50));
-                      }
-                      return Image.network(
-                        _currentProduct.imageUrls[index],
+                  if (_imageUrls.isEmpty)
+                    ColoredBox(
+                      color: isDark ? const Color(0xFF202B33) : const Color(0xFFE8E8E8),
+                      child: Icon(Icons.image_not_supported_outlined, size: 64, color: _bodyColor(context)),
+                    )
+                  else
+                    PageView.builder(
+                      controller: _imagePageController,
+                      onPageChanged: (i) => setState(() => _imageIndex = i),
+                      itemCount: _imageUrls.length,
+                      itemBuilder: (_, i) => Image.network(
+                        _imageUrls[i],
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[900],
-                          child: const Icon(Icons.broken_image, size: 50),
+                        errorBuilder: (_, __, ___) => ColoredBox(
+                          color: isDark ? const Color(0xFF202B33) : const Color(0xFFE8E8E8),
+                          child: Icon(Icons.broken_image_outlined, size: 64, color: _bodyColor(context)),
                         ),
-                      );
-                    },
+                      ),
+                    ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 120,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            _pageBg(context),
+                            _pageBg(context).withValues(alpha: 0),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  if (_currentProduct.imageUrls.length > 1)
+                  if (_imageUrls.length > 1)
                     Positioned(
-                      bottom: 16,
+                      bottom: 20,
                       left: 0,
                       right: 0,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
-                          _currentProduct.imageUrls.length,
-                          (index) => Container(
+                          _imageUrls.length,
+                          (i) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
                             margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
+                            width: i == _imageIndex ? 10 : 8,
+                            height: i == _imageIndex ? 10 : 8,
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white,
+                              color: Colors.white.withValues(alpha: i == _imageIndex ? 1 : 0.45),
                             ),
                           ),
                         ),
@@ -177,107 +262,182 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                 ],
               ),
             ),
-            
+            Transform.translate(
+              offset: const Offset(0, -28),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: _cardBg(context),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _currentProduct.category == 'rental' ? 'RENTAL' : _currentProduct.category.toUpperCase(),
+                        style: TextStyle(
+                          color: _primaryText(context),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _currentProduct.title,
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          height: 1.15,
+                          color: _titleColor(context),
+                        ),
+                      ),
+                      if (_currentProduct.subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(_currentProduct.subtitle, style: TextStyle(color: _bodyColor(context), fontSize: 14)),
+                      ],
+                      const SizedBox(height: 12),
+                      Text(
+                        _priceLabel(),
+                        style: TextStyle(
+                          color: _primaryText(context),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (_imageUrls.length > 1)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: SizedBox(
+                  height: 72,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _imageUrls.length > 4 ? 4 : _imageUrls.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (_, i) {
+                      final isLastOverlay = i == 3 && _imageUrls.length > 4;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _imageIndex = i);
+                          _imagePageController.animateToPage(
+                            i,
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                          );
+                        },
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _imageIndex == i ? BoostDriveTheme.primaryColor : _bodyColor(context).withValues(alpha: 0.25),
+                                width: _imageIndex == i ? 2 : 1,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.network(_imageUrls[i], fit: BoxFit.cover),
+                                if (isLastOverlay)
+                                  Container(
+                                    color: Colors.black54,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      '+${_imageUrls.length - 3}',
+                                      style: TextStyle(color: _primaryText(context), fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _currentProduct.title,
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, height: 1.1),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _currentProduct.subtitle,
-                    style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'N\$ ${_currentProduct.price.toStringAsFixed(2)}',
-                        style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          _currentProduct.condition.toUpperCase(),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
                   if (isOwner) ...[
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(Icons.visibility_outlined, size: 16, color: BoostDriveTheme.textDim),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Clicks: ${_currentProduct.clickCount ?? 0}',
-                          style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 32),
-                  const Divider(color: Colors.white10),
-                  const SizedBox(height: 32),
-                  _buildSectionTitle('Location'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, color: BoostDriveTheme.textDim, size: 18),
-                      const SizedBox(width: 8),
-                      Text(_currentProduct.location, style: const TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                  
-                  if (_currentProduct.fitment != null) ...[
-                    const SizedBox(height: 32),
-                    _buildSectionTitle('Vehicle Fitment'),
-                    const SizedBox(height: 8),
                     Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white10),
+                        color: isDark ? const Color(0xFF121D24) : const Color(0xFFF3F3F3),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.car_repair, color: BoostDriveTheme.primaryColor),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${_currentProduct.fitment!['make']} ${_currentProduct.fitment!['model']}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                              Text(
-                                'Year: ${_currentProduct.fitment!['year']}',
-                                style: const TextStyle(color: BoostDriveTheme.textDim),
-                              ),
-                            ],
+                          Icon(Icons.visibility_outlined, color: _primaryText(context)),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Clicks: ${_currentProduct.clickCount ?? 0} • Saved: ${_currentProduct.saveCount ?? 0}',
+                            style: TextStyle(color: _titleColor(context), fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
                     ),
+                    ListingOwnerInquiriesPanel(product: _currentProduct),
                   ],
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.35,
+                    children: [
+                      _mobileSpecCard(context, Icons.fact_check_outlined, 'Condition', _currentProduct.condition.toUpperCase()),
+                      _mobileSpecCard(context, Icons.location_on_outlined, 'Location', _currentProduct.location),
+                      if (_currentProduct.fitment != null)
+                        _mobileSpecCard(
+                          context,
+                          Icons.directions_car_outlined,
+                          'Fitment',
+                          '${_currentProduct.fitment!['make']} ${_currentProduct.fitment!['model']}',
+                        ),
+                    ],
+                  ),
                   if (_currentProduct.description.isNotEmpty) ...[
-                    const SizedBox(height: 32),
-                    _buildSectionTitle('Description'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     Text(
-                      _currentProduct.description,
-                      style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.white70),
+                      'Description',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: _primaryText(context)),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: _cardBg(context),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _bodyColor(context).withValues(alpha: 0.2)),
+                      ),
+                      child: Text(
+                        _currentProduct.description,
+                        style: TextStyle(fontSize: 15, height: 1.55, color: _bodyColor(context)),
+                      ),
                     ),
                   ],
                 ],
@@ -289,8 +449,8 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: BoostDriveTheme.surfaceDark,
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+          color: _cardBg(context),
+          border: Border(top: BorderSide(color: _bodyColor(context).withValues(alpha: 0.15))),
         ),
         child: SafeArea(
           child: isOwner 
@@ -398,19 +558,6 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     } catch (e) {
       if (mounted) messenger.showSnackBar(SnackBar(content: Text('Error opening chat: $e')));
     }
-  }
-
-  Widget _buildSectionTitle(String title) {
-    // Reusable section heading style for details sections.
-    return Text(
-      title.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.5,
-        color: BoostDriveTheme.textDim,
-      ),
-    );
   }
 
   void _handleAction(BuildContext context, WidgetRef ref) async {

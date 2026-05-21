@@ -431,6 +431,72 @@ class MessageService {
         .single();
   }
 
+  /// Conversations for a seller's listing, enriched with the latest message preview.
+  Future<List<Map<String, dynamic>>> getListingInquiries({
+    required String productId,
+    required String sellerId,
+  }) async {
+    try {
+      final rows = await _supabase
+          .from('conversations')
+          .select()
+          .eq('product_id', productId)
+          .eq('seller_id', sellerId)
+          .order('created_at', ascending: false);
+
+      final conversations = (rows as List<dynamic>)
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .toList();
+
+      if (conversations.isEmpty) return conversations;
+
+      final ids = conversations
+          .map((c) => c['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toList();
+      if (ids.isEmpty) return conversations;
+
+      final messagesResponse = await _supabase
+          .from('messages')
+          .select('conversation_id, content, created_at')
+          .inFilter('conversation_id', ids)
+          .order('created_at', ascending: false);
+
+      final latestByConversation = <String, Map<String, dynamic>>{};
+      for (final row in (messagesResponse as List<dynamic>)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final cid = map['conversation_id']?.toString() ?? '';
+        if (cid.isEmpty || latestByConversation.containsKey(cid)) continue;
+        latestByConversation[cid] = map;
+      }
+
+      for (final conv in conversations) {
+        final cid = conv['id']?.toString() ?? '';
+        final latest = latestByConversation[cid];
+        if (latest != null) {
+          conv['last_message'] = latest['content'];
+          conv['last_message_at'] = latest['created_at'];
+        } else if (conv['last_message'] == null || '${conv['last_message']}'.trim().isEmpty) {
+          conv['last_message'] = 'No messages yet';
+        }
+        conv['activity_at'] = conv['last_message_at'] ?? conv['created_at'];
+      }
+
+      conversations.sort((a, b) {
+        final ad = DateTime.tryParse(a['activity_at']?.toString() ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final bd = DateTime.tryParse(b['activity_at']?.toString() ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return bd.compareTo(ad);
+      });
+
+      return conversations;
+    } catch (e) {
+      print('Error fetching listing inquiries: $e');
+      return [];
+    }
+  }
+
   /// Deletes a conversation and all its messages.
   /// Throws if the conversation was not found or could not be deleted (e.g. RLS).
   Future<void> deleteConversation(String conversationId) async {
@@ -566,3 +632,35 @@ final unreadConversationsProvider = StreamProvider.family<Set<String>, String>((
 final unreadCountByConversationProvider = StreamProvider.family<Map<String, int>, String>((ref, userId) {
   return ref.watch(messageServiceProvider).streamUnreadCountByConversation(userId);
 });
+
+/// Buyer inquiries for a seller-owned listing (conversation list + latest message).
+class ListingInquiriesRequest {
+  final String productId;
+  final String sellerId;
+
+  const ListingInquiriesRequest({
+    required this.productId,
+    required this.sellerId,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ListingInquiriesRequest &&
+            other.productId == productId &&
+            other.sellerId == sellerId;
+  }
+
+  @override
+  int get hashCode => Object.hash(productId, sellerId);
+}
+
+final listingInquiriesProvider =
+    FutureProvider.autoDispose.family<List<Map<String, dynamic>>, ListingInquiriesRequest>(
+  (ref, request) {
+    return ref.read(messageServiceProvider).getListingInquiries(
+          productId: request.productId,
+          sellerId: request.sellerId,
+        );
+  },
+);
