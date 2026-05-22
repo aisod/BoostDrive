@@ -1,34 +1,148 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'theme.dart';
 
+/// Crossfading hero images confined to the editorial hero image panel.
+class HeroImageSlideshow extends StatefulWidget {
+  final List<String> images;
+  final Duration interval;
+  final Duration fadeDuration;
+  /// When null, images load from the host app asset bundle (recommended for Web).
+  final String? package;
+
+  const HeroImageSlideshow({
+    super.key,
+    required this.images,
+    this.interval = const Duration(seconds: 5),
+    this.fadeDuration = const Duration(milliseconds: 900),
+    this.package,
+  });
+
+  @override
+  State<HeroImageSlideshow> createState() => _HeroImageSlideshowState();
+}
+
+class _HeroImageSlideshowState extends State<HeroImageSlideshow> {
+  int _index = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.images.length > 1) {
+      _timer = Timer.periodic(widget.interval, (_) {
+        if (!mounted) return;
+        setState(() => _index = (_index + 1) % widget.images.length);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.images.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        AnimatedSwitcher(
+          duration: widget.fadeDuration,
+          switchInCurve: Curves.easeInOut,
+          switchOutCurve: Curves.easeInOut,
+          layoutBuilder: (currentChild, previousChildren) {
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
+            );
+          },
+          child: Image.asset(
+            widget.images[_index],
+            key: ValueKey<String>(widget.images[_index]),
+            package: widget.package,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            gaplessPlayback: true,
+          ),
+        ),
+        if (widget.images.length > 1)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(widget.images.length, (i) {
+                final active = i == _index;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: active ? 22 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: active
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
+              }),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class EditorialHeroSection extends StatelessWidget {
+  static const double navBarHeight = 65;
+
   final String title;
   final String subtitle;
   final String hashtag;
-  final String backgroundImage;
+  final List<String> backgroundImages;
   final VoidCallback onReadMore;
   final Widget? navBar;
+  final Duration slideshowInterval;
+  final String? imagePackage;
+  /// Height of chrome above the hero (e.g. mobile [AppBar]). Desktop uses 0.
+  final double topChromeHeight;
 
   const EditorialHeroSection({
     super.key,
     required this.title,
     required this.subtitle,
     this.hashtag = "#BoostDrive",
-    required this.backgroundImage,
+    required this.backgroundImages,
     required this.onReadMore,
     this.navBar,
+    this.slideshowInterval = const Duration(seconds: 5),
+    this.imagePackage,
+    this.topChromeHeight = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 900;
+    // Fill the viewport from the nav/task bar down to the bottom of the screen.
+    final heroHeight = size.height - topChromeHeight;
 
     return Container(
       width: double.infinity,
-      height: isMobile ? 800 : 900,
+      height: heroHeight,
       color: Colors.white,
       child: Stack(
         children: [
@@ -38,12 +152,14 @@ class EditorialHeroSection extends StatelessWidget {
             top: 0,
             bottom: 0,
             width: isMobile ? size.width : size.width * 0.7,
-            child: Opacity(
-              opacity: isMobile ? 0.3 : 1.0,
-              child: Image.asset(
-                backgroundImage,
-                package: 'boostdrive_ui',
-                fit: BoxFit.cover,
+            child: ClipRect(
+              child: Opacity(
+                opacity: isMobile ? 0.3 : 1.0,
+                child: HeroImageSlideshow(
+                  images: backgroundImages,
+                  interval: slideshowInterval,
+                  package: imagePackage,
+                ),
               ),
             ),
           ),
@@ -52,18 +168,16 @@ class EditorialHeroSection extends StatelessWidget {
           if (!isMobile)
             Positioned(
               left: 0,
-              top: 0,
+              top: navBarHeight,
               bottom: 0,
               width: size.width * 0.45,
               child: Container(
                 color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 100),
+                padding: const EdgeInsets.fromLTRB(56, 32, 56, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Redundant Logo Removed - Now in Nav Bar
-                    const SizedBox(height: 20),
-                    const Spacer(),
+                    const Spacer(flex: 2),
                     
                     // Hashtag
                     Text(
@@ -80,13 +194,13 @@ class EditorialHeroSection extends StatelessWidget {
                     Text(
                       title,
                       style: GoogleFonts.montserrat(
-                        fontSize: 64,
+                        fontSize: 52,
                         fontWeight: FontWeight.w900,
                         height: 1.1,
                         color: Colors.black,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     
                     // Subtitle
                     Text(
@@ -94,15 +208,14 @@ class EditorialHeroSection extends StatelessWidget {
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         color: Colors.black45,
-                        height: 1.6,
+                        height: 1.5,
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 36),
                     
                     // READ MORE (BoostDrive Orange button)
                     _buildReadMoreButton(),
-                    
-                    const Spacer(),
+                    const Spacer(flex: 3),
                   ],
                 ),
               ),
@@ -112,26 +225,26 @@ class EditorialHeroSection extends StatelessWidget {
           if (isMobile)
              Positioned.fill(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
                     Text(
                       hashtag,
-                      style: GoogleFonts.poppins(fontSize: 16, color: Colors.black87),
+                      style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       title,
                       style: GoogleFonts.montserrat(
-                        fontSize: 48,
+                        fontSize: 36,
                         fontWeight: FontWeight.w900,
+                        height: 1.1,
                         color: Colors.black,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     _buildReadMoreButton(),
                   ],
                 ),
@@ -145,9 +258,9 @@ class EditorialHeroSection extends StatelessWidget {
               left: 0,
               right: 0,
               child: Container(
-                height: 80,
+                height: navBarHeight,
                 color: BoostDriveTheme.primaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 40),
+                padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: navBar ?? const Row(
                   children: [
                     Spacer(),
@@ -195,7 +308,7 @@ class EditorialHeroSection extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: BoostDriveTheme.primaryColor,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
         shape: const RoundedRectangleBorder(),
         elevation: 0,
       ),

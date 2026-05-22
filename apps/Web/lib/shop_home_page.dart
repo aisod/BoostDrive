@@ -642,7 +642,16 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           EditorialHeroSection(
             title: 'Your Premium Automotive Connection',
             subtitle: 'Buy, sell, and rent vehicles with confidence across Namibia. Drive your dreams forward with BoostDrive.',
-            backgroundImage: 'assets/images/landing-page-image.jpg',
+            backgroundImages: const [
+              'assets/images/landing-page-image.jpg',
+              'assets/images/fordranger.jpg',
+              'assets/images/gti.jpg',
+              'assets/images/toyota.jpg',
+            ],
+            imagePackage: null,
+            topChromeHeight: isMobile
+                ? kToolbarHeight + MediaQuery.paddingOf(context).top
+                : 0,
             hashtag: "#DRIVEYOURDREAMS",
             onReadMore: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AllListingsPage())),
             navBar: _buildEditorialNavBar(user),
