@@ -1032,77 +1032,45 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
               );
             }
             final visible = rows.take(3).toList();
+            final palette = DashboardPalette.of(context);
             return Column(
               children: visible.map((row) {
                 final status = (row['status']?.toString() ?? 'submitted').toLowerCase();
-                final labor = (row['labor_amount'] as num?)?.toDouble() ?? 0;
-                final statusLabel = status == 'quoted' ? 'AWAITING CLIENT RESPONSE' : status.toUpperCase();
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        row['vehicle_label']?.toString() ?? 'Vehicle not set',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        row['concern_summary']?.toString() ?? '',
-                        style: TextStyle(color: BoostDriveTheme.textDim),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text('Status: $statusLabel', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
-                          const Spacer(),
-                          Text('Labor: N\$${labor.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
-                        ],
-                      ),
-                      if (status == 'submitted') ...[
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final amount = await _promptProviderQuote(context);
-                              if (amount == null) return;
-                              try {
-                                await ref.read(jobCardServiceProvider).providerQuoteJobCard(
-                                      jobCardId: row['id'].toString(),
-                                      providerId: providerId,
-                                      quotedLaborAmount: amount,
-                                    );
-                                // Defer refresh until after the quote dialog is fully closed so Riverpod/layout stay stable.
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: MobileJobCardUi.providerTile(
+                    palette: palette,
+                    row: row,
+                    onRespond: status == 'submitted'
+                        ? () async {
+                            final amount = await _promptProviderQuote(context);
+                            if (amount == null) return;
+                            try {
+                              await ref.read(jobCardServiceProvider).providerQuoteJobCard(
+                                    jobCardId: row['id'].toString(),
+                                    providerId: providerId,
+                                    quotedLaborAmount: amount,
+                                  );
+                              if (!context.mounted) return;
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
                                 if (!context.mounted) return;
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (!context.mounted) return;
-                                  ref.invalidate(_incomingProviderJobCardsFamily(providerId));
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Quote sent. Awaiting client response.')),
-                                    );
-                                  }
-                                });
-                              } catch (e) {
+                                ref.invalidate(_incomingProviderJobCardsFamily(providerId));
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Could not send quote: $e')),
+                                    const SnackBar(content: Text('Quote sent. Awaiting client response.')),
                                   );
                                 }
+                              });
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Could not send quote: $e')),
+                                );
                               }
-                            },
-                            style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
-                            child: const Text('RESPOND WITH PRICE'),
-                          ),
-                        ),
-                      ],
-                    ],
+                            }
+                          }
+                        : null,
+                    onOpen: () {},
                   ),
                 );
               }).toList(),
@@ -1116,27 +1084,25 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Future<double?> _promptProviderQuote(BuildContext context) async {
+    final palette = DashboardPalette.of(context);
     final c = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        title: const Text('Enter labor quote', style: TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: c,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Labor amount (N\$)',
-            hintStyle: TextStyle(color: BoostDriveTheme.textDim),
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.06),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+      builder: (ctx) => MobileJobCardUi.dialogShell(
+        palette: palette,
+        title: 'Respond with labor quote',
+        subtitle: 'Enter your labor amount for this job card.',
+        children: [
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: c,
+            label: 'Labor amount (N\$)',
+            keyboard: const TextInputType.numberWithOptions(decimal: true),
           ),
-        ),
+        ],
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('SEND QUOTE')),
+          MobileJobCardUi.cancelTextButton(palette: palette, onPressed: () => Navigator.pop(ctx, false)),
+          MobileJobCardUi.primaryDialogButton(label: 'SEND QUOTE', onPressed: () => Navigator.pop(ctx, true)),
         ],
       ),
     );

@@ -74,70 +74,48 @@ class _EmergencyDirectoryPageState extends ConsumerState<EmergencyDirectoryPage>
   }
 
   Future<void> _showContactDialog(EmergencyDirectoryEntry e) async {
+    final palette = DashboardPalette.of(context);
     final lines = <String>[e.phone, if (e.secondaryPhone != null && e.secondaryPhone!.trim().isNotEmpty) e.secondaryPhone!];
     final copyText = lines.join('\n');
     final hasAlt = e.secondaryPhone != null && e.secondaryPhone!.trim().isNotEmpty;
 
     await showDialog<void>(
       context: context,
+      barrierColor: palette.isDark
+          ? Colors.black.withValues(alpha: 0.65)
+          : Colors.black.withValues(alpha: 0.2),
       builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: BoostDriveTheme.surfaceDark,
-          title: Text(e.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (e.organization != null && e.organization!.isNotEmpty)
-                  Text(e.organization!, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13)),
-                if (e.organization != null && e.organization!.isNotEmpty) const SizedBox(height: 10),
-                ...lines.map(
-                  (p) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(p, style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600)),
-                  ),
+        return EmergencyDirectoryUi.contactDetailDialog(
+          palette: palette,
+          categoryKey: e.category,
+          title: e.title,
+          organization: e.organization,
+          primaryPhone: e.phone,
+          secondaryPhone: e.secondaryPhone,
+          notes: e.notes,
+          onClose: () => Navigator.pop(ctx),
+          onCopy: () async {
+            await Clipboard.setData(ClipboardData(text: copyText));
+            if (ctx.mounted) Navigator.pop(ctx);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(lines.length > 1 ? 'Numbers copied' : 'Number copied'),
+                  backgroundColor: Colors.green.shade700,
                 ),
-                if (hasAlt)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      'Call uses the main number first. Use the button below to dial the alternate line.',
-                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12, height: 1.35),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: copyText));
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(lines.length > 1 ? 'Numbers copied' : 'Number copied'), backgroundColor: Colors.green.shade700),
-                  );
-                }
-              },
-              child: Text(lines.length > 1 ? 'Copy numbers' : 'Copy number'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                await _launchDialer(e.phone);
-              },
-              child: const Text('Call', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            if (hasAlt)
-              TextButton(
-                onPressed: () async {
+              );
+            }
+          },
+          onCallPrimary: () async {
+            Navigator.pop(ctx);
+            await _launchDialer(e.phone);
+          },
+          onCallAlternate: hasAlt
+              ? () async {
                   Navigator.pop(ctx);
                   await _launchDialer(e.secondaryPhone!);
-                },
-                child: const Text('Call alternate'),
-              ),
-          ],
+                }
+              : null,
         );
       },
     );
@@ -173,35 +151,18 @@ class _EmergencyDirectoryPageState extends ConsumerState<EmergencyDirectoryPage>
 
   @override
   Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
     final bundleAsync = ref.watch(emergencyDirectoryBundleProvider);
 
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
-      appBar: AppBar(
-        title: const Text('Emergency contacts'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      backgroundColor: palette.background,
+      appBar: EmergencyDirectoryUi.appBar(context, palette),
       body: bundleAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Could not load contacts', style: TextStyle(color: BoostDriveTheme.textDim)),
-                const SizedBox(height: 12),
-                Text('$e', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () => ref.invalidate(emergencyDirectoryBundleProvider),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
+        loading: () => EmergencyDirectoryUi.loadingState(palette),
+        error: (e, _) => EmergencyDirectoryUi.errorState(
+          palette: palette,
+          message: '$e',
+          onRetry: () => ref.invalidate(emergencyDirectoryBundleProvider),
         ),
         data: (bundle) {
           final entries = bundle.entries;
@@ -220,164 +181,104 @@ class _EmergencyDirectoryPageState extends ConsumerState<EmergencyDirectoryPage>
 
           final filtered = _applyFilters(entries, byCode);
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: TextField(
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: EmergencyDirectoryUi.pageHeader(palette)),
+              SliverToBoxAdapter(
+                child: EmergencyDirectoryUi.searchField(
+                  palette: palette,
                   controller: _search,
                   onChanged: (_) => setState(() {}),
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Search name, region, number…',
-                    hintStyle: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.8)),
-                    prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                    filled: true,
-                    fillColor: BoostDriveTheme.surfaceDark.withValues(alpha: 0.85),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                  ),
                 ),
               ),
-              SizedBox(
-                height: 44,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+              SliverToBoxAdapter(
+                child: EmergencyDirectoryUi.filterSectionLabel(palette, 'Categories'),
+              ),
+              SliverToBoxAdapter(
+                child: EmergencyDirectoryUi.categoryChipRow(
+                  palette: palette,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: const Text('All categories'),
-                        selected: _categoryFilter == null,
-                        onSelected: (_) => setState(() => _categoryFilter = null),
-                        selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.35),
-                        checkmarkColor: Colors.white,
-                        labelStyle: TextStyle(color: _categoryFilter == null ? Colors.white : BoostDriveTheme.textDim),
-                      ),
+                    EmergencyDirectoryUi.categoryChip(
+                      palette: palette,
+                      label: 'All',
+                      categoryKey: '__all__',
+                      selected: _categoryFilter == null,
+                      onTap: () => setState(() => _categoryFilter = null),
                     ),
                     ...categories.map(
-                      (c) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(_categoryLabel(c)),
-                          selected: _categoryFilter == c,
-                          onSelected: (_) => setState(() => _categoryFilter = _categoryFilter == c ? null : c),
-                          selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.35),
-                          checkmarkColor: Colors.white,
-                          labelStyle: TextStyle(color: _categoryFilter == c ? Colors.white : BoostDriveTheme.textDim),
-                        ),
+                      (c) => EmergencyDirectoryUi.categoryChip(
+                        palette: palette,
+                        label: _categoryLabel(c),
+                        categoryKey: c,
+                        selected: _categoryFilter == c,
+                        onTap: () => setState(() => _categoryFilter = _categoryFilter == c ? null : c),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(
-                height: 44,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              SliverToBoxAdapter(
+                child: EmergencyDirectoryUi.filterSectionLabel(palette, 'Regions'),
+              ),
+              SliverToBoxAdapter(
+                child: EmergencyDirectoryUi.regionChipRow(
+                  palette: palette,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: const Text('All regions'),
-                        selected: _regionFilter == null,
-                        onSelected: (_) => setState(() => _regionFilter = null),
-                        selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.35),
-                        checkmarkColor: Colors.white,
-                        labelStyle: TextStyle(color: _regionFilter == null ? Colors.white : BoostDriveTheme.textDim),
-                      ),
+                    EmergencyDirectoryUi.regionChip(
+                      palette: palette,
+                      label: 'All regions',
+                      selected: _regionFilter == null,
+                      onTap: () => setState(() => _regionFilter = null),
                     ),
                     ...regionCodes.map(
-                      (r) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(regionChipLabel(r)),
-                          selected: _regionFilter == r,
-                          onSelected: (_) => setState(() => _regionFilter = _regionFilter == r ? null : r),
-                          selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.35),
-                          checkmarkColor: Colors.white,
-                          labelStyle: TextStyle(color: _regionFilter == r ? Colors.white : BoostDriveTheme.textDim),
-                        ),
+                      (r) => EmergencyDirectoryUi.regionChip(
+                        palette: palette,
+                        label: regionChipLabel(r),
+                        selected: _regionFilter == r,
+                        onTap: () => setState(() => _regionFilter = _regionFilter == r ? null : r),
                       ),
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: filtered.isEmpty
-                    ? Center(
-                        child: Text(
-                          entries.isEmpty
-                              ? 'No contacts yet. Add rows in Supabase (emergency_directory_entries).'
-                              : 'No matches. Try different filters or search.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: BoostDriveTheme.textDim),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        itemCount: filtered.length,
-                        separatorBuilder: (context, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, i) {
-                          final e = filtered[i];
-                          return Material(
-                            color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.65),
-                            borderRadius: BorderRadius.circular(16),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () => _showContactDialog(e),
-                              child: Padding(
-                                padding: const EdgeInsets.all(14),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            _categoryLabel(e.category),
-                                            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          e.displayLocality,
-                                          style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      e.title,
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                                    ),
-                                    if (e.organization != null && e.organization!.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(e.organization!, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13)),
-                                    ],
-                                    const SizedBox(height: 8),
-                                    Text(e.phone, style: const TextStyle(color: Colors.white70, fontSize: 15)),
-                                    if (e.secondaryPhone != null && e.secondaryPhone!.trim().isNotEmpty)
-                                      Text(e.secondaryPhone!, style: const TextStyle(color: Colors.white54, fontSize: 14)),
-                                    if (e.notes != null && e.notes!.isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Text(e.notes!, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12, height: 1.3)),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
+              if (filtered.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: EmergencyDirectoryUi.emptyState(
+                    palette: palette,
+                    message: entries.isEmpty
+                        ? 'No contacts yet. Add rows in Supabase (emergency_directory_entries).'
+                        : 'No matches. Try different filters or search.',
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    EmergencyDirectoryUi.marginMobile,
+                    16,
+                    EmergencyDirectoryUi.marginMobile,
+                    32,
+                  ),
+                  sliver: SliverList.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 24),
+                    itemBuilder: (context, i) {
+                      final e = filtered[i];
+                      return EmergencyDirectoryUi.contactCard(
+                        palette: palette,
+                        categoryKey: e.category,
+                        categoryLabel: _categoryLabel(e.category),
+                        locality: e.displayLocality,
+                        title: e.title,
+                        organization: e.organization,
+                        phone: e.phone,
+                        secondaryPhone: e.secondaryPhone,
+                        notes: e.notes,
+                        onTap: () => _showContactDialog(e),
+                      );
+                    },
+                  ),
+                ),
             ],
           );
         },

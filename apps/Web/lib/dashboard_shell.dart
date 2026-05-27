@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boost_drive_web/authenticated_top_nav.dart';
@@ -14,15 +13,15 @@ enum DashboardNavTab {
   settings,
 }
 
-/// Shared shell: orange top nav, notifications, profile, light/dark page background.
+/// Shared shell: orange top nav, optional portal sidebar, themed page background.
 class DashboardAppShell extends ConsumerWidget {
   final DashboardNavTab activeTab;
   final Widget child;
   final bool showBackOnMobile;
   final String? titleOverride;
   final Widget? sidebar;
-  // Kept for hot-reload compatibility (no longer changes layout).
   final bool useWideLayout;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
 
   const DashboardAppShell({
     super.key,
@@ -32,6 +31,7 @@ class DashboardAppShell extends ConsumerWidget {
     this.titleOverride,
     this.sidebar,
     this.useWideLayout = false,
+    this.scaffoldKey,
   });
 
   AuthenticatedNavHighlight? _navHighlight(DashboardNavTab tab) {
@@ -59,16 +59,21 @@ class DashboardAppShell extends ConsumerWidget {
     final palette = DashboardPalette.of(context);
     final isMobile = MediaQuery.sizeOf(context).width < 900;
     return Scaffold(
+      key: scaffoldKey,
+      drawer: isMobile && sidebar != null
+          ? Drawer(child: SafeArea(child: sidebar!))
+          : null,
       backgroundColor: palette.background,
       body: Column(
         children: [
           BoostDriveAuthenticatedTopNav(
             activeItem: _navHighlight(activeTab),
-            showMenuButton: isMobile,
+            showMenuButton: isMobile && sidebar != null,
+            scaffoldKey: scaffoldKey,
           ),
           Expanded(
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (sidebar != null && !isMobile) sidebar!,
                 Expanded(
@@ -83,17 +88,23 @@ class DashboardAppShell extends ConsumerWidget {
   }
 }
 
-/// Seller sidebar from mockup (desktop only).
-class SellerDashboardSidebar extends StatelessWidget {
-  final VoidCallback onAddListing;
+/// Service-provider portal sidebar (My Services + BaTLorriH logistics).
+class ProviderDashboardSidebar extends StatelessWidget {
+  final ProviderHubTab activeTab;
+  final ValueChanged<ProviderHubTab> onTabSelected;
   final VoidCallback onSettings;
-  final String displayName;
+  final VoidCallback? onSupport;
+  final String? earningsDisplay;
+  final String portalSubtitle;
 
-  const SellerDashboardSidebar({
+  const ProviderDashboardSidebar({
     super.key,
-    required this.onAddListing,
+    required this.activeTab,
+    required this.onTabSelected,
     required this.onSettings,
-    required this.displayName,
+    this.onSupport,
+    this.earningsDisplay,
+    this.portalSubtitle = 'Manage services & logistics',
   });
 
   @override
@@ -102,68 +113,84 @@ class SellerDashboardSidebar extends StatelessWidget {
     return Container(
       width: 256,
       decoration: BoxDecoration(
-        color: palette.card,
-        border: Border(right: BorderSide(color: palette.cardBorder)),
+        color: palette.surfaceContainer,
+        border: Border(right: BorderSide(color: palette.outlineVariant.withValues(alpha: 0.15))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  displayName,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
+                  'Provider Portal',
+                  style: DashboardTypography.labelLg(palette).copyWith(
                     color: palette.primary,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Seller',
-                  style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w500, color: palette.body),
-                ),
+                Text(portalSubtitle, style: DashboardTypography.bodySm(palette)),
               ],
             ),
           ),
-          const Divider(height: 1),
-          _SidebarLink(icon: Icons.dashboard_outlined, label: 'Dashboard', selected: true, onTap: () {}),
-          _SidebarLink(icon: Icons.directions_car_outlined, label: 'Inventory', onTap: () {}),
-          _SidebarLink(icon: Icons.receipt_long_outlined, label: 'Orders', onTap: () {}),
-          _SidebarLink(icon: Icons.handyman_outlined, label: 'Service History', onTap: () {}),
-          _SidebarLink(icon: Icons.insights_outlined, label: 'Analytics', onTap: () {}),
+          Divider(height: 1, color: palette.outlineVariant.withValues(alpha: 0.2)),
+          _ProviderNavItem(
+            icon: Icons.dashboard_outlined,
+            label: 'MY SERVICES',
+            selected: activeTab == ProviderHubTab.services,
+            onTap: () => onTabSelected(ProviderHubTab.services),
+          ),
+          _ProviderNavItem(
+            icon: Icons.local_shipping_outlined,
+            label: 'LOGISTICS (BATLORRIH)',
+            selected: activeTab == ProviderHubTab.logistics,
+            onTap: () => onTabSelected(ProviderHubTab.logistics),
+          ),
+          _ProviderNavItem(
+            icon: Icons.settings_outlined,
+            label: 'Profile Settings',
+            selected: false,
+            onTap: onSettings,
+          ),
+          if (onSupport != null)
+            _ProviderNavItem(
+              icon: Icons.support_agent_outlined,
+              label: 'Support',
+              selected: false,
+              onTap: onSupport!,
+            ),
+          if (earningsDisplay != null) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ProviderDashboardUi.earningsSidebarCard(
+                palette: palette,
+                label: 'TOTAL EARNINGS',
+                value: earningsDisplay!,
+              ),
+            ),
+          ],
           const Spacer(),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DashboardPillButton(label: 'List Vehicle', icon: Icons.add_circle_outline, onPressed: onAddListing),
-                const SizedBox(height: 16),
-                _SidebarLink(icon: Icons.settings_outlined, label: 'Settings', onTap: onSettings),
-                _SidebarLink(icon: Icons.support_agent_outlined, label: 'Support', onTap: () {}),
-              ],
-            ),
-          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 }
 
-class _SidebarLink extends StatelessWidget {
+class _ProviderNavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
-  const _SidebarLink({
+  const _ProviderNavItem({
     required this.icon,
     required this.label,
-    this.selected = false,
+    required this.selected,
     required this.onTap,
   });
 
@@ -171,25 +198,94 @@ class _SidebarLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = DashboardPalette.of(context);
     return Material(
-      color: selected ? palette.primaryFixed.withValues(alpha: 0.35) : Colors.transparent,
+      color: selected ? palette.primary.withValues(alpha: 0.13) : Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Container(
+          decoration: selected
+              ? BoxDecoration(
+                  border: Border(left: BorderSide(color: palette.primary, width: 4)),
+                )
+              : null,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: selected ? palette.primary : palette.body),
+              Icon(icon, color: selected ? palette.primary : palette.onSurfaceVariant, size: 22),
               const SizedBox(width: 12),
-              Text(
-                label,
-                style: GoogleFonts.montserrat(
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? palette.primary : palette.body,
+              Expanded(
+                child: Text(
+                  label,
+                  style: DashboardTypography.labelLg(palette).copyWith(
+                    color: selected ? palette.primary : palette.onSurfaceVariant,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Primary sections inside [ProviderHubPage].
+enum ProviderHubTab { services, logistics }
+
+/// Seller portal sidebar wired to [DashboardPortalSidebar] (Stitch mockup).
+class SellerDashboardSidebar extends StatelessWidget {
+  final VoidCallback onAddListing;
+  final VoidCallback onSettings;
+  final DashboardPortalSection activeSection;
+  final ValueChanged<DashboardPortalSection>? onSectionSelected;
+
+  const SellerDashboardSidebar({
+    super.key,
+    required this.onAddListing,
+    required this.onSettings,
+    this.activeSection = DashboardPortalSection.dashboard,
+    this.onSectionSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardPortalSidebar(
+      activeSection: activeSection,
+      onSectionSelected: onSectionSelected,
+      onListVehicle: onAddListing,
+      onSettings: onSettings,
+    );
+  }
+}
+
+/// Placeholder panel for sidebar sections without a dedicated route yet (UI only).
+class DashboardPortalPlaceholder extends StatelessWidget {
+  final String title;
+  final String message;
+  final IconData icon;
+
+  const DashboardPortalPlaceholder({
+    super.key,
+    required this.title,
+    required this.message,
+    this.icon = Icons.construction_outlined,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
+    return DashboardCard(
+      padding: const EdgeInsets.all(48),
+      elevated: true,
+      child: Column(
+        children: [
+          Icon(icon, size: 56, color: palette.primary.withValues(alpha: 0.7)),
+          const SizedBox(height: 20),
+          Text(title, style: DashboardTypography.headlineMd(palette), textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          Text(message, style: DashboardTypography.bodyMd(palette), textAlign: TextAlign.center),
+        ],
       ),
     );
   }

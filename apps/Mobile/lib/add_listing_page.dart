@@ -17,7 +17,6 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
-  // Form Fields
   String _title = '';
   String _subtitle = '';
   double _price = 0.0;
@@ -27,7 +26,6 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
   String _description = '';
   List<XFile> _selectedImages = [];
 
-  // Fitment (Optional)
   String? _make;
   String? _model;
   int? _year;
@@ -57,7 +55,6 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
       final productService = ref.read(productServiceProvider);
       final List<String> uploadedUrls = [];
 
-      // 1. Upload images
       for (final image in _selectedImages) {
         final bytes = await image.readAsBytes();
         final url = await productService.uploadProductImage(bytes, image.name);
@@ -65,7 +62,7 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
       }
 
       final product = Product(
-        id: '', // Set by Supabase
+        id: '',
         sellerId: user.id,
         title: _title,
         subtitle: _subtitle,
@@ -90,19 +87,27 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
       await productService.addProduct(product);
 
       if (mounted) {
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Listing Published!'), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (mounted) {
+        final palette = DashboardPalette.of(context);
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(e.toString()),
-            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+            backgroundColor: palette.surfaceContainerLowest,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShopCommerceUi.radiusCard)),
+            title: Text('Error', style: TextStyle(color: palette.title)),
+            content: Text(e.toString(), style: TextStyle(color: palette.body)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('OK', style: TextStyle(color: palette.primaryContainer)),
+              ),
+            ],
           ),
         );
       }
@@ -113,175 +118,248 @@ class _AddListingPageState extends ConsumerState<AddListingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
+
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
-      appBar: AppBar(
-        title: const Text('New Listing'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      backgroundColor: palette.background,
+      appBar: ShopCommerceUi.glassAppBar(
+        context: context,
+        palette: palette,
+        title: 'New Listing',
+        onColoredHeader: false,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('Basic Details'),
-                    TextFormField(
-                      decoration: _inputDecoration('Title (e.g. Toyota Corolla Engine)'),
-                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                      onSaved: (v) => _title = v!,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      decoration: _inputDecoration('Subtitle (e.g. 1.6L VVT-i, Low Mileage)'),
-                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                      onSaved: (v) => _subtitle = v!,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            decoration: _inputDecoration('Category'),
-                            initialValue: _category,
-                            dropdownColor: BoostDriveTheme.surfaceDark,
-                            items: const [
-                              DropdownMenuItem(value: 'part', child: Text('Part')),
-                              DropdownMenuItem(value: 'car', child: Text('Car')),
-                              DropdownMenuItem(value: 'rental', child: Text('Rental')),
-                            ],
-                            onChanged: (v) => setState(() => _category = v!),
+          ? Center(child: CircularProgressIndicator(color: palette.primaryContainer))
+          : Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                        ShopCommerceUi.marginMobile,
+                        8,
+                        ShopCommerceUi.marginMobile,
+                        24,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          BoostImagePicker(
+                            useGridLayout: true,
+                            onChanged: (images) => setState(() => _selectedImages = images),
+                            label: 'Vehicle Photos',
+                            maxImages: 10,
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            decoration: _inputDecoration('Condition'),
-                            initialValue: _condition,
-                            dropdownColor: BoostDriveTheme.surfaceDark,
-                            items: const [
-                              DropdownMenuItem(value: 'new', child: Text('New')),
-                              DropdownMenuItem(value: 'used', child: Text('Used')),
-                              DropdownMenuItem(value: 'salvage', child: Text('Salvage')),
-                            ],
-                            onChanged: (v) => setState(() => _condition = v!),
+                          const SizedBox(height: 24),
+                          ShopCommerceUi.sectionLabel(palette, 'Basic Details'),
+                          ShopCommerceUi.sectionCard(
+                            palette: palette,
+                            child: Column(
+                              children: [
+                                _labeledFormField(
+                                  palette,
+                                  label: 'Listing Title',
+                                  hint: 'e.g. Toyota Corolla Engine',
+                                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                                  onSaved: (v) => _title = v!,
+                                ),
+                                const SizedBox(height: 16),
+                                _labeledFormField(
+                                  palette,
+                                  label: 'Subtitle / Tagline',
+                                  hint: 'e.g. 1.6L VVT-i, Low Mileage',
+                                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                                  onSaved: (v) => _subtitle = v!,
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(child: _categoryDropdown(palette)),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: _conditionDropdown(palette)),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 32),
-                    _buildSectionHeader('Pricing & Location'),
-                    TextFormField(
-                      decoration: _inputDecoration('Price (N\$)').copyWith(prefixText: 'N\$ '),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v == null || double.tryParse(v) == null ? 'Invalid Price' : null,
-                      onSaved: (v) => _price = double.parse(v!.replaceAll(',', '')),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      decoration: _inputDecoration('City / Region'),
-                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                      onSaved: (v) => _location = v!,
-                    ),
-
-                    const SizedBox(height: 32),
-                    _buildSectionHeader('Vehicle Fitment (Optional)'),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            decoration: _inputDecoration('Make (e.g. Toyota)'),
-                            onSaved: (v) => _make = v?.isEmpty ?? true ? null : v,
+                          const SizedBox(height: 24),
+                          ShopCommerceUi.sectionLabel(palette, 'Pricing & Location'),
+                          ShopCommerceUi.sectionCard(
+                            palette: palette,
+                            child: Column(
+                              children: [
+                                _labeledFormField(
+                                  palette,
+                                  label: 'Price (N\$)',
+                                  hint: '0.00',
+                                  keyboardType: TextInputType.number,
+                                  prefixText: 'N\$ ',
+                                  validator: (v) =>
+                                      v == null || double.tryParse(v.replaceAll(',', '')) == null
+                                          ? 'Invalid Price'
+                                          : null,
+                                  onSaved: (v) => _price = double.parse(v!.replaceAll(',', '')),
+                                ),
+                                const SizedBox(height: 16),
+                                _labeledFormField(
+                                  palette,
+                                  label: 'City / Region',
+                                  hint: 'Windhoek',
+                                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                                  onSaved: (v) => _location = v!,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            decoration: _inputDecoration('Year'),
-                            keyboardType: TextInputType.number,
-                            onSaved: (v) => _year = v?.isEmpty ?? true ? null : int.tryParse(v!),
+                          const SizedBox(height: 24),
+                          ShopCommerceUi.sectionLabel(palette, 'Vehicle Fitment'),
+                          ShopCommerceUi.sectionCard(
+                            palette: palette,
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _labeledFormField(
+                                        palette,
+                                        label: 'Make',
+                                        hint: 'Toyota',
+                                        onSaved: (v) => _make = v?.isEmpty ?? true ? null : v,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _labeledFormField(
+                                        palette,
+                                        label: 'Year',
+                                        hint: '2023',
+                                        keyboardType: TextInputType.number,
+                                        onSaved: (v) => _year = v?.isEmpty ?? true ? null : int.tryParse(v!),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _labeledFormField(
+                                        palette,
+                                        label: 'Model',
+                                        hint: 'Corolla',
+                                        onSaved: (v) => _model = v?.isEmpty ?? true ? null : v,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      decoration: _inputDecoration('Model (e.g. Corolla)'),
-                      onSaved: (v) => _model = v?.isEmpty ?? true ? null : v,
-                    ),
-
-                    const SizedBox(height: 32),
-                    _buildSectionHeader('Detailed Description'),
-                    TextFormField(
-                      maxLines: 8,
-                      decoration: _inputDecoration('Detailed Item Description'),
-                      style: const TextStyle(color: Colors.white),
-                      onChanged: (v) => setState(() => _description = v),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Description is required';
-                        return null;
-                      },
-                      onSaved: (v) => _description = v!,
-                    ),
-
-                    const SizedBox(height: 32),
-                    _buildSectionHeader('Images'),
-                    BoostImagePicker(
-                      onChanged: (images) => setState(() => _selectedImages = images),
-                      label: 'Vehicle Photos',
-                      maxImages: 10,
-                    ),
-
-                    const SizedBox(height: 48),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: BoostDriveTheme.primaryColor,
-                          foregroundColor: Colors.white, 
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Publish Listing', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 24),
+                          ShopCommerceUi.sectionLabel(palette, 'Detailed Description'),
+                          ShopCommerceUi.sectionCard(
+                            palette: palette,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TextFormField(
+                                  maxLines: 6,
+                                  style: TextStyle(color: palette.title, fontSize: 15),
+                                  decoration: ShopCommerceUi.formDecoration(
+                                    palette,
+                                    hint: "Describe your vehicle's features, history, and any special upgrades...",
+                                  ),
+                                  onChanged: (v) => setState(() => _description = v),
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) return 'Description is required';
+                                    return null;
+                                  },
+                                  onSaved: (v) => _description = v!,
+                                ),
+                                const SizedBox(height: 12),
+                                ShopCommerceUi.infoHint(
+                                  palette,
+                                  'Be as detailed as possible to attract more buyers.',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+                  ),
+                  ShopCommerceUi.listingStickyFooter(
+                    context: context,
+                    palette: palette,
+                    onPublish: _submit,
+                    loading: _isLoading,
+                  ),
+                ],
               ),
             ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Text(
-        title.toUpperCase(),
-        style: const TextStyle(
-          color: BoostDriveTheme.primaryColor,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.5,
+  Widget _labeledFormField(
+    DashboardPalette palette, {
+    required String label,
+    String? hint,
+    String? prefixText,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    void Function(String?)? onSaved,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ShopCommerceUi.labeledFieldHeader(palette, label),
+        TextFormField(
+          keyboardType: keyboardType,
+          style: TextStyle(color: palette.title, fontSize: 15),
+          decoration: ShopCommerceUi.formDecoration(palette, hint: hint, prefixText: prefixText),
+          validator: validator,
+          onSaved: onSaved,
         ),
-      ),
+      ],
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: BoostDriveTheme.textDim),
-      filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.05),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor)),
+  Widget _categoryDropdown(DashboardPalette palette) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ShopCommerceUi.labeledFieldHeader(palette, 'Category'),
+        DropdownButtonFormField<String>(
+          initialValue: _category,
+          dropdownColor: palette.surfaceContainerLowest,
+          style: TextStyle(color: palette.title, fontSize: 15),
+          decoration: ShopCommerceUi.formDecoration(palette),
+          items: const [
+            DropdownMenuItem(value: 'part', child: Text('Part')),
+            DropdownMenuItem(value: 'car', child: Text('Car')),
+            DropdownMenuItem(value: 'rental', child: Text('Rental')),
+          ],
+          onChanged: (v) => setState(() => _category = v!),
+        ),
+      ],
+    );
+  }
+
+  Widget _conditionDropdown(DashboardPalette palette) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ShopCommerceUi.labeledFieldHeader(palette, 'Condition'),
+        DropdownButtonFormField<String>(
+          initialValue: _condition,
+          dropdownColor: palette.surfaceContainerLowest,
+          style: TextStyle(color: palette.title, fontSize: 15),
+          decoration: ShopCommerceUi.formDecoration(palette),
+          items: const [
+            DropdownMenuItem(value: 'new', child: Text('New')),
+            DropdownMenuItem(value: 'used', child: Text('Used')),
+            DropdownMenuItem(value: 'salvage', child: Text('Salvage')),
+          ],
+          onChanged: (v) => setState(() => _condition = v!),
+        ),
+      ],
     );
   }
 }

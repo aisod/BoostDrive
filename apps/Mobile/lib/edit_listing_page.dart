@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
+import 'mobile_app_bar_actions.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
@@ -107,6 +108,7 @@ class _EditListingPageState extends ConsumerState<EditListingPage> {
         title: const Text('Edit Listing'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: mobileAppBarActions(onColoredHeader: false),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

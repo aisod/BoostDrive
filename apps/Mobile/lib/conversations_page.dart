@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
+import 'mobile_app_bar_actions.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'chat_page.dart';
@@ -25,6 +26,7 @@ class ConversationsPage extends ConsumerWidget {
         backgroundColor: BoostDriveTheme.primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
+        actions: mobileAppBarActions(),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: ref.watch(messageServiceProvider).streamConversations(user.id),

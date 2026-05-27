@@ -6,6 +6,7 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'mobile_app_bar_actions.dart';
 
 class BaTLorriHLogisticsDashboard extends ConsumerStatefulWidget {
   const BaTLorriHLogisticsDashboard({super.key});
@@ -165,7 +166,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
 
   Widget _buildMetricsRow(WidgetRef ref, String uid) {
     final profileAsync = ref.watch(userProfileProvider(uid));
-    final deliveriesAsync = ref.watch(activeDeliveriesProvider(uid));
+    final deliveriesAsync = ref.watch(logisticsOrdersProvider(uid));
 
     return profileAsync.when(
       data: (profile) {
@@ -244,7 +245,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
     final user = ref.read(currentUserProvider);
     if (user == null) return const SizedBox();
 
-    return ref.watch(activeDeliveriesProvider(user.id)).when(
+    return ref.watch(logisticsOrdersProvider(user.id)).when(
       data: (deliveries) {
         final activeDeliveries = deliveries.where((d) => d.status != 'delivered' && d.status != 'cancelled').toList();
         
@@ -287,8 +288,9 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                               icon: const Icon(Icons.close, color: Colors.white),
                               onPressed: () => Navigator.pop(context),
                             ),
+                            actions: mobileAppBarActions(),
                           ),
-                          body: ref.watch(activeDeliveriesProvider(user.id)).when(
+                          body: ref.watch(logisticsOrdersProvider(user.id)).when(
                             data: (deliveries) {
                               final activeDeliveries = deliveries.where((d) => d.status != 'delivered' && d.status != 'cancelled').toList();
                               final Set<Marker> markers = activeDeliveries.map((d) {
@@ -398,7 +400,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
   }
 
   Widget _buildOrderList(WidgetRef ref, String uid) {
-    return ref.watch(activeDeliveriesProvider(uid)).when(
+    return ref.watch(logisticsOrdersProvider(uid)).when(
       data: (allOrders) {
         final orders = allOrders.where((o) {
           if (_tabController.index == 0) return o.status != 'delivered' && o.status != 'cancelled';
@@ -513,7 +515,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                             driverId: uid,
                             eta: order.eta.isNotEmpty ? order.eta : '30 min',
                           );
-                      ref.invalidate(activeDeliveriesProvider(uid));
+                      ref.invalidate(logisticsOrdersProvider(uid));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Assigned to you. Proceed to pickup.')),
@@ -526,7 +528,7 @@ class _BaTLorriHLogisticsDashboardState extends ConsumerState<BaTLorriHLogistics
                             order.id,
                             nextStatus,
                           );
-                      ref.invalidate(activeDeliveriesProvider(uid));
+                      ref.invalidate(logisticsOrdersProvider(uid));
                       if (context.mounted) {
                         final label = nextStatus == 'in_transit' ? 'Order now in transit.' : 'Order marked delivered.';
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));

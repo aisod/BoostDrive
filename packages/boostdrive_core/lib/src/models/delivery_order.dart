@@ -11,6 +11,9 @@ class DeliveryOrder {
   final Map<String, dynamic> dropoffLocation;
   final Map<String, dynamic> items;
   final String eta;
+  final double? deliveryFee;
+  final String? vehicleId;
+  final DateTime? updatedAt;
   final DateTime createdAt;
 
   const DeliveryOrder({
@@ -26,6 +29,9 @@ class DeliveryOrder {
     required this.dropoffLocation,
     required this.items,
     this.eta = '',
+    this.deliveryFee,
+    this.vehicleId,
+    this.updatedAt,
     required this.createdAt,
   });
 
@@ -45,8 +51,23 @@ class DeliveryOrder {
       dropoffLocation: Map<String, dynamic>.from(data['dropoff_location'] ?? {}),
       items: Map<String, dynamic>.from(data['items'] ?? {}),
       eta: data['eta']?.toString() ?? '',
+      deliveryFee: _toDoubleOrNull(data['delivery_fee']),
+      vehicleId: data['vehicle_id']?.toString(),
+      updatedAt: data['updated_at'] != null ? DateTime.tryParse(data['updated_at'].toString()) : null,
       createdAt: DateTime.tryParse(data['created_at']?.toString() ?? '') ?? DateTime.now(),
     );
+  }
+
+  /// Map marker position: live driver coords when available, else pickup/dropoff by status.
+  ({double lat, double lng}) markerCoordinates({double fallbackLat = -22.5609, double fallbackLng = 17.0658}) {
+    if (driverLastLat != null && driverLastLng != null) {
+      return (lat: driverLastLat!, lng: driverLastLng!);
+    }
+    final usePickup = status == 'pending' || status == 'picking_up';
+    final loc = usePickup ? pickupLocation : dropoffLocation;
+    final lat = _toDoubleOrNull(loc['lat']) ?? fallbackLat;
+    final lng = _toDoubleOrNull(loc['lng']) ?? fallbackLng;
+    return (lat: lat, lng: lng);
   }
 
   static double? _toDoubleOrNull(dynamic v) {
@@ -68,6 +89,9 @@ class DeliveryOrder {
       'dropoff_location': dropoffLocation,
       'items': items,
       'eta': eta,
+      'delivery_fee': deliveryFee,
+      'vehicle_id': vehicleId,
+      'updated_at': updatedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
     };
   }

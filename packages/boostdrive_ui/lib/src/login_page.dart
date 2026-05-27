@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'login_widget.dart';
 import 'theme.dart';
 import 'reset_password_page.dart';
+import 'forgot_password_flow.dart';
 
 class BoostLoginPage extends ConsumerStatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -85,6 +86,12 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
     }
     if (message.contains('otp') || message.contains('verification code')) {
       return 'Incorrect or expired verification code.';
+    }
+    if (message.contains('rate limit') ||
+        message.contains('too many') ||
+        message.contains('over_email_send_rate_limit') ||
+        message.contains('over_sms_send_rate_limit')) {
+      return 'Too many code requests. Please wait a few minutes before resending.';
     }
     
     // Fallback for other Supabase/Auth exceptions
@@ -276,7 +283,9 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
       
       // Determine if we should verify as email or phone based on the identifier format
       if (identifier.contains('@')) {
-        success = await authService.verifyEmailCode(identifier, otp);
+        success = _isPasswordReset
+            ? await authService.verifyPasswordResetOtp(identifier, otp)
+            : await authService.verifyEmailCode(identifier, otp);
       } else if (identifier.isNotEmpty) {
         // Ensure phone number starts with + for Supabase
         String phoneId = identifier;
@@ -289,34 +298,32 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
       
       if (success) {
         if (_isPasswordReset) {
-          if (mounted) {
-            // Navigate to Reset Password Page
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ResetPasswordPage(
-                  onPasswordChanged: () {
-                    // Reset UI state — guard with mounted check since the
-                    // ResetPasswordPage callback fires after navigation and
-                    // this State may already be disposed at that point.
-                    if (mounted) {
-                      setState(() {
-                        _verificationId = null;
-                        _isPasswordReset = false;
-                        _errorText = null;
-                        _isLoading = false;
-                      });
-                    }
+          ref.read(passwordResetPendingProvider.notifier).state = true;
 
-                    if (widget.onLoginSuccess != null) {
-                      widget.onLoginSuccess!();
-                    } else if (mounted && Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
-                  },
+          if (mounted) {
+            setState(() {
+              _verificationId = null;
+              _isPasswordReset = false;
+              _errorText = null;
+              _isLoading = false;
+            });
+
+            if (kIsWeb) {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ResetPasswordPage(
+                    onPasswordChanged: () {
+                      ref.read(passwordResetPendingProvider.notifier).state = false;
+                      if (widget.onLoginSuccess != null) {
+                        widget.onLoginSuccess!();
+                      } else if (mounted && Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           }
           return;
         }
@@ -391,46 +398,50 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
     }
   }
 
-  void _resendCode() {
-    if (_verificationId != null) {
-      final authService = ref.read(authServiceProvider);
-      // Determine if we're resending for signup, recovery, or login
-      OtpType type;
-      if (_isPasswordReset) {
-        type = OtpType.recovery;
-      } else if (_isSignUp) {
-        type = OtpType.signup;
-      } else {
-        type = OtpType.email;
+  Future<void> _resendCode() async {
+    final identifier = _verificationId?.trim();
+    if (identifier == null || identifier.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorText = null;
+    });
+
+    try {
+      await ref.read(authServiceProvider).resendVerificationCode(
+        identifier: identifier,
+        isSignUp: _isSignUp,
+        isPasswordReset: _isPasswordReset,
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verification code resent!')),
+        );
       }
-      
-      authService.resendOtp(
-        type: type,
-        email: _verificationId!.contains('@') ? _verificationId : null,
-        phone: !_verificationId!.contains('@') ? _verificationId : null,
-      ).then((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Verification code resent!')),
-          );
-        }
-      }).catchError((e) {
-        if (mounted) setState(() => _errorText = _getFriendlyErrorMessage(e));
-      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorText = _getFriendlyErrorMessage(e);
+          _isLoading = false;
+        });
+      }
     }
   }
 
   void _showForgotPasswordDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => _ForgotPasswordFlow(
-        onSuccess: (email, otp) async {
-          _verificationId = email;
-          _isPasswordReset = true;
-          _verifyOtp(otp);
-        },
-        getFriendlyError: _getFriendlyErrorMessage,
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => ForgotPasswordFlowPage(
+          onPasswordResetComplete: () {
+            if (widget.onLoginSuccess != null) {
+              widget.onLoginSuccess!();
+            }
+          },
+          getFriendlyError: _getFriendlyErrorMessage,
+        ),
       ),
     );
   }
@@ -536,165 +547,6 @@ class _BoostLoginPageState extends ConsumerState<BoostLoginPage> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ForgotPasswordFlow extends ConsumerStatefulWidget {
-  final Function(String email, String otp) onSuccess;
-  final String Function(dynamic) getFriendlyError;
-
-  const _ForgotPasswordFlow({
-    required this.onSuccess,
-    required this.getFriendlyError,
-  });
-
-  @override
-  ConsumerState<_ForgotPasswordFlow> createState() => _ForgotPasswordFlowState();
-}
-
-class _ForgotPasswordFlowState extends ConsumerState<_ForgotPasswordFlow> {
-  final _emailController = TextEditingController();
-  final _otpController = TextEditingController();
-  bool _isOtpSent = false;
-  bool _isLoading = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _otpController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _sendCode() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      setState(() => _error = 'Please enter a valid email');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      await ref.read(authServiceProvider).sendPasswordResetOtp(email);
-      setState(() {
-        _isOtpSent = true;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = widget.getFriendlyError(e);
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _verifyAndSubmit() async {
-    final otp = _otpController.text.trim();
-    if (otp.length != 6) {
-      setState(() => _error = 'Enter 6-digit code');
-      return;
-    }
-
-    Navigator.pop(context);
-    widget.onSuccess(_emailController.text.trim(), otp);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: BoostDriveTheme.backgroundDark,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: Text(
-        _isOtpSent ? 'Verify Code' : 'Reset Password',
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _isOtpSent 
-                  ? 'Enter the 6-digit code sent to ${_emailController.text}'
-                  : 'Enter your email address to receive a verification code.',
-                style: const TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 24),
-              
-              if (!_isOtpSent)
-                TextFormField(
-                  controller: _emailController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'Email Address',
-                    hintStyle: TextStyle(color: Colors.white38),
-                    prefixIcon: Icon(Icons.email_outlined, color: Color(0x22FF6600)),
-                  ),
-                )
-              else
-                TextFormField(
-                  controller: _otpController,
-                  style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 8),
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: const InputDecoration(
-                    hintText: '000000',
-                    hintStyle: TextStyle(color: Color(0x22FF6600)),
-                    counterText: '',
-                  ),
-                ),
-
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.redAccent, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: BoostDriveTheme.primaryColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          onPressed: _isLoading ? null : (_isOtpSent ? _verifyAndSubmit : _sendCode),
-          child: _isLoading 
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : Text(_isOtpSent ? 'Verify' : 'Send Code'),
-        ),
-      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 
 import 'package:intl/intl.dart';
+import 'mobile_app_bar_actions.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   final String conversationId;
@@ -160,6 +161,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 backgroundColor: Colors.white,
                 iconTheme: const IconThemeData(color: BoostDriveTheme.primaryColor),
                 elevation: 1,
+                actions: mobileAppBarActions(onColoredHeader: false),
               ),
               body: Column(
                 children: [

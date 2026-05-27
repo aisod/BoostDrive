@@ -5,11 +5,39 @@ import 'theme.dart';
 class BoostProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onTap;
+  final bool compact;
 
   const BoostProductCard({
     super.key,
     required this.product,
     this.onTap,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useCompact = compact || constraints.maxWidth < 220 || constraints.maxHeight < 340;
+        return _BoostProductCardBody(
+          product: product,
+          onTap: onTap,
+          compact: useCompact,
+        );
+      },
+    );
+  }
+}
+
+class _BoostProductCardBody extends StatelessWidget {
+  final Product product;
+  final VoidCallback? onTap;
+  final bool compact;
+
+  const _BoostProductCardBody({
+    required this.product,
+    this.onTap,
+    required this.compact,
   });
 
   @override
@@ -29,25 +57,28 @@ class BoostProductCard extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.04)
         : const Color(0xFFF8F1EC);
     final ctaLabel = switch (product.category) {
-      'part' => 'View Part',
-      'rental' => 'View Rental',
-      _ => 'View Vehicle',
+      'part' => compact ? 'VIEW' : 'View Part',
+      'rental' => compact ? 'VIEW' : 'View Rental',
+      _ => compact ? 'VIEW' : 'View Vehicle',
     };
+    final categoryTagLabel = _getCategoryLabel(product.category);
+    final displayCategoryTag = compact ? categoryTagLabel.toUpperCase() : categoryTagLabel;
+
+    final edgePadding = compact ? 12.0 : 18.0;
+    final titleSize = compact ? 13.0 : 18.0;
+    final bodySize = compact ? 10.0 : 14.0;
 
     return RepaintBoundary(
       child: Container(
         decoration: BoxDecoration(
           color: surfaceColor,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: borderColor,
-            width: 1,
-          ),
+          borderRadius: BorderRadius.circular(compact ? 24 : 28),
+          border: Border.all(color: borderColor, width: 1),
           boxShadow: [
             BoxShadow(
               color: shadowColor,
-              blurRadius: 24,
-              offset: const Offset(0, 12),
+              blurRadius: compact ? 12 : 24,
+              offset: Offset(0, compact ? 6 : 12),
             ),
           ],
         ),
@@ -59,7 +90,7 @@ class BoostProductCard extends StatelessWidget {
             hoverColor: BoostDriveTheme.primaryColor.withValues(alpha: isDark ? 0.08 : 0.04),
             splashColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
             highlightColor: Colors.transparent,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(compact ? 24 : 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -107,18 +138,29 @@ class BoostProductCard extends StatelessWidget {
                         ),
                       ),
                       Positioned(
-                        top: 16,
-                        left: 16,
+                        top: compact ? 8 : 16,
+                        left: compact ? 8 : 16,
+                        right: compact ? 8 : 16,
                         child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+                          spacing: 6,
+                          runSpacing: 6,
                           children: [
                             _Badge(
-                              label: _getCategoryLabel(product.category),
-                              backgroundColor: Colors.white.withValues(alpha: 0.92),
-                              foregroundColor: const Color(0xFF221C20),
+                              label: displayCategoryTag,
+                              backgroundColor: compact
+                                  ? (isDark
+                                      ? BoostDriveTheme.primaryColor
+                                      : const Color(0xFFFFDBCF))
+                                  : Colors.white.withValues(alpha: 0.92),
+                              foregroundColor: compact
+                                  ? (isDark
+                                      ? const Color(0xFF1A1A1A)
+                                      : BoostDriveTheme.primaryColor)
+                                  : const Color(0xFF221C20),
+                              fontSize: compact ? 8 : 11,
+                              letterSpacing: compact ? 0.6 : 0,
                             ),
-                            if (product.isFeatured)
+                            if (product.isFeatured && !compact)
                               const _Badge(
                                 label: 'Featured',
                                 backgroundColor: BoostDriveTheme.primaryColor,
@@ -127,35 +169,36 @@ class BoostProductCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 16,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _Badge(
-                                label: _formatCondition(product.condition),
-                                backgroundColor: Colors.black.withValues(alpha: 0.56),
-                                foregroundColor: Colors.white,
+                      if (!compact)
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _Badge(
+                                  label: _formatCondition(product.condition),
+                                  backgroundColor: Colors.black.withValues(alpha: 0.56),
+                                  foregroundColor: Colors.white,
+                                ),
                               ),
-                            ),
-                            if ((product.clickCount ?? 0) > 0) ...[
-                              const SizedBox(width: 8),
-                              _Badge(
-                                label: '${product.clickCount} views',
-                                backgroundColor: Colors.black.withValues(alpha: 0.56),
-                                foregroundColor: Colors.white,
-                              ),
+                              if ((product.clickCount ?? 0) > 0) ...[
+                                const SizedBox(width: 8),
+                                _Badge(
+                                  label: '${product.clickCount} views',
+                                  backgroundColor: Colors.black.withValues(alpha: 0.56),
+                                  foregroundColor: Colors.white,
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                  padding: EdgeInsets.all(edgePadding),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,71 +206,96 @@ class BoostProductCard extends StatelessWidget {
                       Text(
                         product.title,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: titleSize,
                           fontWeight: FontWeight.w800,
                           color: titleColor,
                           height: 1.15,
                         ),
-                        maxLines: 2,
+                        maxLines: compact ? 2 : 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: compact ? 4 : 8),
                       Text(
                         product.subtitle.isNotEmpty ? product.subtitle : _fitmentSummary(),
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: bodySize,
                           color: bodyColor,
-                          height: 1.4,
+                          height: 1.25,
                         ),
-                        maxLines: 2,
+                        maxLines: compact ? 2 : 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 10,
-                        children: [
-                          _MetaPill(
-                            icon: Icons.location_on_outlined,
-                            label: product.location,
-                            foregroundColor: bodyColor,
-                            backgroundColor: isDark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : const Color(0xFFF8F1EC),
-                          ),
-                          _MetaPill(
-                            icon: Icons.tune,
-                            label: _fitmentSummary(),
-                            foregroundColor: bodyColor,
-                            backgroundColor: isDark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : const Color(0xFFF8F1EC),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: compact ? 6 : 12),
+                      if (compact)
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_outlined, size: 12, color: bodyColor),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                product.location.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                  color: bodyColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 10,
+                          children: [
+                            _MetaPill(
+                              icon: Icons.location_on_outlined,
+                              label: product.location,
+                              foregroundColor: bodyColor,
+                              backgroundColor: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : const Color(0xFFF8F1EC),
+                            ),
+                            _MetaPill(
+                              icon: Icons.tune,
+                              label: _fitmentSummary(),
+                              foregroundColor: bodyColor,
+                              backgroundColor: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : const Color(0xFFF8F1EC),
+                            ),
+                          ],
+                        ),
+                      SizedBox(height: compact ? 8 : 18),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  product.category == 'rental' ? 'RATE' : 'PRICE',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: bodyColor,
-                                    letterSpacing: 1.2,
+                                if (!compact)
+                                  Text(
+                                    product.category == 'rental' ? 'RATE' : 'PRICE',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: bodyColor,
+                                      letterSpacing: 0.8,
+                                    ),
+                                    maxLines: 1,
                                   ),
-                                ),
-                                const SizedBox(height: 4),
+                                if (!compact) const SizedBox(height: 4),
                                 Text(
                                   _formatPrice(),
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w900,
-                                    color: BoostDriveTheme.primaryColor,
+                                  style: TextStyle(
+                                    fontSize: compact ? 14 : 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: compact ? titleColor : BoostDriveTheme.primaryColor,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -235,11 +303,18 @@ class BoostProductCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: compact ? 12 : 14,
+                              vertical: compact ? 7 : 10,
+                            ),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white : const Color(0xFF221C20),
+                              color: compact
+                                  ? (isDark
+                                      ? BoostDriveTheme.primaryColor
+                                      : const Color(0xFFFFDBCF))
+                                  : (isDark ? Colors.white : const Color(0xFF221C20)),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Row(
@@ -248,17 +323,25 @@ class BoostProductCard extends StatelessWidget {
                                 Text(
                                   ctaLabel,
                                   style: TextStyle(
-                                    color: isDark ? const Color(0xFF1C1A19) : Colors.white,
-                                    fontSize: 12,
+                                    color: compact
+                                        ? (isDark
+                                            ? const Color(0xFF1A1A1A)
+                                            : BoostDriveTheme.primaryColor)
+                                        : (isDark ? const Color(0xFF1C1A19) : Colors.white),
+                                    fontSize: compact ? 9 : 12,
                                     fontWeight: FontWeight.w800,
+                                    letterSpacing: compact ? 0.4 : 0,
                                   ),
+                                  maxLines: 1,
                                 ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.arrow_forward,
-                                  size: 15,
-                                  color: isDark ? const Color(0xFF1C1A19) : Colors.white,
-                                ),
+                                if (!compact) ...[
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    size: 15,
+                                    color: isDark ? const Color(0xFF1C1A19) : Colors.white,
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -282,7 +365,7 @@ class BoostProductCard extends StatelessWidget {
             ? Icons.directions_car_outlined
             : Icons.settings_outlined,
         color: iconColor,
-        size: 40,
+        size: compact ? 32 : 40,
       ),
     );
   }
@@ -326,27 +409,34 @@ class _Badge extends StatelessWidget {
   final String label;
   final Color backgroundColor;
   final Color foregroundColor;
+  final double fontSize;
+  final double letterSpacing;
 
   const _Badge({
     required this.label,
     required this.backgroundColor,
     required this.foregroundColor,
+    this.fontSize = 11,
+    this.letterSpacing = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: fontSize, vertical: fontSize * 0.55),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: foregroundColor,
-          fontSize: 11,
+          fontSize: fontSize,
           fontWeight: FontWeight.w800,
+          letterSpacing: letterSpacing,
         ),
       ),
     );
@@ -358,43 +448,42 @@ class _MetaPill extends StatelessWidget {
   final String label;
   final Color foregroundColor;
   final Color backgroundColor;
+  final double fontSize;
 
   const _MetaPill({
     required this.icon,
     required this.label,
     required this.foregroundColor,
     required this.backgroundColor,
+    this.fontSize = 11,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 220),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: foregroundColor),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: foregroundColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: fontSize, vertical: fontSize * 0.7),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: fontSize + 3, color: foregroundColor),
+          SizedBox(width: fontSize * 0.5),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: foregroundColor,
+                fontSize: fontSize,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

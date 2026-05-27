@@ -9,13 +9,15 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'suspension_overlay.dart';
-import 'add_staff_page.dart';
+import 'add_staff_sheet.dart';
 import 'user_support_view.dart';
-import 'boostdrive_banner.dart';
 import 'boostdrive_banner.dart';
 
 class ServiceProDashboardPage extends ConsumerStatefulWidget {
-  const ServiceProDashboardPage({super.key});
+  /// When true, renders inside [DashboardAppShell] without its own [Scaffold].
+  const ServiceProDashboardPage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   ConsumerState<ServiceProDashboardPage> createState() => _ServiceProDashboardPageState();
@@ -36,42 +38,64 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
       error: (_, __) => false,
     );
 
+    final isMobile = MediaQuery.sizeOf(context).width < 900;
+    final padding = widget.embedded
+        ? EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: isMobile ? 20 : 32)
+        : EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: isMobile ? 24 : 40);
+
+    final palette = DashboardPalette.of(context);
+    final body = Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Consumer(
+            builder: (context, ref, _) {
+              final alertsAsync = ref.watch(activeDashboardAlertsStreamProvider(user.id));
+              return alertsAsync.when(
+                data: (alerts) {
+                  if (alerts.isEmpty) return const SizedBox.shrink();
+                  return BoostDriveBanner(
+                    alert: alerts.first,
+                    onAction: (ticketId) {
+                      ref.read(pendingSupportTicketIdProvider.notifier).state = ticketId;
+                      setState(() => _currentSection = 'SUPPORT');
+                    },
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              );
+            },
+          ),
+          _buildProHeader(ref, user.id, isMobile, palette),
+          const SizedBox(height: 32),
+          _buildTopNavBar(isMobile, palette),
+          const SizedBox(height: 48),
+          _buildSectionContent(user.id),
+        ],
+      ),
+    );
+
+    if (widget.embedded) {
+      return Stack(
+        children: [
+          ColoredBox(color: palette.background, child: body),
+          if (isSuspended)
+            Positioned.fill(
+              child: SuspensionOverlay(
+                reason: profileAsync.valueOrNull?.suspensionReason,
+              ),
+            ),
+        ],
+      );
+    }
+
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
+      backgroundColor: palette.background,
       body: Stack(
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Consumer(
-                  builder: (context, ref, _) {
-                    final alertsAsync = ref.watch(activeDashboardAlertsStreamProvider(user.id));
-                    return alertsAsync.when(
-                      data: (alerts) {
-                        if (alerts.isEmpty) return const SizedBox.shrink();
-                        return BoostDriveBanner(
-                          alert: alerts.first,
-                          onAction: (ticketId) {
-                            ref.read(pendingSupportTicketIdProvider.notifier).state = ticketId;
-                            setState(() => _currentSection = 'SUPPORT');
-                          },
-                        );
-                      },
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    );
-                  },
-                ),
-                _buildProHeader(ref, user.id),
-                const SizedBox(height: 32),
-                _buildTopNavBar(),
-                const SizedBox(height: 48),
-                _buildSectionContent(user.id),
-              ],
-            ),
-          ),
+          SingleChildScrollView(child: body),
           if (isSuspended)
             Positioned.fill(
               child: SuspensionOverlay(
@@ -102,64 +126,42 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     return section;
   }
 
-  Widget _buildTopNavBar() {
-    // Services requested (REQUESTS/SOS) only on mobile; hidden on web
+  Widget _buildTopNavBar(bool isMobile, DashboardPalette palette) {
     final sections = kIsWeb
         ? ['HOME', 'ROUTES', 'FLEET', 'SUPPORT']
         : ['HOME', 'REQUESTS', 'ROUTES', 'FLEET', 'FINANCE', 'SUPPORT'];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF000000), // Darker shade for the nav bar
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: sections.map((section) {
-            final isActive = _currentSection == section;
-            IconData icon;
-            switch (section) {
-              case 'HOME': icon = Icons.grid_view_rounded; break;
-              case 'REQUESTS': icon = Icons.emergency_outlined; break;
-              case 'ROUTES': icon = Icons.map_outlined; break;
-              case 'FLEET': icon = Icons.local_shipping_outlined; break;
-              case 'FINANCE': icon = Icons.account_balance_wallet_outlined; break;
-              case 'SUPPORT': icon = Icons.support_agent; break;
-              default: icon = Icons.help_outline;
-            }
-            return InkWell(
-              onTap: () => setState(() => _currentSection = section),
-              borderRadius: BorderRadius.circular(12),
-              mouseCursor: SystemMouseCursors.click,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isActive ? BoostDriveTheme.surfaceDark : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(icon, color: isActive ? BoostDriveTheme.primaryColor : Color(0x22FF6600), size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      _navLabel(section),
-                      style: TextStyle(
-                        color: isActive ? Colors.white : Color(0x22FF6600),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
+    final items = sections.map((section) {
+      IconData icon;
+      switch (section) {
+        case 'HOME':
+          icon = Icons.grid_view_rounded;
+          break;
+        case 'REQUESTS':
+          icon = Icons.emergency_outlined;
+          break;
+        case 'ROUTES':
+          icon = Icons.map_outlined;
+          break;
+        case 'FLEET':
+          icon = Icons.local_shipping_outlined;
+          break;
+        case 'FINANCE':
+          icon = Icons.account_balance_wallet_outlined;
+          break;
+        case 'SUPPORT':
+          icon = Icons.support_agent_outlined;
+          break;
+        default:
+          icon = Icons.help_outline;
+      }
+      return ProviderSectionNavItem(id: section, label: _navLabel(section), icon: icon);
+    }).toList();
+
+    return ProviderDashboardUi.sectionNav(
+      palette: palette,
+      items: items,
+      currentId: _currentSection,
+      onSelected: (id) => setState(() => _currentSection = id),
     );
   }
 
@@ -175,7 +177,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
       return _buildFleetSection(userId);
     }
     if (_currentSection == 'SUPPORT') {
-      return UserSupportView(userId: userId, userType: 'service_provider');
+      return UserSupportView(userId: userId, userType: 'service_provider', embedded: true);
     }
 
     if (_currentSection != 'HOME') {
@@ -428,17 +430,22 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
   }
 
   Widget _buildRoutesSection() {
+    final palette = DashboardPalette.of(context);
+    final stats = <({String label, String value, IconData icon})>[
+      (label: 'Active Mechanics', value: '0', icon: Icons.engineering_outlined),
+      (label: 'Avg Response', value: '—', icon: Icons.schedule),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Active Dispatch Map', Icons.map),
+        _buildSectionHeader('Active Dispatch Map', Icons.map_outlined),
         const SizedBox(height: 24),
         Container(
           height: 600,
           width: double.infinity,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.2)),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -452,31 +459,12 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                 myLocationButtonEnabled: false,
                 zoomControlsEnabled: true,
               ),
+              Positioned(top: 24, left: 24, child: ProviderDashboardUi.dispatchOverviewCard(palette: palette, stats: stats)),
               Positioned(
-                top: 32,
-                left: 32,
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('DISPATCH OVERVIEW', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w900, fontSize: 12)),
-                      const SizedBox(height: 16),
-                      _buildMapStat('Active Mechanics', '0'),
-                      if (!kIsWeb) ...[
-                        const SizedBox(height: 12),
-                        _buildMapStat('Pending SOS', '0'),
-                      ],
-                      const SizedBox(height: 12),
-                      _buildMapStat('Avg Response', '—'),
-                    ],
-                  ),
-                ),
+                bottom: 24,
+                left: 0,
+                right: 0,
+                child: Center(child: ProviderDashboardUi.mapLiveStatusBar(palette, activeCount: 0)),
               ),
             ],
           ),
@@ -485,98 +473,94 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
-  Widget _buildMapStat(String label, String value) {
-    return Row(
-      children: [
-        Text('$label: ', style: const TextStyle(color: Colors.white70, fontSize: 14)),
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-      ],
-    );
-  }
-
   Widget _buildFleetSection(String userId) {
+    final palette = DashboardPalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildSectionHeader('Staff & Fleet Management', Icons.people),
-            ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Add Staff feature coming soon!'),
-                    backgroundColor: BoostDriveTheme.primaryColor,
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('ADD STAFF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                 backgroundColor: BoostDriveTheme.primaryColor,
-                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              ),
-            ),
-          ],
+        DashboardPageHeader(
+          title: 'Staff & Fleet Management',
+          subtitle:
+              'Configure operational assets, assign drivers, and monitor readiness across your network.',
+          trailing: ProviderDashboardUi.primaryFilledButton(
+            palette: palette,
+            label: 'ADD STAFF',
+            icon: Icons.person_add_outlined,
+            onPressed: () async {
+              final added = await showAddStaffSheet(context, ref);
+              if (added == true && mounted) {
+                ref.invalidate(providerStaffProvider(userId));
+              }
+            },
+          ),
         ),
         const SizedBox(height: 32),
-        _buildStaffList(userId),
+        _buildStaffList(userId, palette),
       ],
     );
   }
 
-  Widget _buildStaffList(String providerId) {
+  Widget _buildStaffList(String providerId, DashboardPalette palette) {
     final staffAsync = ref.watch(providerStaffProvider(providerId));
     return staffAsync.when(
       data: (staff) {
-        if (staff.isEmpty) return _buildStaffEmpty();
+        if (staff.isEmpty) return _buildStaffEmpty(palette);
         return LayoutBuilder(
           builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth > 800 ? 3 : (constraints.maxWidth > 500 ? 2 : 1);
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                mainAxisExtent: 180, 
-              ),
-              itemCount: staff.length,
-              itemBuilder: (context, index) {
-                 final s = staff[index];
-                 return _buildStaffCard(s);
-              },
+            final maxW = constraints.maxWidth;
+            final columns = maxW > 900 ? 3 : (maxW > 560 ? 2 : 1);
+            const gap = 16.0;
+            final cardWidth = (maxW - gap * (columns - 1)) / columns;
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final s in staff)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildStaffCard(s, palette),
+                  ),
+              ],
             );
-          }
+          },
         );
       },
       loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor))),
-      error: (err, _) => Padding(padding: const EdgeInsets.all(20), child: Text('Failed to load staff list. Please try again.', style: TextStyle(color: Colors.redAccent.withValues(alpha: 0.8)))),
+      error: (err, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Failed to load staff list. Run database/provider_staff_migration.sql in Supabase, then retry.',
+            style: DashboardTypography.bodySm(palette).copyWith(color: palette.error),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => ref.invalidate(providerStaffProvider(providerId)),
+            child: Text('Retry', style: TextStyle(color: palette.primary, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildStaffCard(Map<String, dynamic> staff) {
+  Widget _buildStaffCard(Map<String, dynamic> staff, DashboardPalette palette) {
+    final hasEmail = staff['email']?.toString().isNotEmpty == true;
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: ProviderDashboardUi.surfaceCard(palette),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                  color: palette.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person, color: BoostDriveTheme.primaryColor),
+                child: Icon(Icons.person, color: palette.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -585,13 +569,14 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                   children: [
                     Text(
                       staff['full_name'] ?? 'Unknown Staff',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: DashboardTypography.labelLg(palette),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       staff['staff_role'] ?? 'Role not assigned',
-                      style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: DashboardTypography.bodySm(palette).copyWith(color: palette.primary, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -601,7 +586,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.white54),
+                    icon: Icon(Icons.edit_outlined, size: 20, color: palette.muted),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: () => _showEditStaffDialog(staff),
@@ -611,67 +596,121 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                     icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    onPressed: () => _handleDeleteStaff(staff['staff_user_id']),
+                    onPressed: () => _handleDeleteStaff(staff['id'] as String?),
                   ),
                 ],
               ),
             ],
           ),
-          const Spacer(),
-          const Divider(color: Color(0x22FF6600)),
+          const SizedBox(height: 12),
+          Divider(color: palette.outlineVariant.withValues(alpha: 0.4)),
           const SizedBox(height: 8),
+          if ((staff['staff_internal_id'] as String?)?.isNotEmpty == true) ...[
+            Text(
+              'ID ${staff['staff_internal_id']}',
+              style: DashboardTypography.labelMd(palette),
+            ),
+            const SizedBox(height: 6),
+          ],
           Row(
             children: [
-              const Icon(Icons.phone, size: 14, color: Colors.white54),
+              Icon(Icons.phone, size: 14, color: palette.muted),
               const SizedBox(width: 8),
-              Text(staff['phone_number'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.email, size: 14, color: Colors.white54),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  staff['email'] ?? '',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                ),
+              Text(
+                staff['phone_number']?.toString().isNotEmpty == true
+                    ? staff['phone_number']
+                    : '—',
+                style: DashboardTypography.bodySm(palette),
               ),
             ],
+          ),
+          if (hasEmail) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.email, size: 14, color: palette.muted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    staff['email'],
+                    style: DashboardTypography.bodySm(palette),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _staffPermissionChips(staff, palette),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStaffEmpty() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.people_outline, size: 48, color: BoostDriveTheme.textDim),
-            const SizedBox(height: 16),
-            Text(
-              'No staff added yet',
-              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
+  List<Widget> _staffPermissionChips(Map<String, dynamic> staff, DashboardPalette palette) {
+    final chips = <Widget>[];
+    void addChip(String label, bool on) {
+      if (!on) return;
+      chips.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: palette.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            label,
+            style: DashboardTypography.labelMd(palette).copyWith(
+              color: palette.primary,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Add staff to manage fleet and assignments',
-              style: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.8), fontSize: 12),
-            ),
-          ],
+          ),
         ),
-      ),
+      );
+    }
+    addChip('Fleet', staff['can_view_fleet'] == true);
+    addChip('SOS', staff['can_accept_sos'] == true);
+    addChip('Finance', staff['can_view_finance'] == true);
+    if (staff['staff_user_id'] != null) {
+      chips.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: palette.successSurface,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            'Linked account',
+            style: DashboardTypography.labelMd(palette).copyWith(
+              color: palette.success,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+            ),
+          ),
+        ),
+      );
+    }
+    if (chips.isEmpty) {
+      chips.add(
+        Text('No extra permissions', style: DashboardTypography.labelMd(palette)),
+      );
+    }
+    return chips;
+  }
+
+  Widget _buildStaffEmpty(DashboardPalette palette) {
+    return ProviderDashboardUi.emptyPanel(
+      palette: palette,
+      icon: Icons.group_off_outlined,
+      title: 'No staff added yet',
+      message: 'Add staff to manage fleet and assignments',
+      minHeight: 320,
     );
   }
 
@@ -733,82 +772,28 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
-  Widget _buildProHeader(WidgetRef ref, String uid) {
+  Widget _buildProHeader(WidgetRef ref, String uid, bool isMobile, DashboardPalette palette) {
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
-        return Row(
-          children: [
-            _buildProfileIcon(ref, uid),
-            const SizedBox(width: 24),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'BoostDrive Pro: ${profile.displayName}',
-                          style: TextStyle(fontFamily: 'Manrope', 
-                            fontSize: 40,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: -1,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (profile.verificationStatus.toLowerCase() == 'approved') ...[
-                        const SizedBox(width: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.verified, color: BoostDriveTheme.primaryColor, size: 20),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'VERIFIED',
-                                style: TextStyle(
-                                  color: BoostDriveTheme.primaryColor,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 13,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Expert ${_getCategoryLabel(profile)} • Primary Service Provider',
-                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 18),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 24),
-            _buildNotificationBell(ref, uid),
-            const SizedBox(width: 32),
-            _buildStatBox('TOTAL EARNINGS', '\$${profile.totalEarnings.toStringAsFixed(2)}', 'LIFETIME'),
-          ],
+        final verified = profile.verificationStatus.toLowerCase() == 'approved';
+        return ProviderDashboardUi.serviceProHeader(
+          palette: palette,
+          displayName: profile.displayName,
+          categorySubtitle: 'Expert ${_getCategoryLabel(profile)} • Primary Service Provider',
+          avatar: _buildProfileIcon(ref, uid, palette: palette, radius: isMobile ? 28 : 36),
+          notificationBell: _buildNotificationBell(ref, uid, palette),
+          earningsValue: '\$${profile.totalEarnings.toStringAsFixed(2)}',
+          verified: verified,
+          compact: isMobile,
         );
       },
-      loading: () => const CircularProgressIndicator(),
-      error: (_, _) => const Text('Error loading profile'),
+      loading: () => Center(child: CircularProgressIndicator(color: palette.primary)),
+      error: (_, _) => Text('Error loading profile', style: DashboardTypography.bodyMd(palette)),
     );
   }
 
-  Widget _buildProfileIcon(WidgetRef ref, String uid) {
+  Widget _buildProfileIcon(WidgetRef ref, String uid, {required DashboardPalette palette, double radius = 36}) {
     final profileAsync = ref.watch(userProfileProvider(uid));
     return profileAsync.when(
       data: (profile) {
@@ -819,48 +804,23 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
           child: GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSettingsPage())),
             child: Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white24,
-                  width: 2,
-                ),
+                border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.5), width: 2),
               ),
               child: CircleAvatar(
-                radius: 36,
-                backgroundColor: BoostDriveTheme.surfaceDark,
+                radius: radius,
+                backgroundColor: palette.surfaceContainerHigh,
                 backgroundImage: hasImage ? NetworkImage(profile.profileImg) : null,
-                child: !hasImage
-                    ? const Icon(Icons.person, color: Colors.white, size: 32)
-                    : null,
+                child: !hasImage ? Icon(Icons.person, color: palette.muted, size: radius) : null,
               ),
             ),
           ),
         );
       },
-      loading: () => const CircleAvatar(radius: 36, child: CircularProgressIndicator(strokeWidth: 2)),
-      error: (_, __) => const CircleAvatar(radius: 36, child: Icon(Icons.error_outline, color: Colors.red)),
-    );
-  }
-
-  Widget _buildStatBox(String label, String value, String sub) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 10, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-          Text(sub, style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
-        ],
-      ),
+      loading: () => CircleAvatar(radius: radius, child: CircularProgressIndicator(strokeWidth: 2, color: palette.primary)),
+      error: (_, __) => CircleAvatar(radius: radius, child: Icon(Icons.error_outline, color: palette.error)),
     );
   }
 
@@ -880,56 +840,21 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
   }
 
   Widget _buildActiveServicesEmpty() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.settings_outlined, size: 48, color: BoostDriveTheme.textDim),
-            const SizedBox(height: 16),
-            Text(
-              'No active services',
-              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Services you offer will appear here when added.',
-              style: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.8), fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    final palette = DashboardPalette.of(context);
+    return ProviderDashboardUi.emptyPanel(
+      palette: palette,
+      icon: Icons.settings_outlined,
+      title: 'No active services',
+      message: 'Services you offer will appear here when added.',
     );
   }
 
   Widget _buildOngoingJobsEmpty() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.assignment_outlined, size: 48, color: BoostDriveTheme.textDim),
-            const SizedBox(height: 16),
-            Text(
-              'No ongoing jobs',
-              style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-            ),
-          ],
-        ),
-      ),
+    final palette = DashboardPalette.of(context);
+    return ProviderDashboardUi.emptyPanel(
+      palette: palette,
+      icon: Icons.assignment_outlined,
+      title: 'No ongoing jobs',
     );
   }
 
@@ -1127,16 +1052,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
 ''';
 
   Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-      ],
-    );
+    return DashboardSectionHeader(title: title, icon: icon);
   }
 
   // ignore: unused_element
@@ -1168,7 +1084,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
-  Widget _buildNotificationBell(WidgetRef ref, String uid) {
+  Widget _buildNotificationBell(WidgetRef ref, String uid, DashboardPalette palette) {
     final notificationsAsync = ref.watch(userNotificationsStreamProvider(uid));
     
     return notificationsAsync.when(
@@ -1177,9 +1093,9 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
         return Stack(
           children: [
             IconButton(
-              icon: const Icon(
-                Icons.notifications,
-                color: Colors.white,
+              icon: Icon(
+                Icons.notifications_outlined,
+                color: palette.onBackground,
                 size: 28,
               ),
               onPressed: () {
@@ -1215,11 +1131,11 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
         );
       },
       loading: () => IconButton(
-        icon: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+        icon: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: palette.primary)),
         onPressed: () => _showNotificationsOverlay(uid),
       ),
       error: (_, __) => IconButton(
-        icon: const Icon(Icons.notifications_off, color: Colors.white70),
+        icon: Icon(Icons.notifications_off, color: palette.muted),
         onPressed: () => _showNotificationsOverlay(uid),
       ),
     );
@@ -1241,7 +1157,8 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
 
 
 
-  Future<void> _handleDeleteStaff(String staffUserId) async {
+  Future<void> _handleDeleteStaff(String? staffRowId) async {
+    if (staffRowId == null || staffRowId.isEmpty) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1267,12 +1184,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
 
     if (confirmed == true) {
       try {
-        await Supabase.instance.client
-            .from('provider_staff')
-            .delete()
-            .eq('staff_user_id', staffUserId);
-        
-        // Force immediate refresh of the stream
+        await ref.read(providerStaffServiceProvider).deleteStaff(staffRowId);
         final providerId = ref.read(currentUserProvider)?.id;
         if (providerId != null) {
           ref.invalidate(providerStaffProvider(providerId));
@@ -1370,18 +1282,18 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
                   onPressed: isSaving ? null : () async {
                     setDialogState(() => isSaving = true);
                     try {
-                      await Supabase.instance.client
-                          .from('provider_staff')
-                          .update({
-                            'full_name': nameController.text.trim(),
-                            'staff_role': selectedRole,
-                            'staff_internal_id': staffIdController.text.trim().isEmpty ? null : staffIdController.text.trim(),
-                            'phone_number': phoneController.text.trim(),
-                            'can_view_fleet': canViewFleet,
-                            'can_accept_sos': canAcceptSos,
-                            'can_view_finance': canViewFinance,
-                          })
-                          .eq('staff_user_id', staff['staff_user_id']);
+                      final rowId = staff['id'] as String?;
+                      if (rowId == null) throw Exception('Missing staff record id');
+                      await ref.read(providerStaffServiceProvider).updateStaff(
+                            staffRowId: rowId,
+                            fullName: nameController.text.trim(),
+                            staffRole: selectedRole,
+                            staffInternalId: staffIdController.text.trim(),
+                            phoneNumber: phoneController.text.trim(),
+                            canViewFleet: canViewFleet,
+                            canAcceptSos: canAcceptSos,
+                            canViewFinance: canViewFinance,
+                          );
                       
                       // Force immediate refresh of the stream
                       final providerId = ref.read(currentUserProvider)?.id;

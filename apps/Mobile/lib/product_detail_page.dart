@@ -11,6 +11,7 @@ import 'cart_page.dart';
 import 'edit_listing_page.dart';
 import 'chat_page.dart';
 import 'listing_owner_inquiries_panel.dart';
+import 'mobile_app_bar_actions.dart';
 
 /// Product details page for buyers and sellers.
 class ProductDetailPage extends ConsumerStatefulWidget {
@@ -178,6 +179,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         title: const Text(''),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: mobileAppBarActions(onColoredHeader: false),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -606,67 +608,14 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       }
     } else {
       // Standard product asks for quantity before adding to cart.
-      final qty = await _promptQuantity(context);
+      final qty = await ShopCommerceUi.showSelectQuantityDialog(
+        context,
+        productTitle: _currentProduct.title,
+      );
       if (qty == null) return;
       ref.read(cartProvider.notifier).addItem(_currentProduct, quantity: qty);
       _showAddedSnackBar(context, quantity: qty);
     }
-  }
-
-  Future<int?> _promptQuantity(BuildContext context) async {
-    // Dialog to validate and return quantity for cart add.
-    final controller = TextEditingController(text: '1');
-    String? errorText;
-    final value = await showDialog<int>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          backgroundColor: BoostDriveTheme.surfaceDark,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Text(
-            'Select Quantity',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Enter quantity',
-              hintStyle: const TextStyle(color: Colors.white54),
-              errorText: errorText,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final parsed = int.tryParse(controller.text.trim());
-                if (parsed == null || parsed < 1) {
-                  setStateDialog(() => errorText = 'Enter a valid quantity (1+)');
-                  return;
-                }
-                if (parsed > 999) {
-                  setStateDialog(() => errorText = 'Quantity is too high');
-                  return;
-                }
-                Navigator.pop(context, parsed);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: BoostDriveTheme.primaryColor,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Add to Cart'),
-            ),
-          ],
-        ),
-      ),
-    );
-    return value;
   }
 
   void _showAddedSnackBar(BuildContext context, {int quantity = 1}) {

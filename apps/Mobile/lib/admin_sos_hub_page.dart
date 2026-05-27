@@ -4,6 +4,7 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:intl/intl.dart';
+import 'mobile_app_bar_actions.dart';
 
 class AdminSosHubPage extends ConsumerStatefulWidget {
   const AdminSosHubPage({super.key});
@@ -22,6 +23,7 @@ class _AdminSosHubPageState extends ConsumerState<AdminSosHubPage> {
         backgroundColor: BoostDriveTheme.surfaceDark.withOpacity(0.8),
         elevation: 0,
         centerTitle: false,
+        actions: mobileAppBarActions(onColoredHeader: false),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),

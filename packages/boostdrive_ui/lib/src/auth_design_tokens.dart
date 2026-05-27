@@ -20,7 +20,7 @@ class AuthDesignTokens {
   Color get onSurfaceVariant => isDark ? const Color(0xFFE3BFB2) : const Color(0xFF5A4138);
   Color get outlineVariant => isDark ? const Color(0xFF5A4138) : const Color(0xFFE3BFB2);
   Color get primary => isDark ? const Color(0xFFFFB59A) : const Color(0xFFA43700);
-  Color get primaryContainer => isDark ? const Color(0xFFF95E14) : const Color(0xFFCD4700);
+  Color get primaryContainer => const Color(0xFFFF6600);
   Color get onPrimaryContainer => isDark ? const Color(0xFF4F1700) : const Color(0xFFFFFBFF);
   Color get primaryFixedDim => const Color(0xFFFFB59A);
   Color get error => isDark ? const Color(0xFFFFB4AB) : const Color(0xFFBA1A1A);
@@ -34,4 +34,12 @@ class AuthDesignTokens {
 
   static const String otpHeroImage =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuB2MtZ5SsTBBnsTuSWrzGqTNmJMHzI2GvvxNBEKllFvPs1kCurRQpR7ETs_RGduZ-WRE5CC85iTx-GgEGHBjF6V1jfnexiN9qDRNOvCJosoZU_27l6O559Umoa5KpuBrGS4gyIkOOOoClW880xm1YsuO4X0svsd1b21xsqGHszpVcUwd5FSnf-ewCbtFBJdVNlO2RLQC7T_cx1gZd0DTOsLOLED20rvou5LM8KvVlrAxvjWVJxOE2ldG-ZPvBcdH_SsbBEzaEUSR6A';
+
+  /// Light-mode decorative image on forgot-password screen.
+  static const String forgotPasswordHeroImage =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuBvtSqoJGvKXAXnrQW9ZndG9To6p3iBTPm20UM69XuGmaNy0Cmu65ZRUmrvLzlhuEzD4GP2EnTX-h9WMffcBljgHjQbU07cBUN1ygA9mgwVOy-CoWXkIlEDpdt4hTyoaugjbVNrUlDrUF_DiThSi4XiuGJbi5tx9of8Ur20qucqfKM37xqWw76gQbK4lhLkdkZFw_t12oQst22HiNF0qu6k3DQQVbEzSYsWYA5sWgh4Lks0quzYUSDC-VMEGj0ior3GjinE_NTOqLM';
+
+  /// Dark-mode full-bleed backdrop for forgot-password screen.
+  static const String forgotPasswordBackdropImage =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuDa9PfYehIWVwQ02cdDXNVsCe9-_NCUH_O_mbQFWh73HrtGEmzpdvYZyInhC1BZ6p1hn-BaXlbx4pj_sBqfmq2hF9GOu21lF7zldLqXWF3Hy2-tjDEFjDMK6N7FuG4srpTXWDly6LofInhNkliAL5NqIlHMTcpt7zXVL9GydIkS1fKQi7eVhRSUg7BnlaAV2H66YOEmvRYVwkKdK-OrKQdQtGvsHgxy0tQuo0phrW54O-aqr1BT8vMWwpeEFFL6oZ3SrEycG4AQSp0';
 }

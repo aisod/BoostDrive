@@ -4,7 +4,7 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'customer_dashboard.dart';
 import 'super_admin_dashboard.dart';
 import 'marketplace_page.dart';
-import 'providers.dart' show mobileShellRoleProvider;
+import 'providers.dart' show mobileCustomerShellTabProvider, mobileShellRoleProvider;
 
 import 'provider_hub.dart';
 import 'find_providers_page.dart';
@@ -17,16 +17,6 @@ import 'provider_inventory_page.dart';
 import 'provider_orders_page.dart';
 import 'provider_services_page.dart';
 
-/// Top-level (not on [State]) so Flutter Web hot reload does not leave a stale / undefined list.
-const List<Widget> _customerShellTabs = [
-  CustomerDashboard(),
-  EmergencyHubPage(),
-  GaragePage(),
-  MarketplacePage(),
-  FindProvidersPage(),
-  ProfileSettingsPage(),
-];
-
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
 
@@ -35,17 +25,25 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  int _currentIndex = 0;
+  int _providerTabIndex = 0;
+  int _adminTabIndex = 0;
 
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+  void _onCustomerTabTapped(int index) {
+    ref.read(mobileCustomerShellTabProvider.notifier).state = index;
+  }
+
+  void _onProviderTabTapped(int index) {
+    setState(() => _providerTabIndex = index);
+  }
+
+  void _onAdminTabTapped(int index) {
+    setState(() => _adminTabIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
     final activeRole = ref.watch(mobileShellRoleProvider);
+    final customerTabIndex = ref.watch(mobileCustomerShellTabProvider);
     
     final List<BottomNavigationBarItem> navItems;
     if (activeRole == 'service_pro' || activeRole == 'seller' || activeRole == 'logistics') {
@@ -56,12 +54,29 @@ class _MainShellState extends ConsumerState<MainShell> {
       navItems = _buildCustomerNav();
     }
 
-    var displayIndex = _currentIndex;
+    int displayIndex;
+    void Function(int) onTabTapped;
+    if (activeRole == 'service_pro' || activeRole == 'seller' || activeRole == 'logistics') {
+      displayIndex = _providerTabIndex;
+      onTabTapped = _onProviderTabTapped;
+    } else if (activeRole == 'super_admin') {
+      displayIndex = _adminTabIndex;
+      onTabTapped = _onAdminTabTapped;
+    } else {
+      displayIndex = customerTabIndex;
+      onTabTapped = _onCustomerTabTapped;
+    }
+
     if (displayIndex >= navItems.length) {
       displayIndex = 0;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _currentIndex >= navItems.length) {
-          setState(() => _currentIndex = 0);
+        if (!mounted) return;
+        if (activeRole == 'service_pro' || activeRole == 'seller' || activeRole == 'logistics') {
+          if (_providerTabIndex >= navItems.length) setState(() => _providerTabIndex = 0);
+        } else if (activeRole == 'super_admin') {
+          if (_adminTabIndex >= navItems.length) setState(() => _adminTabIndex = 0);
+        } else if (customerTabIndex >= navItems.length) {
+          ref.read(mobileCustomerShellTabProvider.notifier).state = 0;
         }
       });
     }
@@ -72,34 +87,30 @@ class _MainShellState extends ConsumerState<MainShell> {
     } else if (activeRole == 'super_admin') {
       body = _buildSuperAdminBody();
     } else {
-      final tabCount = _customerShellTabs.length;
-      final safeIndex = tabCount <= 1 ? 0 : displayIndex.clamp(0, tabCount - 1);
-      body = IndexedStack(
-        index: safeIndex,
-        children: _customerShellTabs,
+      final safeIndex = displayIndex.clamp(0, 5);
+      // One tab at a time; unique keys avoid reusing the same const widget instance after hot reload.
+      body = KeyedSubtree(
+        key: ValueKey('customer_tab_$safeIndex'),
+        child: _buildCustomerTab(safeIndex),
       );
     }
 
+    final palette = DashboardPalette.of(context);
     return Scaffold(
+      backgroundColor: palette.background,
       body: body,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Colors.white.withValues(alpha: 0.05),
-              width: 1,
-            ),
-          ),
-        ),
+      bottomNavigationBar: MobileCustomerUi.glassBottomNav(
+        palette: palette,
         child: BottomNavigationBar(
           currentIndex: displayIndex,
-          onTap: _onTabTapped,
-          backgroundColor: BoostDriveTheme.surfaceDark,
-          selectedItemColor: BoostDriveTheme.primaryColor,
-          unselectedItemColor: BoostDriveTheme.textDim,
+          onTap: onTabTapped,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: const Color(0xFFFF6600),
+          unselectedItemColor: palette.muted,
           type: BottomNavigationBarType.fixed,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-          unselectedLabelStyle: const TextStyle(fontSize: 10),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, letterSpacing: 0.5),
+          unselectedLabelStyle: const TextStyle(fontSize: 10, letterSpacing: 0.5),
           items: navItems,
         ),
       ),
@@ -117,15 +128,31 @@ class _MainShellState extends ConsumerState<MainShell> {
     ];
   }
 
+  Widget _buildCustomerTab(int index) {
+    return switch (index) {
+      0 => const CustomerDashboard(key: ValueKey('customer_home')),
+      1 => const EmergencyHubPage(key: ValueKey('customer_sos')),
+      2 => const GaragePage(key: ValueKey('customer_garage')),
+      3 => const MarketplacePage(key: ValueKey('customer_shop')),
+      4 => const FindProvidersPage(key: ValueKey('customer_providers')),
+      5 => const ProfileSettingsPage(key: ValueKey('customer_profile')),
+      _ => const CustomerDashboard(key: ValueKey('customer_home')),
+    };
+  }
+
   Widget _buildProviderBody() {
-    switch (_currentIndex) {
-      case 0: return const ProviderHub();
-      case 1: return const ProviderInventoryPage();
-      case 2: return const ProviderOrdersPage();
-      case 3: return const ProviderServicesPage();
-      case 4: return const ProfileSettingsPage();
-      default: return const ProviderHub();
-    }
+    final tab = _providerTabIndex.clamp(0, 4);
+    return KeyedSubtree(
+      key: ValueKey('provider_tab_$tab'),
+      child: switch (tab) {
+        0 => const ProviderHub(key: ValueKey('provider_hub')),
+        1 => const ProviderInventoryPage(key: ValueKey('provider_inventory')),
+        2 => const ProviderOrdersPage(key: ValueKey('provider_orders')),
+        3 => const ProviderServicesPage(key: ValueKey('provider_services')),
+        4 => const ProfileSettingsPage(key: ValueKey('provider_profile')),
+        _ => const ProviderHub(key: ValueKey('provider_hub')),
+      },
+    );
   }
 
   List<BottomNavigationBarItem> _buildProviderNav() {
@@ -139,13 +166,17 @@ class _MainShellState extends ConsumerState<MainShell> {
   }
 
   Widget _buildSuperAdminBody() {
-    switch (_currentIndex) {
-      case 0: return const SuperAdminDashboard();
-      case 1: return const AdminSosHubPage();
-      case 2: return const AdminVerificationsPage();
-      case 3: return const AdminSecurityPage();
-      default: return const SuperAdminDashboard();
-    }
+    final tab = _adminTabIndex.clamp(0, 3);
+    return KeyedSubtree(
+      key: ValueKey('admin_tab_$tab'),
+      child: switch (tab) {
+        0 => const SuperAdminDashboard(key: ValueKey('admin_home')),
+        1 => const AdminSosHubPage(key: ValueKey('admin_sos')),
+        2 => const AdminVerificationsPage(key: ValueKey('admin_verifications')),
+        3 => const AdminSecurityPage(key: ValueKey('admin_security')),
+        _ => const SuperAdminDashboard(key: ValueKey('admin_home')),
+      },
+    );
   }
 
   List<BottomNavigationBarItem> _buildSuperAdminNav() {

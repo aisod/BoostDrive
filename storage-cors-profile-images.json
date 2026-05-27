@@ -1,0 +1,24 @@
+{
+  "allowedOrigins": [
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "http://localhost:8080",
+    "http://localhost:53314",
+    "http://localhost:55385"
+  ],
+  "allowedMethods": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  "allowedHeaders": [
+    "Authorization",
+    "apikey",
+    "x-client-info",
+    "Content-Type",
+    "Content-Length",
+    "x-upsert",
+    "Accept",
+    "Range",
+    "Cache-Control"
+  ],
+  "maxAgeSeconds": 3600
+}

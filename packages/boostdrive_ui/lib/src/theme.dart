@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class BoostDriveTheme {
   // Brand Colors - New High-end palette
-  static const Color primaryColor = Color(0xFFE65100); 
-  static const Color backgroundDark = Color(0xFF101B22);
-  static const Color surfaceDark = Color(0xFF1A262E); 
+  static const Color primaryColor = Color(0xFFFF6600);
+  static const Color backgroundDark = Color(0xFF09151B);
+  static const Color surfaceDark = Color(0xFF121D24); 
   static const Color accentColor = Color(0xFFFF8C00);
   static const Color backgroundLight = Color(0xFFF5F7F8);
   

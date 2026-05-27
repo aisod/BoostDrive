@@ -15,24 +15,28 @@ class JobCardToolPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final uid = ref.watch(currentUserProvider)?.id;
-    if (uid == null) return const Scaffold(body: Center(child: Text('Please log in')));
+    if (uid == null) {
+      return const Scaffold(body: Center(child: Text('Please log in')));
+    }
+    final palette = DashboardPalette.of(context);
     final role = ref.watch(mobileShellRoleProvider);
     final isProvider = role == 'service_pro' || role == 'logistics';
     final isRequester = role == 'customer' || role == 'seller';
 
     final cardsAsync = ref.watch(isProvider ? _incomingJobCardsFamily(uid) : _requesterJobCardsFamily(uid));
+    final pageTitle = isProvider ? 'Incoming Job Cards' : 'My Job Card Requests';
+    final appBarTitle = isProvider ? pageTitle : 'BOOSTDRIVE';
+
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
-      appBar: AppBar(
-        title: Text(isProvider ? 'Incoming Job Cards' : 'My Job Card Requests'),
-        backgroundColor: BoostDriveTheme.backgroundDark,
+      backgroundColor: palette.background,
+      appBar: MobileJobCardUi.listAppBar(
+        context: context,
+        title: appBarTitle,
+        actions: MobileCustomerUi.appBarActions(onColoredHeader: !palette.isDark),
       ),
       floatingActionButton: isRequester
-          ? FloatingActionButton.extended(
+          ? MobileJobCardUi.newJobCardFab(
               onPressed: () => _openCreateJobCard(context, ref, uid, role),
-              backgroundColor: BoostDriveTheme.primaryColor,
-              icon: const Icon(Icons.add),
-              label: const Text('NEW JOB CARD'),
             )
           : null,
       body: cardsAsync.when(
@@ -43,117 +47,103 @@ class JobCardToolPage extends ConsumerWidget {
               : _prioritizeTargetRow(rows, targetId);
           final hasTarget = targetId.isNotEmpty &&
               focusedRows.any((r) => (r['id']?.toString() ?? '') == targetId);
+
           if (focusedRows.isEmpty) {
             return Center(
-              child: Text(
-                isProvider ? 'No incoming job card requests yet.' : 'No job cards yet. Tap NEW JOB CARD.',
-                style: TextStyle(color: BoostDriveTheme.textDim),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  isProvider
+                      ? 'No incoming job card requests yet.'
+                      : 'No job cards yet. Tap NEW JOB CARD.',
+                  style: DashboardTypography.bodyMd(palette),
+                  textAlign: TextAlign.center,
+                ),
               ),
             );
           }
+
+          final submittedCount = focusedRows.where((r) => (r['status']?.toString() ?? '').toLowerCase() == 'submitted').length;
+          final quotedCount = focusedRows.where((r) => (r['status']?.toString() ?? '').toLowerCase() == 'quoted').length;
+
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            padding: const EdgeInsets.fromLTRB(
+              MobileJobCardUi.marginMobile,
+              12,
+              MobileJobCardUi.marginMobile,
+              96,
+            ),
             children: [
               if (hasTarget)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
-                  ),
-                  child: const Text(
-                    'Opened from notification: focused job card is shown first.',
-                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: MobileJobCardUi.focusBanner(
+                    palette: palette,
+                    message: 'Opened from notification: focused job card is shown first.',
                   ),
                 ),
+              if (isProvider) ...[
+                MobileJobCardUi.listHeader(
+                  palette: palette,
+                  title: 'Incoming Jobs',
+                  totalCount: focusedRows.length,
+                  subtitle: 'Review and respond to service requests from vehicle owners.',
+                ),
+                const SizedBox(height: 12),
+                MobileJobCardUi.providerStatsRow(
+                  palette: palette,
+                  total: focusedRows.length,
+                  submitted: submittedCount,
+                  quoted: quotedCount,
+                ),
+              ]               else
+                MobileJobCardUi.listHeader(
+                  palette: palette,
+                  title: 'My Job Card Requests',
+                  totalCount: focusedRows.length,
+                ),
+              const SizedBox(height: 16),
               ...focusedRows.map((row) {
                 final id = row['id']?.toString() ?? '';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _JobCardTile(
-                    row: row,
-                    isProvider: isProvider,
-                    isFocused: targetId.isNotEmpty && id == targetId,
-                    onOpen: () => _openJobCardDetails(context, ref, uid, row, isProvider),
-                    onDelete: () async {
-                      if (isProvider) return;
-                      if (id.isEmpty) return;
-                      await ref.read(jobCardServiceProvider).deleteJobCard(id);
-                      ref.invalidate(_requesterJobCardsFamily(uid));
-                    },
-                    onStatusChanged: (status) async {
-                      if (id.isEmpty) return;
-                      if (status == 'cancel_request') {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: BoostDriveTheme.surfaceDark,
-                            title: const Text('Cancel job card request?', style: TextStyle(color: Colors.white)),
-                            content: Text(
-                              'Are you sure you want to cancel this job card request?',
-                              style: TextStyle(color: BoostDriveTheme.textDim),
-                            ),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('NO')),
-                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('YES, CANCEL')),
-                            ],
-                          ),
-                        );
-                        if (confirm != true) return;
-                        await ref.read(jobCardServiceProvider).cancelJobCardRequest(
-                              jobCardId: id,
-                              requesterId: uid,
-                            );
-                        ref.invalidate(_requesterJobCardsFamily(uid));
-                        ref.invalidate(_incomingJobCardsFamily(uid));
-                        return;
-                      }
-                      if (status == 'accept_quote' || status == 'decline_quote') {
-                        await ref.read(jobCardServiceProvider).customerDecideOnQuote(
-                              jobCardId: id,
-                              requesterId: uid,
-                              accept: status == 'accept_quote',
-                            );
-                        ref.invalidate(_requesterJobCardsFamily(uid));
-                        return;
-                      }
-                      if (!isProvider) return;
-                      final amount = await _promptQuoteAmount(context, initial: _num(row['labor_amount']));
-                      if (amount == null) return;
-                      try {
-                        await ref.read(jobCardServiceProvider).providerQuoteJobCard(
-                              jobCardId: id,
-                              providerId: uid,
-                              quotedLaborAmount: amount,
-                            );
-                        if (!context.mounted) return;
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!context.mounted) return;
-                          ref.invalidate(_incomingJobCardsFamily(uid));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Quote sent. Awaiting client response.')),
-                            );
-                          }
-                        });
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Could not send quote: $e')),
-                          );
-                        }
-                      }
-                    },
-                  ),
+                  child: isProvider
+                      ? MobileJobCardUi.providerTile(
+                          palette: palette,
+                          row: row,
+                          onRespond: (row['status']?.toString() ?? '').toLowerCase() == 'submitted'
+                              ? () => _onStatusChanged(context, ref, uid, row, isProvider, 'quoted')
+                              : null,
+                          onOpen: () => _openJobCardDetails(context, ref, uid, row, isProvider),
+                        )
+                      : MobileJobCardUi.customerTile(
+                          palette: palette,
+                          row: row,
+                          isFocused: targetId.isNotEmpty && id == targetId,
+                          onAccept: (row['status']?.toString() ?? '').toLowerCase() == 'quoted'
+                              ? () => _onStatusChanged(context, ref, uid, row, isProvider, 'accept_quote')
+                              : null,
+                          onDecline: (row['status']?.toString() ?? '').toLowerCase() == 'quoted'
+                              ? () => _onStatusChanged(context, ref, uid, row, isProvider, 'decline_quote')
+                              : null,
+                          onCancel: () => _onStatusChanged(context, ref, uid, row, isProvider, 'cancel_request'),
+                        ),
                 );
               }),
             ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Could not load job cards: $e', style: const TextStyle(color: Colors.redAccent))),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              'Could not load job cards: $e',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -167,28 +157,129 @@ class JobCardToolPage extends ConsumerWidget {
     return copy;
   }
 
+  Future<void> _onStatusChanged(
+    BuildContext context,
+    WidgetRef ref,
+    String uid,
+    Map<String, dynamic> row,
+    bool isProvider,
+    String status,
+  ) async {
+    final id = row['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+
+    if (status == 'cancel_request') {
+      final palette = DashboardPalette.of(context);
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => MobileJobCardUi.dialogShell(
+          palette: palette,
+          title: 'Cancel job card request?',
+          subtitle: 'Are you sure you want to cancel this job card request?',
+          children: const [],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('NO')),
+            MobileJobCardUi.primaryDialogButton(
+              label: 'YES, CANCEL',
+              onPressed: () => Navigator.pop(ctx, true),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+      await ref.read(jobCardServiceProvider).cancelJobCardRequest(
+            jobCardId: id,
+            requesterId: uid,
+          );
+      ref.invalidate(_requesterJobCardsFamily(uid));
+      ref.invalidate(_incomingJobCardsFamily(uid));
+      return;
+    }
+
+    if (status == 'accept_quote' || status == 'decline_quote') {
+      await ref.read(jobCardServiceProvider).customerDecideOnQuote(
+            jobCardId: id,
+            requesterId: uid,
+            accept: status == 'accept_quote',
+          );
+      ref.invalidate(_requesterJobCardsFamily(uid));
+      return;
+    }
+
+    if (!isProvider) return;
+    final amount = await _promptQuoteAmount(context, initial: _num(row['labor_amount']));
+    if (amount == null) return;
+    try {
+      await ref.read(jobCardServiceProvider).providerQuoteJobCard(
+            jobCardId: id,
+            providerId: uid,
+            quotedLaborAmount: amount,
+          );
+      if (!context.mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        ref.invalidate(_incomingJobCardsFamily(uid));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Quote sent. Awaiting client response.')),
+          );
+        }
+      });
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not send quote: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _openCreateJobCard(BuildContext context, WidgetRef ref, String uid, String role) async {
+    final palette = DashboardPalette.of(context);
     final vehicle = TextEditingController();
     final concern = TextEditingController();
     final diagnosis = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        title: const Text('New Job Card', style: TextStyle(color: Colors.white)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _f(vehicle, 'Vehicle (e.g. Toyota Hilux 2020)'),
-              _f(concern, 'Issue / concern'),
-              _f(diagnosis, 'Diagnosis notes', maxLines: 3),
-            ],
+      barrierColor: palette.isDark ? Colors.black.withValues(alpha: 0.6) : const Color(0xFF0F172A).withValues(alpha: 0.4),
+      builder: (ctx) => MobileJobCardUi.dialogShell(
+        palette: palette,
+        title: 'New Job Card',
+        subtitle: 'Fill in the details to initiate a new service entry.',
+        children: [
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: vehicle,
+            label: 'Vehicle',
+            hint: 'e.g. Toyota Hilux 2020',
+            icon: Icons.directions_car_outlined,
           ),
-        ),
+          const SizedBox(height: 12),
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: concern,
+            label: 'Issue / concern',
+            hint: 'Brake squeaking, engine light on',
+            icon: Icons.report_problem_outlined,
+          ),
+          const SizedBox(height: 12),
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: diagnosis,
+            label: 'Diagnosis notes',
+            hint: 'Initial observations and diagnostic steps taken...',
+            maxLines: 3,
+          ),
+        ],
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('CREATE')),
+          MobileJobCardUi.cancelTextButton(
+            palette: palette,
+            onPressed: () => Navigator.pop(ctx, false),
+          ),
+          MobileJobCardUi.primaryDialogButton(
+            label: 'CREATE',
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
         ],
       ),
     );
@@ -220,7 +311,11 @@ class JobCardToolPage extends ConsumerWidget {
     if (!isProvider) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Required parts are managed by the service provider after you accept a quote.')),
+          const SnackBar(
+            content: Text(
+              'Required parts are managed by the service provider after you accept a quote.',
+            ),
+          ),
         );
       }
       return;
@@ -228,7 +323,9 @@ class JobCardToolPage extends ConsumerWidget {
     if (status != 'accepted') {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Add required parts only after customer accepts your quote.')),
+          const SnackBar(
+            content: Text('Add required parts only after customer accepts your quote.'),
+          ),
         );
       }
       return;
@@ -236,7 +333,7 @@ class JobCardToolPage extends ConsumerWidget {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: BoostDriveTheme.surfaceDark,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => _JobCardDetailsSheet(jobCardId: id, providerId: uid),
     );
     ref.invalidate(_requesterJobCardsFamily(uid));
@@ -244,20 +341,31 @@ class JobCardToolPage extends ConsumerWidget {
   }
 
   Future<double?> _promptQuoteAmount(BuildContext context, {double initial = 0}) async {
-    final c = TextEditingController(text: initial.toStringAsFixed(2));
+    final palette = DashboardPalette.of(context);
+    final c = TextEditingController(text: initial > 0 ? initial.toStringAsFixed(2) : '');
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        title: const Text('Respond with labor quote', style: TextStyle(color: Colors.white)),
-        content: _f(
-          c,
-          'Labor amount (N\$)',
-          keyboard: const TextInputType.numberWithOptions(decimal: true),
-        ),
+      builder: (ctx) => MobileJobCardUi.dialogShell(
+        palette: palette,
+        title: 'Respond with labor quote',
+        subtitle: 'Enter your labor amount for this job card.',
+        children: [
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: c,
+            label: 'Labor amount (N\$)',
+            keyboard: const TextInputType.numberWithOptions(decimal: true),
+          ),
+        ],
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('SEND QUOTE')),
+          MobileJobCardUi.cancelTextButton(
+            palette: palette,
+            onPressed: () => Navigator.pop(ctx, false),
+          ),
+          MobileJobCardUi.primaryDialogButton(
+            label: 'SEND QUOTE',
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
         ],
       ),
     );
@@ -265,107 +373,6 @@ class JobCardToolPage extends ConsumerWidget {
     c.dispose();
     if (ok != true || v == null || v < 0) return null;
     return v;
-  }
-}
-
-class _JobCardTile extends StatelessWidget {
-  const _JobCardTile({
-    required this.row,
-    required this.isProvider,
-    required this.isFocused,
-    required this.onOpen,
-    required this.onDelete,
-    required this.onStatusChanged,
-  });
-
-  final Map<String, dynamic> row;
-  final bool isProvider;
-  final bool isFocused;
-  final VoidCallback onOpen;
-  final VoidCallback onDelete;
-  final ValueChanged<String> onStatusChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final labor = (row['labor_amount'] as num?)?.toDouble() ?? 0;
-    final status = (row['status']?.toString() ?? 'submitted').toLowerCase();
-    String statusLabel;
-    switch (status) {
-      case 'quoted':
-        statusLabel = 'AWAITING CLIENT RESPONSE';
-        break;
-      case 'accepted':
-        statusLabel = 'ACCEPTED';
-        break;
-      case 'declined':
-        statusLabel = 'DECLINED';
-        break;
-      case 'cancelled':
-        statusLabel = 'CANCELLED';
-        break;
-      default:
-        statusLabel = 'SUBMITTED';
-    }
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
-        border: isFocused ? Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.9), width: 1.4) : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(row['vehicle_label']?.toString() ?? 'Vehicle not set',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Text(row['concern_summary']?.toString() ?? '',
-              style: TextStyle(color: BoostDriveTheme.textDim, height: 1.3)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text('Labor: N\$${labor.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(statusLabel, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (isProvider && status == 'submitted')
-                TextButton(
-                  onPressed: () => onStatusChanged('quoted'),
-                  child: const Text('RESPOND WITH PRICE'),
-                ),
-              if (!isProvider && status == 'quoted') ...[
-                TextButton(
-                  onPressed: () => onStatusChanged('decline_quote'),
-                  child: const Text('DECLINE'),
-                ),
-                FilledButton(
-                  onPressed: () => onStatusChanged('accept_quote'),
-                  child: const Text('ACCEPT'),
-                ),
-              ],
-              if (!isProvider && (status == 'submitted' || status == 'quoted'))
-                TextButton(
-                  onPressed: () => onStatusChanged('cancel_request'),
-                  child: const Text('CANCEL REQUEST'),
-                ),
-              if (isProvider)
-                TextButton(onPressed: onOpen, child: const Text('OPEN')),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -377,110 +384,182 @@ class _JobCardDetailsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = DashboardPalette.of(context);
     final partsAsync = ref.watch(_jobCardPartsFamily(jobCardId));
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
+
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            title: const Text('Required Parts', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            trailing: FilledButton.icon(
-              onPressed: () => _addPart(context, ref),
-              icon: const Icon(Icons.add),
-              label: const Text('ADD PART'),
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SizedBox(
+        height: maxHeight,
+        child: Container(
+          decoration: BoxDecoration(
+            color: palette.isDark ? palette.surfaceContainer : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border(
+              top: BorderSide(color: palette.isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE2E8F0)),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: palette.isDark ? 0.5 : 0.12),
+                blurRadius: 30,
+                offset: const Offset(0, -8),
+              ),
+            ],
           ),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 360),
-            child: partsAsync.when(
-              data: (rows) {
-                if (rows.isEmpty) {
-                  return Center(child: Text('No parts added yet.', style: TextStyle(color: BoostDriveTheme.textDim)));
-                }
-                final partsTotal = rows.fold<double>(
-                  0,
-                  (sum, r) => sum + ((r['quantity'] as num?)?.toDouble() ?? 0) * ((r['unit_price'] as num?)?.toDouble() ?? 0),
-                );
-                return Column(
-                  children: [
-                    Expanded(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: rows.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1, color: Colors.white12),
-                        itemBuilder: (context, i) {
-                          final r = rows[i];
-                          final qty = (r['quantity'] as num?)?.toInt() ?? 0;
-                          final unit = (r['unit_price'] as num?)?.toDouble() ?? 0;
-                          final line = qty * unit;
-                          return ListTile(
-                            title: Text(r['part_name']?.toString() ?? '', style: const TextStyle(color: Colors.white)),
-                            subtitle: Text('Qty $qty × N\$${unit.toStringAsFixed(2)}',
-                                style: TextStyle(color: BoostDriveTheme.textDim)),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
+          child: partsAsync.when(
+            data: (rows) {
+              final partsTotal = rows.fold<double>(
+                0,
+                (sum, r) =>
+                    sum + ((r['quantity'] as num?)?.toDouble() ?? 0) * ((r['unit_price'] as num?)?.toDouble() ?? 0),
+              );
+              return Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 48,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: palette.onSurfaceVariant.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Required Parts',
+                            style: DashboardTypography.headlineLg(palette).copyWith(fontSize: 24),
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => _addPart(context, ref),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: MobileJobCardUi.kineticOrange.withValues(alpha: 0.12),
+                            foregroundColor: MobileJobCardUi.kineticOrange,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.add, size: 20),
+                          label: const Text('ADD PART'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: rows.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('N\$${line.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined, color: Colors.white70),
-                                  onPressed: () => _editPart(context, ref, r),
+                                Icon(
+                                  Icons.inventory_2_outlined,
+                                  size: 48,
+                                  color: palette.onSurfaceVariant.withValues(alpha: 0.25),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                  onPressed: () async {
-                                    await ref.read(jobCardServiceProvider).deleteJobCardPart(r['id'].toString());
-                                    ref.invalidate(_jobCardPartsFamily(jobCardId));
-                                  },
-                                ),
+                                const SizedBox(height: 8),
+                                Text('No parts added yet.', style: DashboardTypography.bodyMd(palette)),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      child: Row(
-                        children: [
-                          Text('Parts total', style: TextStyle(color: BoostDriveTheme.textDim)),
-                          const Spacer(),
-                          Text('N\$${partsTotal.toStringAsFixed(2)}',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: Colors.redAccent))),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                            itemCount: rows.length,
+                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            itemBuilder: (context, i) => _partRow(context, ref, palette, rows[i]),
+                          ),
+                  ),
+                  _partsFooter(context, ref, palette, partsTotal, bottomInset),
+                ],
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.all(48),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(child: Text('$e', style: TextStyle(color: palette.error))),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
+        ),
+      ),
+    );
+  }
+
+  Widget _partRow(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardPalette palette,
+    Map<String, dynamic> r,
+  ) {
+    final qty = (r['quantity'] as num?)?.toInt() ?? 0;
+    final unit = (r['unit_price'] as num?)?.toDouble() ?? 0;
+    final line = qty * unit;
+    final name = r['part_name']?.toString() ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.isDark ? palette.surfaceContainerHigh : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: palette.isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: palette.surfaceContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: palette.isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0)),
+                ),
+                child: Icon(Icons.build_outlined, color: MobileJobCardUi.kineticOrange, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: DashboardTypography.headlineMd(palette).copyWith(fontSize: 17)),
+                    Text(
+                      'Qty $qty × N\$${unit.toStringAsFixed(2)}',
+                      style: DashboardTypography.labelMd(palette),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit_outlined, color: palette.onSurfaceVariant, size: 20),
+                onPressed: () => _editPart(context, ref, r),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: palette.error, size: 20),
                 onPressed: () async {
-                  try {
-                    await ref.read(jobCardServiceProvider).pushRequiredPartsToCustomerCart(
-                          jobCardId: jobCardId,
-                          providerId: providerId,
-                        );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Parts pushed to customer cart queue.')),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                    }
-                  }
+                  await ref.read(jobCardServiceProvider).deleteJobCardPart(r['id'].toString());
+                  ref.invalidate(_jobCardPartsFamily(jobCardId));
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
-                child: const Text('PUSH REQUIRED PARTS TO CUSTOMER CART'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'N\$${line.toStringAsFixed(2)}',
+              style: DashboardTypography.headlineMd(palette).copyWith(
+                fontSize: 18,
+                color: MobileJobCardUi.kineticOrange,
               ),
             ),
           ),
@@ -489,26 +568,108 @@ class _JobCardDetailsSheet extends ConsumerWidget {
     );
   }
 
+  Widget _partsFooter(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardPalette palette,
+    double partsTotal,
+    double bottomInset,
+  ) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + bottomInset),
+      decoration: BoxDecoration(
+        color: palette.isDark ? palette.surfaceContainerHighest.withValues(alpha: 0.95) : Colors.white,
+        border: Border(top: BorderSide(color: palette.outlineVariant.withValues(alpha: 0.3))),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: palette.isDark ? 0.35 : 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Text('Parts total', style: DashboardTypography.labelLg(palette)),
+              const Spacer(),
+              Text(
+                'N\$${partsTotal.toStringAsFixed(2)}',
+                style: DashboardTypography.headlineLg(palette).copyWith(
+                  fontSize: 26,
+                  color: MobileJobCardUi.kineticOrange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton.icon(
+              onPressed: () async {
+                try {
+                  await ref.read(jobCardServiceProvider).pushRequiredPartsToCustomerCart(
+                        jobCardId: jobCardId,
+                        providerId: providerId,
+                      );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Parts pushed to customer cart queue.')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                  }
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: MobileJobCardUi.kineticOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              icon: const Icon(Icons.shopping_cart_checkout),
+              label: const Text('PUSH REQUIRED PARTS TO CUSTOMER CART'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _addPart(BuildContext context, WidgetRef ref) async {
+    final palette = DashboardPalette.of(context);
     final name = TextEditingController();
     final qty = TextEditingController(text: '1');
     final price = TextEditingController(text: '0');
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        title: const Text('Add required part', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _f(name, 'Part name'),
-            _f(qty, 'Quantity', keyboard: TextInputType.number),
-            _f(price, 'Unit price', keyboard: const TextInputType.numberWithOptions(decimal: true)),
-          ],
-        ),
+      builder: (ctx) => MobileJobCardUi.dialogShell(
+        palette: palette,
+        title: 'Add required part',
+        children: [
+          MobileJobCardUi.themedTextField(palette: palette, controller: name, label: 'Part name'),
+          const SizedBox(height: 12),
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: qty,
+            label: 'Quantity',
+            keyboard: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: price,
+            label: 'Unit price',
+            keyboard: const TextInputType.numberWithOptions(decimal: true),
+          ),
+        ],
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ADD')),
+          MobileJobCardUi.cancelTextButton(palette: palette, onPressed: () => Navigator.pop(ctx, false)),
+          MobileJobCardUi.primaryDialogButton(label: 'ADD', onPressed: () => Navigator.pop(ctx, true)),
         ],
       ),
     );
@@ -527,25 +688,35 @@ class _JobCardDetailsSheet extends ConsumerWidget {
   }
 
   Future<void> _editPart(BuildContext context, WidgetRef ref, Map<String, dynamic> row) async {
+    final palette = DashboardPalette.of(context);
     final name = TextEditingController(text: row['part_name']?.toString() ?? '');
     final qty = TextEditingController(text: ((row['quantity'] as num?)?.toInt() ?? 1).toString());
     final price = TextEditingController(text: ((row['unit_price'] as num?)?.toDouble() ?? 0).toString());
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        title: const Text('Edit required part', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _f(name, 'Part name'),
-            _f(qty, 'Quantity', keyboard: TextInputType.number),
-            _f(price, 'Unit price', keyboard: const TextInputType.numberWithOptions(decimal: true)),
-          ],
-        ),
+      builder: (ctx) => MobileJobCardUi.dialogShell(
+        palette: palette,
+        title: 'Edit required part',
+        children: [
+          MobileJobCardUi.themedTextField(palette: palette, controller: name, label: 'Part name'),
+          const SizedBox(height: 12),
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: qty,
+            label: 'Quantity',
+            keyboard: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+          MobileJobCardUi.themedTextField(
+            palette: palette,
+            controller: price,
+            label: 'Unit price',
+            keyboard: const TextInputType.numberWithOptions(decimal: true),
+          ),
+        ],
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('SAVE')),
+          MobileJobCardUi.cancelTextButton(palette: palette, onPressed: () => Navigator.pop(ctx, false)),
+          MobileJobCardUi.primaryDialogButton(label: 'SAVE', onPressed: () => Navigator.pop(ctx, true)),
         ],
       ),
     );
@@ -562,30 +733,6 @@ class _JobCardDetailsSheet extends ConsumerWidget {
     qty.dispose();
     price.dispose();
   }
-}
-
-Widget _f(
-  TextEditingController c,
-  String hint, {
-  int maxLines = 1,
-  TextInputType keyboard = TextInputType.text,
-}) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: TextField(
-      controller: c,
-      maxLines: maxLines,
-      keyboardType: keyboard,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: BoostDriveTheme.textDim),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.06),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-      ),
-    ),
-  );
 }
 
 final _requesterJobCardsFamily = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, uid) async {

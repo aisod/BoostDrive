@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
+import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'main_shell.dart';
 import 'login_page.dart';
 
@@ -14,9 +15,24 @@ class AuthGate extends ConsumerWidget {
     return authState.when(
       data: (state) {
         if (state.session != null) {
-          return const MainShell();
+          final mustSetNewPassword = ref.watch(passwordResetPendingProvider);
+          if (mustSetNewPassword) {
+            return ResetPasswordPage(
+              popOnSuccess: false,
+              onPasswordChanged: () {
+                ref.read(passwordResetPendingProvider.notifier).state = false;
+              },
+            );
+          }
+          return const KeyedSubtree(
+            key: ValueKey('main_shell'),
+            child: MainShell(),
+          );
         } else {
-          return const LoginPage();
+          return const KeyedSubtree(
+            key: ValueKey('login'),
+            child: LoginPage(),
+          );
         }
       },
       loading: () => const Scaffold(

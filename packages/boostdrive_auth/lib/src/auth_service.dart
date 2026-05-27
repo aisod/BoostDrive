@@ -1,6 +1,7 @@
 import 'dart:typed_data';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' show ClientException;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 final supabaseAuthProvider = Provider<SupabaseClient>((ref) => Supabase.instance.client);
 
@@ -9,6 +10,53 @@ class AuthService {
   AuthService(this._supabase);
 
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+
+  Never _rethrowStorageSetupError(StorageException e, String bucket, String migrationHint) {
+    if (e.statusCode == '404' && e.message.contains('Bucket not found')) {
+      throw Exception(
+        'Storage bucket "$bucket" not found.\n\n'
+        'Create it in Supabase Dashboard → Storage → New bucket → name: "$bucket" → Public bucket.',
+      );
+    }
+    if (e.statusCode == '403' ||
+        e.message.toLowerCase().contains('row-level security') ||
+        e.message.toLowerCase().contains('unauthorized')) {
+      throw Exception(
+        'Upload blocked by storage security rules for bucket "$bucket".\n\n'
+        '$migrationHint',
+      );
+    }
+    print('Storage error ($bucket): $e');
+    throw e;
+  }
+
+  Never _rethrowStorageNetworkError(Object e, String bucket, String migrationHint) {
+    if (e is ClientException ||
+        e.toString().contains('Failed to fetch') ||
+        e.toString().contains('XMLHttpRequest')) {
+      throw Exception(
+        'Could not upload to storage bucket "$bucket" (network or browser CORS).\n\n'
+        '1. Run $migrationHint in Supabase SQL Editor.\n'
+        '2. In Supabase Dashboard → Storage → Configuration → CORS, paste the rules from '
+        'storage-cors.json in the project repo (include OPTIONS and your localhost port).\n'
+        '3. Hot restart the app and try again.\n\n'
+        'Technical detail: $e',
+      );
+    }
+    print('Storage upload error ($bucket): $e');
+    throw e is Exception ? e : Exception(e.toString());
+  }
+
+  static String? _imageContentType(String fileName) {
+    final ext = fileName.split('.').last.toLowerCase();
+    return switch (ext) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      'gif' => 'image/gif',
+      _ => 'image/jpeg',
+    };
+  }
 
   /// Sends OTP to the phone number
   Future<void> signInWithPhone({
@@ -315,6 +363,29 @@ class AuthService {
     }
   }
 
+  /// Verifies an email OTP sent via [sendPasswordResetOtp] / passwordless sign-in.
+  Future<bool> verifyPasswordResetOtp(String email, String token) async {
+    final types = [OtpType.email, OtpType.magiclink, OtpType.recovery];
+
+    for (final type in types) {
+      try {
+        final response = await _supabase.auth.verifyOTP(
+          email: email.trim(),
+          token: token,
+          type: type,
+        );
+        if (response.user != null) {
+          await _handlePostAuthSync(response.user!);
+          return true;
+        }
+      } catch (e) {
+        print("DEBUG: Password-reset OTP verification (type: $type) failed: $e");
+        if (type == types.last) rethrow;
+      }
+    }
+    return false;
+  }
+
   /// Verifies the 6-digit OTP code (Email)
   /// Tries 'email', 'signup', 'magiclink', and 'recovery' types.
   Future<bool> verifyEmailCode(String email, String token) async {
@@ -344,40 +415,30 @@ class AuthService {
 
   /// Uploads a profile image to Supabase storage
   Future<String> uploadProfileImage(List<int> bytes, String fileName) async {
+    const bucket = 'profile-images';
+    const migration = 'database/profile_images_storage_migration.sql';
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('User must be logged in to upload images');
 
-      final extension = fileName.split('.').last;
+      final extension = fileName.split('.').last.toLowerCase();
       final path = 'avatars/$userId/${DateTime.now().millisecondsSinceEpoch}.$extension';
-      
-      // First ensure the bucket exists or we use a known bucket
-      // Using 'profile-images' bucket for consistency
-      await _supabase.storage.from('profile-images').uploadBinary(
+
+      await _supabase.storage.from(bucket).uploadBinary(
             path,
             Uint8List.fromList(bytes),
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+            fileOptions: FileOptions(
+              cacheControl: '3600',
+              upsert: true,
+              contentType: _imageContentType(fileName),
+            ),
           );
 
-      final String publicUrl = _supabase.storage.from('profile-images').getPublicUrl(path);
-      return publicUrl;
+      return _supabase.storage.from(bucket).getPublicUrl(path);
     } on StorageException catch (e) {
-      if (e.statusCode == '404' && e.message.contains('Bucket not found')) {
-        throw Exception(
-          'Storage bucket "profile-images" not found.\n\n'
-          'Please create it in Supabase Dashboard:\n'
-          '1. Go to Storage section\n'
-          '2. Click "New bucket"\n'
-          '3. Name: "profile-images"\n'
-          '4. Enable "Public bucket"\n'
-          '5. Click "Create bucket"'
-        );
-      }
-      print('Storage error uploading profile image: $e');
-      rethrow;
+      _rethrowStorageSetupError(e, bucket, migration);
     } catch (e) {
-      print('Error uploading profile image: $e');
-      rethrow;
+      _rethrowStorageNetworkError(e, bucket, migration);
     }
   }
 
@@ -404,19 +465,12 @@ class AuthService {
       final String publicUrl = _supabase.storage.from('provider-docs').getPublicUrl(path);
       return publicUrl;
     } on StorageException catch (e) {
-      if (e.statusCode == '404' && e.message.contains('Bucket not found')) {
-        throw Exception(
-          'Storage bucket "provider-docs" not found.\n\n'
-          'Please create it in Supabase Dashboard:\n'
-          '1. Go to Storage section\n'
-          '2. Click "New bucket"\n'
-          '3. Name: "provider-docs"\n'
-          '4. Enable "Public bucket"\n'
-          '5. Click "Create bucket"',
-        );
-      }
-      print('Storage error uploading provider document: $e');
-      rethrow;
+      _rethrowStorageSetupError(
+        e,
+        'provider-docs',
+        'Run database/provider_docs_storage_migration.sql in the Supabase SQL Editor '
+        '(or add INSERT/UPDATE/DELETE policies for path docs/<your-user-id>/).',
+      );
     } catch (e) {
       print('Error uploading provider document: $e');
       rethrow;
@@ -473,19 +527,11 @@ class AuthService {
       final String publicUrl = _supabase.storage.from('provider-galleries').getPublicUrl(path);
       return publicUrl;
     } on StorageException catch (e) {
-      if (e.statusCode == '404' && e.message.contains('Bucket not found')) {
-        throw Exception(
-          'Storage bucket "provider-galleries" not found.\n\n'
-          'Please create it in Supabase Dashboard:\n'
-          '1. Go to Storage section\n'
-          '2. Click "New bucket"\n'
-          '3. Name: "provider-galleries"\n'
-          '4. Enable "Public bucket"\n'
-          '5. Click "Create bucket"',
-        );
-      }
-      print('Storage error uploading gallery image: $e');
-      rethrow;
+      _rethrowStorageSetupError(
+        e,
+        'provider-galleries',
+        'Run database/provider_galleries_storage_migration.sql in the Supabase SQL Editor.',
+      );
     } catch (e) {
       print('Error uploading gallery image: $e');
       rethrow;
@@ -529,6 +575,52 @@ class AuthService {
       );
     } catch (e) {
       print("DEBUG: Resend OTP Error: $e");
+      rethrow;
+    }
+  }
+
+  /// Resends a verification code using the API that matches how it was first sent.
+  ///
+  /// Supabase only supports [OtpType.signup] / [OtpType.sms] via `auth.resend`.
+  /// Passwordless and password-reset OTPs must re-call `signInWithOtp`.
+  Future<void> resendVerificationCode({
+    required String identifier,
+    required bool isSignUp,
+    required bool isPasswordReset,
+  }) async {
+    final trimmed = identifier.trim();
+    if (trimmed.isEmpty) {
+      throw Exception('Missing email or phone for resend.');
+    }
+
+    try {
+      if (trimmed.contains('@')) {
+        if (isSignUp) {
+          await _supabase.auth.resend(
+            type: OtpType.signup,
+            email: trimmed,
+          );
+        } else if (isPasswordReset) {
+          await sendPasswordResetOtp(trimmed);
+        } else {
+          await _supabase.auth.signInWithOtp(
+            email: trimmed,
+            shouldCreateUser: true,
+          );
+        }
+      } else {
+        final phone = formatPhoneNumber(trimmed);
+        if (isSignUp) {
+          await _supabase.auth.resend(
+            type: OtpType.sms,
+            phone: phone,
+          );
+        } else {
+          await _supabase.auth.signInWithOtp(phone: phone);
+        }
+      }
+    } catch (e) {
+      print("DEBUG: Resend verification code error: $e");
       rethrow;
     }
   }
@@ -670,7 +762,8 @@ class AuthService {
     };
     if (fullName != null) updates['full_name'] = fullName;
     if (username != null) updates['username'] = username;
-    if (avatarUrl != null) updates['profile_img'] = avatarUrl; // Changed from avatar_url to profile_img
+    // avatarUrl: pass '' to clear; omit parameter to leave profile_img unchanged.
+    if (avatarUrl != null) updates['profile_img'] = avatarUrl;
     if (phoneNumber != null) updates['phone_number'] = phoneNumber;
     if (businessContactNumber != null) updates['business_contact_number'] = businessContactNumber;
     if (tradingName != null) updates['trading_name'] = tradingName;
@@ -703,3 +796,6 @@ final currentUserProvider = Provider<User?>((ref) {
   final authState = ref.watch(authStateProvider).value;
   return authState?.session?.user ?? ref.watch(supabaseAuthProvider).auth.currentUser;
 });
+
+/// True after password-reset OTP is verified; user must set a new password before entering the app.
+final passwordResetPendingProvider = StateProvider<bool>((ref) => false);

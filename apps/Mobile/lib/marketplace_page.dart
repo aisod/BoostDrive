@@ -23,7 +23,6 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   String _searchQuery = '';
 
   bool _matchesSearch(Product p) {
-    // Return true when item matches the current free-text query.
     if (_searchQuery.trim().isEmpty) return true;
     final q = _searchQuery.toLowerCase();
     return p.title.toLowerCase().contains(q) ||
@@ -33,72 +32,15 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   }
 
   void _openSearch() {
-    // Opens bottom sheet to apply or clear text search.
-    final controller = TextEditingController(text: _searchQuery);
-    showModalBottomSheet<void>(
+    MarketplaceUi.showSearchListingsSheet(
       context: context,
-      backgroundColor: BoostDriveTheme.surfaceDark,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Search listings', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Title, description, location…',
-                  hintStyle: TextStyle(color: BoostDriveTheme.textDim),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.06),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-                onSubmitted: (_) => Navigator.pop(ctx),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      controller.clear();
-                      setState(() => _searchQuery = '');
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Clear'),
-                  ),
-                  const Spacer(),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() => _searchQuery = controller.text);
-                      Navigator.pop(ctx);
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor, foregroundColor: Colors.white),
-                    child: const Text('Apply'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+      initialQuery: _searchQuery,
+      onApply: (query) => setState(() => _searchQuery = query),
+      onClear: () => setState(() => _searchQuery = ''),
     );
   }
 
   bool _matchesSelectedCategory(String category) {
-    // Normalize category matching so singular/plural values still match.
     if (_selectedCategory == 'all') return true;
     final c = category.trim().toLowerCase();
     if (_selectedCategory == 'car') return c == 'car' || c == 'cars' || c == 'vehicle' || c == 'vehicles';
@@ -110,16 +52,15 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
   @override
   void initState() {
     super.initState();
-    // Initialize tab from deep-link/route argument when provided.
     _selectedCategory = widget.initialCategory ?? 'all';
   }
+
   @override
   Widget build(BuildContext context) {
-    // Load marketplace products and auth user context.
     final productsAsync = ref.watch(marketplaceProductsProvider);
     final user = ref.watch(authStateProvider).value?.session?.user;
+    final cartCount = ref.watch(cartProvider).length;
 
-    // Redirect to role selection if user is logged in but has no role flags.
     if (user != null) {
       final profileAsync = ref.watch(userProfileProvider(user.id));
       profileAsync.whenData((profile) {
@@ -134,42 +75,25 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
       });
     }
 
+    final palette = DashboardPalette.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('BoostDrive Shop'),
-        leading: user != null ? ref.watch(userProfileProvider(user.id)).whenData((profile) => profile != null ? Center(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: Text(
-              profile.isSeller ? 'S' : 'B',
-              style: TextStyle(
-                color: profile.isSeller ? BoostDriveTheme.primaryColor : Colors.blue,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ),
-        ) : const SizedBox()).value : const SizedBox(),
-        actions: [
-          IconButton(
-            onPressed: _openSearch,
-            icon: const Icon(Icons.search),
-            tooltip: 'Search',
-          ),
-          IconButton(
-            onPressed: () {
-               Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const CartPage())
-              );
-            },
-            icon: const Icon(Icons.shopping_cart_outlined),
-          ),
-        ],
+      backgroundColor: palette.background,
+      appBar: MarketplaceUi.shopAppBar(
+        context: context,
+        palette: palette,
+        onSearch: _openSearch,
+        cartItemCount: cartCount,
+        onCart: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CartPage()),
+          );
+        },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: MarketplaceUi.sellFab(
+        palette: palette,
         onPressed: () async {
-          // Require login before allowing listing creation.
           final user = ref.read(currentUserProvider);
           if (user == null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -181,58 +105,56 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
             context,
             MaterialPageRoute(builder: (context) => const AddListingPage()),
           );
-          // Refresh listings after returning from add-listing flow.
           final _ = ref.refresh(marketplaceProductsProvider);
         },
-        backgroundColor: BoostDriveTheme.primaryColor,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Sell Item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Category Selector
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: MarketplaceUi.marginMobile,
+              vertical: 12,
+            ),
             child: Row(
               children: [
-                _CategoryChip(
+                MarketplaceUi.categoryPill(
+                  palette: palette,
                   label: 'All',
-                  isSelected: _selectedCategory == 'all',
+                  selected: _selectedCategory == 'all',
                   onTap: () => setState(() => _selectedCategory = 'all'),
                 ),
-                _CategoryChip(
+                MarketplaceUi.categoryPill(
+                  palette: palette,
                   label: 'Cars',
-                  isSelected: _selectedCategory == 'car',
+                  selected: _selectedCategory == 'car',
                   onTap: () => setState(() => _selectedCategory = 'car'),
                 ),
-                _CategoryChip(
+                MarketplaceUi.categoryPill(
+                  palette: palette,
                   label: 'Parts',
-                  isSelected: _selectedCategory == 'part',
+                  selected: _selectedCategory == 'part',
                   onTap: () => setState(() => _selectedCategory = 'part'),
                 ),
-                _CategoryChip(
+                MarketplaceUi.categoryPill(
+                  palette: palette,
                   label: 'Rentals',
-                  isSelected: _selectedCategory == 'rental',
+                  selected: _selectedCategory == 'rental',
                   onTap: () => setState(() => _selectedCategory = 'rental'),
                 ),
               ],
             ),
           ),
-          
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Text(
-              'Available Items',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              MarketplaceUi.marginMobile,
+              8,
+              MarketplaceUi.marginMobile,
+              16,
             ),
+            child: MarketplaceUi.sectionHeader(palette, onFiltersTap: _openSearch),
           ),
-
-          // Product Grid
           Expanded(
             child: productsAsync.when(
               data: (products) {
@@ -241,27 +163,33 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
                     .toList();
 
                 if (filteredProducts.isEmpty) {
-                  return const Center(
-                    child: Text('No items found in this category'),
+                  return Center(
+                    child: Text(
+                      'No items found in this category',
+                      style: TextStyle(color: palette.muted),
+                    ),
                   );
                 }
 
                 return GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80), // Bottom padding for FAB
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.70, // Taller cards
+                    childAspectRatio: 0.52,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
                   itemCount: filteredProducts.length,
                   itemBuilder: (context, index) {
                     return BoostProductCard(
+                      compact: true,
                       product: filteredProducts[index],
                       onTap: () async {
                         final result = await Navigator.push(
-                          context, 
-                          MaterialPageRoute(builder: (context) => ProductDetailPage(product: filteredProducts[index]))
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProductDetailPage(product: filteredProducts[index]),
+                          ),
                         );
                         if (result == true) {
                           final _ = ref.refresh(marketplaceProductsProvider);
@@ -276,44 +204,6 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CategoryChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CategoryChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Reusable category chip used in horizontal selector.
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => onTap(),
-        selectedColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-        checkmarkColor: BoostDriveTheme.primaryColor,
-        labelStyle: TextStyle(
-          color: isSelected ? BoostDriveTheme.primaryColor : BoostDriveTheme.textDim,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
-          ),
-        ),
       ),
     );
   }

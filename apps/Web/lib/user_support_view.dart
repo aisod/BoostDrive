@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 
 class UserSupportView extends ConsumerStatefulWidget {
   final String userId;
   final String userType;
+  final bool embedded;
 
   const UserSupportView({
     super.key,
     required this.userId,
     required this.userType,
+    this.embedded = false,
   });
 
   @override
@@ -20,162 +23,224 @@ class UserSupportView extends ConsumerStatefulWidget {
 class _UserSupportViewState extends ConsumerState<UserSupportView> {
   String? _lastAutoOpenedId;
 
+  static const _faqItems = [
+    (Icons.payments_outlined, 'How do payouts work?', 'Learn about our weekly payout cycle and supported banking methods.'),
+    (Icons.shield_outlined, 'Insurance & Protection', 'Understand coverage options for rentals and high-value listings.'),
+    (Icons.verified_user_outlined, 'Verification delays', 'Why listings may stay pending and how to speed up approval.'),
+    (Icons.chat_outlined, 'Messaging buyers', 'Best practices for responding to inquiries on BoostDrive.'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final ticketsAsync = ref.watch(userTicketsProvider(widget.userId));
     final pendingTicketId = ref.watch(pendingSupportTicketIdProvider);
+    final palette = DashboardPalette.of(context);
 
-    // Auto-open logic when tickets are loaded and pending ID is present
     if (pendingTicketId != null && _lastAutoOpenedId != pendingTicketId && ticketsAsync.hasValue) {
       final tickets = ticketsAsync.value!;
       final ticket = tickets.cast<SupportTicket?>().firstWhere(
-        (t) => t?.id == pendingTicketId, 
-        orElse: () => null
-      );
-      
+            (t) => t?.id == pendingTicketId,
+            orElse: () => null,
+          );
+
       if (ticket != null) {
         _lastAutoOpenedId = pendingTicketId;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showTicketDetails(context, ref, ticket);
-          // Clear it in state but we already have _lastAutoOpenedId to prevent loops
           ref.read(pendingSupportTicketIdProvider.notifier).state = null;
         });
       }
     }
 
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!widget.embedded) ...[
+          const SizedBox(height: 8),
+          DashboardHeroSearch(
+            title: 'How can we help you today?',
+            subtitle:
+                'Search our knowledge base or check your existing tickets for updates on your vehicle listings and rentals.',
+          ),
+          const SizedBox(height: 32),
+        ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth > 900;
+            final ticketsPanel = _buildTicketsPanel(context, ref, ticketsAsync, palette);
+            final faqPanel = _buildFaqPanel(palette);
+            if (!wide) {
+              return Column(
+                children: [
+                  ticketsPanel,
+                  const SizedBox(height: 32),
+                  faqPanel,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 7, child: ticketsPanel),
+                const SizedBox(width: 24),
+                Expanded(flex: 5, child: faqPanel),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+
+    if (widget.embedded) {
+      return content;
+    }
+
+    return DashboardPageContainer(child: content);
+  }
+
+  Widget _buildTicketsPanel(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<List<SupportTicket>> ticketsAsync,
+    DashboardPalette palette,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Help & Support',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'View your previous tickets or submit a new request.',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14),
-                ),
-              ],
+            Expanded(
+              child: Text('Active Tickets', style: DashboardTypography.headlineMd(palette)),
             ),
-            ElevatedButton.icon(
+            DashboardPillButton(
+              label: 'New Ticket',
+              icon: Icons.confirmation_number_outlined,
               onPressed: () => _showCreateTicketDialog(context, ref),
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('NEW TICKET', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: BoostDriveTheme.primaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              ),
             ),
           ],
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
         ticketsAsync.when(
           data: (tickets) {
             if (tickets.isEmpty) {
-              return Container(
-                width: double.infinity,
+              return DashboardCard(
                 padding: const EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                ),
                 child: Column(
                   children: [
-                    Icon(Icons.support_agent, size: 64, color: BoostDriveTheme.textDim.withValues(alpha: 0.5)),
+                    Icon(Icons.support_agent, size: 56, color: palette.muted.withValues(alpha: 0.6)),
                     const SizedBox(height: 16),
-                    const Text('No support tickets yet.', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16)),
+                    Text('No support tickets yet.', style: DashboardTypography.bodyMd(palette)),
                   ],
                 ),
               );
             }
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: tickets.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final t = tickets[index];
-                return _buildTicketCard(context, ref, t);
-              },
+            return DashboardCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (var i = 0; i < tickets.length; i++) ...[
+                    if (i > 0) Divider(height: 1, color: palette.surfaceContainer),
+                    _buildTicketRow(context, ref, tickets[i], palette),
+                  ],
+                ],
+              ),
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.redAccent))),
+          loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+          error: (e, _) => Text('Error: $e', style: TextStyle(color: palette.error)),
         ),
       ],
     );
   }
 
-  Widget _buildTicketCard(BuildContext context, WidgetRef ref, SupportTicket ticket) {
-    Color statusColor = Colors.orange;
-    if (ticket.status == 'resolved') statusColor = Colors.green;
-    if (ticket.status == 'closed') statusColor = BoostDriveTheme.primaryColor.withValues(alpha: 0.1);
-
-    return InkWell(
-      onTap: () => _showTicketDetails(context, ref, ticket),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: BoostDriveTheme.surfaceDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1), shape: BoxShape.circle),
-              child: const Icon(Icons.assignment, color: BoostDriveTheme.primaryColor),
+  Widget _buildFaqPanel(DashboardPalette palette) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Common Questions', style: DashboardTypography.headlineMd(palette)),
+        const SizedBox(height: 6),
+        Text('Find instant answers to common issues.', style: DashboardTypography.bodySm(palette)),
+        const SizedBox(height: 16),
+        ..._faqItems.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: DashboardFaqTile(
+              icon: item.$1,
+              title: item.$2,
+              description: item.$3,
+              iconBackground: palette.primaryFixed.withValues(alpha: 0.35),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTicketRow(BuildContext context, WidgetRef ref, SupportTicket ticket, DashboardPalette palette) {
+    final isOpen = ticket.status == 'open' || ticket.status == 'pending';
+    final statusBg = isOpen ? palette.primaryContainer : palette.surfaceContainerHighest;
+    final statusFg = isOpen ? Colors.white : palette.body;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showTicketDetails(context, ref, ticket),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(ticket.subject, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text('Ticket #${ticket.id.substring(0, 8).toUpperCase()}', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13)),
-                      const SizedBox(width: 12),
-                      const Text('•', style: TextStyle(color: Color(0x22FF6600))),
-                      const SizedBox(width: 12),
-                      Text(ticket.issueType.toUpperCase(), style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-                    ],
+                  Expanded(
+                    child: Text(
+                      ticket.subject,
+                      style: DashboardTypography.labelLg(palette),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      ticket.status.toUpperCase(),
+                      style: GoogleFonts.montserrat(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: statusFg,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.tag, size: 14, color: palette.muted),
+                  const SizedBox(width: 4),
+                  Text(
+                    '#${ticket.id.substring(0, 8).toUpperCase()}',
+                    style: DashboardTypography.labelMd(palette),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(ticket.issueType.toUpperCase(), style: DashboardTypography.labelMd(palette)),
+                ],
               ),
-              child: Text(
-                ticket.status.toUpperCase(),
-                style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w900),
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Icon(Icons.chevron_right, color: Color(0x22FF6600)),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _showCreateTicketDialog(BuildContext context, WidgetRef ref) {
-    // Map display labels -> exact DB values that pass the issue_type CHECK constraint
     const typeMap = {
       'General Inquiry': 'general',
       'Billing Issue': 'billing',
@@ -186,6 +251,7 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
     final subjectController = TextEditingController();
     final types = typeMap.keys.toList();
     bool isSubmitting = false;
+    final palette = DashboardPalette.of(context);
 
     showDialog(
       context: context,
@@ -193,7 +259,8 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return Dialog(
-            backgroundColor: BoostDriveTheme.surfaceDark,
+            backgroundColor: palette.surfaceContainerLowest,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               width: 500,
               padding: const EdgeInsets.all(32),
@@ -204,28 +271,29 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Create New Ticket', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text('Create New Ticket', style: DashboardTypography.headlineMd(palette)),
                       IconButton(
                         onPressed: isSubmitting ? null : () => Navigator.pop(context),
-                        icon: const Icon(Icons.close, color: Colors.white54),
+                        icon: Icon(Icons.close, color: palette.muted),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text('Issue Type', style: TextStyle(color: Colors.white70)),
+                  Text('Issue Type', style: DashboardTypography.labelLg(palette)),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: palette.outlineVariant),
+                      borderRadius: BorderRadius.circular(12),
+                      color: palette.surfaceContainerLow,
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        dropdownColor: BoostDriveTheme.surfaceDark,
+                        dropdownColor: palette.surfaceContainerLowest,
                         value: selectedType,
                         isExpanded: true,
-                        style: const TextStyle(color: Colors.white),
+                        style: DashboardTypography.bodyMd(palette).copyWith(color: palette.title),
                         items: types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                         onChanged: (val) {
                           if (val != null) setState(() => selectedType = val);
@@ -234,26 +302,32 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text('Subject & Description', style: TextStyle(color: Colors.white70)),
+                  Text('Subject & Description', style: DashboardTypography.labelLg(palette)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: subjectController,
-                    style: const TextStyle(color: Colors.white),
+                    style: DashboardTypography.bodyMd(palette).copyWith(color: palette.title),
                     maxLines: 4,
                     decoration: InputDecoration(
                       hintText: 'Please detail your issue...',
-                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                      hintStyle: DashboardTypography.bodyMd(palette),
                       filled: true,
-                      fillColor: BoostDriveTheme.backgroundDark,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor)),
+                      fillColor: palette.surfaceContainerLow,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: palette.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: palette.primary, width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
+                    child: DashboardPillButton(
+                      label: isSubmitting ? 'Submitting...' : 'Submit Ticket',
                       onPressed: isSubmitting
                           ? null
                           : () async {
@@ -262,25 +336,19 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                               setState(() => isSubmitting = true);
                               try {
                                 await ref.read(supportServiceProvider).createTicket(
-                                  userId: widget.userId,
-                                  userType: widget.userType,
-                                  issueType: typeMap[selectedType] ?? 'general',
-                                  subject: text,
-                                );
+                                      userId: widget.userId,
+                                      userType: widget.userType,
+                                      issueType: typeMap[selectedType] ?? 'general',
+                                      subject: text,
+                                    );
                                 ref.invalidate(userTicketsProvider(widget.userId));
                                 if (context.mounted) Navigator.pop(context);
                               } catch (e) {
+                                if (!context.mounted) return;
                                 setState(() => isSubmitting = false);
                                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                               }
                             },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: BoostDriveTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: isSubmitting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('SUBMIT TICKET', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -294,12 +362,14 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
 
   void _showTicketDetails(BuildContext context, WidgetRef ref, SupportTicket ticket) {
     final msgController = TextEditingController();
+    final palette = DashboardPalette.of(context);
 
     showDialog(
       context: context,
       builder: (context) {
         return Dialog(
-          backgroundColor: BoostDriveTheme.surfaceDark,
+          backgroundColor: palette.surfaceContainerLowest,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             width: 600,
             height: 700,
@@ -311,24 +381,29 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text('Ticket #${ticket.id.substring(0, 8).toUpperCase()}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Ticket #${ticket.id.substring(0, 8).toUpperCase()}',
+                        style: DashboardTypography.headlineMd(palette),
+                      ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
+                      icon: Icon(Icons.close, color: palette.muted),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                Text(ticket.subject, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16)),
+                Text(ticket.subject, style: DashboardTypography.bodyMd(palette)),
                 const SizedBox(height: 24),
-                const Divider(color: Color(0x22FF6600)),
+                Divider(color: palette.surfaceContainer),
                 Expanded(
                   child: Consumer(
                     builder: (context, ref, child) {
                       final msgsAsync = ref.watch(ticketMessagesProvider(ticket.id));
                       return msgsAsync.when(
                         data: (msgs) {
-                          if (msgs.isEmpty) return Center(child: Text('No messages yet', style: TextStyle(color: BoostDriveTheme.textDim)));
+                          if (msgs.isEmpty) {
+                            return Center(child: Text('No messages yet', style: DashboardTypography.bodyMd(palette)));
+                          }
                           return ListView.builder(
                             itemCount: msgs.length,
                             itemBuilder: (context, index) {
@@ -341,7 +416,7 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                                   padding: const EdgeInsets.all(12),
                                   constraints: const BoxConstraints(maxWidth: 400),
                                   decoration: BoxDecoration(
-                                    color: isMe ? BoostDriveTheme.primaryColor : Colors.white.withValues(alpha: 0.1),
+                                    color: isMe ? palette.primary : palette.surfaceContainer,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Column(
@@ -349,10 +424,17 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                                     children: [
                                       Text(
                                         m.isAdmin ? 'Admin' : 'You',
-                                        style: TextStyle(color: isMe ? Colors.white70 : BoostDriveTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                        style: DashboardTypography.labelMd(palette).copyWith(
+                                          color: isMe ? Colors.white70 : palette.primary,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
-                                      Text(m.message, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                                      Text(
+                                        m.message,
+                                        style: DashboardTypography.bodySm(palette).copyWith(
+                                          color: isMe ? Colors.white : palette.title,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -374,17 +456,15 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                         controller: msgController,
                         minLines: 1,
                         maxLines: 6,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        style: const TextStyle(color: Colors.white),
+                        style: DashboardTypography.bodyMd(palette).copyWith(color: palette.title),
                         decoration: InputDecoration(
                           hintText: 'Type a message...',
-                          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                          hintStyle: DashboardTypography.bodyMd(palette),
                           filled: true,
-                          fillColor: BoostDriveTheme.backgroundDark,
+                          fillColor: palette.surfaceContainerLow,
                           contentPadding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
                         ),
@@ -398,11 +478,11 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                         msgController.clear();
                         try {
                           await ref.read(supportServiceProvider).addMessage(
-                            ticketId: ticket.id,
-                            senderId: widget.userId,
-                            message: text,
-                            isAdmin: false,
-                          );
+                                ticketId: ticket.id,
+                                senderId: widget.userId,
+                                message: text,
+                                isAdmin: false,
+                              );
                           ref.invalidate(ticketMessagesProvider(ticket.id));
                           ref.invalidate(userTicketsProvider(widget.userId));
                         } catch (e) {
@@ -411,7 +491,7 @@ class _UserSupportViewState extends ConsumerState<UserSupportView> {
                           }
                         }
                       },
-                      icon: const Icon(Icons.send, color: BoostDriveTheme.primaryColor),
+                      icon: Icon(Icons.send, color: palette.primary),
                     ),
                   ],
                 ),

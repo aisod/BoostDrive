@@ -5,55 +5,53 @@ import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 
-/// Mobile Garage tab — same sections, layout patterns, and dialogs as the web customer dashboard garage.
+/// Mobile Garage tab — Kinetic Precision layout (Stitch mobile_garage_list).
 class GaragePage extends ConsumerWidget {
   const GaragePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
+    final palette = DashboardPalette.of(context);
+
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please log in', style: TextStyle(color: Colors.white))),
+      return Scaffold(
+        backgroundColor: palette.background,
+        body: Center(child: Text('Please log in', style: TextStyle(color: palette.body))),
       );
     }
 
     final uid = user.id;
 
-    return PremiumPageLayout(
-      showBackground: true,
-      appBar: AppBar(
-        backgroundColor: BoostDriveTheme.primaryColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'My Garage',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () => showCustomerAddVehicleDialog(context, ref, uid),
-            icon: const Icon(Icons.add_circle, size: 20, color: Colors.white),
-            label: const Text('Add Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: MobileCustomerUi.topAppBar(
+        context: context,
+        title: 'GARAGE',
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showCustomerAddVehicleDialog(context, ref, uid),
+        backgroundColor: palette.primaryContainer,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add, size: 32),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: CustomerGarageUi.marginMobile),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CustomerGarageSectionHeader(title: 'My Garage', icon: Icons.directions_car),
+              const SizedBox(height: 8),
+              _GarageHeader(uid: uid),
               const SizedBox(height: 24),
               _GarageVehiclesBlock(uid: uid),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
               const CustomerGarageSectionHeader(title: 'Active Orders', icon: Icons.local_shipping),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               _GarageOrdersBlock(uid: uid),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
               const CustomerGarageSectionHeader(title: 'Service History', icon: Icons.history),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               _GarageServiceHistoryBlock(uid: uid),
               const SizedBox(height: 100),
             ],
@@ -64,6 +62,25 @@ class GaragePage extends ConsumerWidget {
   }
 }
 
+class _GarageHeader extends ConsumerWidget {
+  const _GarageHeader({required this.uid});
+
+  final String uid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = DashboardPalette.of(context);
+    return ref.watch(userVehiclesProvider(uid)).when(
+          data: (vehicles) => CustomerGarageUi.garagePageHeader(
+                palette: palette,
+                vehicleCount: vehicles.length,
+              ),
+          loading: () => CustomerGarageUi.garagePageHeader(palette: palette, vehicleCount: 0),
+          error: (_, _) => CustomerGarageUi.garagePageHeader(palette: palette, vehicleCount: 0),
+        );
+  }
+}
+
 class _GarageVehiclesBlock extends ConsumerWidget {
   const _GarageVehiclesBlock({required this.uid});
 
@@ -71,13 +88,18 @@ class _GarageVehiclesBlock extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = DashboardPalette.of(context);
+
     return ref.watch(userVehiclesProvider(uid)).when(
           data: (vehicles) {
             if (vehicles.isEmpty) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('No vehicles found in your garage.', style: TextStyle(color: BoostDriveTheme.textDim)),
+                  Text(
+                    'No vehicles found in your garage.',
+                    style: DashboardTypography.bodyMd(palette),
+                  ),
                   const SizedBox(height: 16),
                   CustomerGarageAddButton(
                     label: 'Add Vehicle',
@@ -86,48 +108,40 @@ class _GarageVehiclesBlock extends ConsumerWidget {
                 ],
               );
             }
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth > 700 ? 2 : 1;
-                final childAspectRatio = crossAxisCount == 2 ? 1.2 : 0.85;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: vehicles.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        mainAxisSpacing: 24,
-                        crossAxisSpacing: 24,
-                        childAspectRatio: childAspectRatio,
-                      ),
-                      itemBuilder: (context, index) {
-                        final v = vehicles[index];
-                        return KeyedSubtree(
-                          key: ValueKey('vehicle-${v.id}'),
-                          child: CustomerGarageVehicleCard(
-                            vehicle: v,
-                            onDelete: () => confirmDeleteCustomerVehicle(context, ref, v),
-                            onEdit: () => showCustomerAddVehicleDialog(context, ref, uid, vehicle: v),
-                            onDetails: () => showCustomerVehicleDetailsModal(context, ref, v),
-                          ),
-                        );
-                      },
+
+            final featured = vehicles.first;
+            final others = vehicles.length > 1 ? vehicles.sublist(1) : <Vehicle>[];
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CustomerGarageUi.featuredVehicleCard(
+                  palette: palette,
+                  vehicle: featured,
+                  onTap: () => showCustomerVehicleDetailsModal(context, ref, featured),
+                ),
+                if (others.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'OTHER VEHICLES',
+                    style: DashboardTypography.sectionLabel(palette),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final v in others)
+                    CustomerGarageVehicleCard(
+                      vehicle: v,
+                      onDelete: () => confirmDeleteCustomerVehicle(context, ref, v),
+                      onEdit: () => showCustomerAddVehicleDialog(context, ref, uid, vehicle: v),
+                      onDetails: () => showCustomerVehicleDetailsModal(context, ref, v),
                     ),
-                    const SizedBox(height: 24),
-                    CustomerGarageAddButton(
-                      label: 'Add Vehicle',
-                      onPressed: () => showCustomerAddVehicleDialog(context, ref, uid),
-                    ),
-                  ],
-                );
-              },
+                ],
+              ],
             );
           },
-          loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
-          error: (_, _) => Text('Error loading garage', style: TextStyle(color: BoostDriveTheme.textDim)),
+          loading: () => const Center(
+            child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()),
+          ),
+          error: (_, _) => Text('Error loading garage', style: TextStyle(color: palette.muted)),
         );
   }
 }
@@ -147,15 +161,17 @@ class _GarageOrdersBlock extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = DashboardPalette.of(context);
+
     return ref.watch(activeDeliveriesProvider(uid)).when(
           data: (orders) {
             if (orders.isEmpty) {
-              return Text('No active orders.', style: TextStyle(color: BoostDriveTheme.textDim));
+              return Text('No active orders.', style: DashboardTypography.bodyMd(palette));
             }
             return Column(
               children: [
                 for (var i = 0; i < orders.length; i++) ...[
-                  if (i > 0) const SizedBox(height: 16),
+                  if (i > 0) const SizedBox(height: 12),
                   KeyedSubtree(
                     key: ValueKey('order-${orders[i].id}'),
                     child: _GarageOrderTile(order: orders[i], progress: _progressForStatus(orders[i].status)),
@@ -165,7 +181,7 @@ class _GarageOrdersBlock extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
-          error: (_, _) => Text('Error loading orders', style: TextStyle(color: BoostDriveTheme.textDim)),
+          error: (_, _) => Text('Error loading orders', style: TextStyle(color: palette.muted)),
         );
   }
 }
@@ -197,13 +213,15 @@ class _GarageServiceHistoryBlock extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = DashboardPalette.of(context);
+
     return ref.watch(userServiceHistoryProvider(uid)).when(
           data: (history) {
             if (history.isEmpty) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('No service records found.', style: TextStyle(color: BoostDriveTheme.textDim)),
+                  Text('No service records found.', style: DashboardTypography.bodyMd(palette)),
                   const SizedBox(height: 16),
                   ref.watch(userVehiclesProvider(uid)).when(
                     data: (vehicles) => vehicles.isNotEmpty
@@ -242,11 +260,11 @@ class _GarageServiceHistoryBlock extends ConsumerWidget {
           ),
           error: (err, _) => Column(
             children: [
-              const Icon(Icons.error_outline, color: Colors.redAccent),
+              Icon(Icons.error_outline, color: palette.error),
               const SizedBox(height: 8),
               Text(
                 'Service history is temporarily offline. Check connection and retry.',
-                style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w700),
+                style: TextStyle(color: palette.error, fontSize: 12, fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),

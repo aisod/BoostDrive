@@ -68,17 +68,28 @@ void main() async {
   );
 }
 
-class BoostDriveMobileApp extends StatelessWidget {
+class BoostDriveMobileApp extends ConsumerStatefulWidget {
   const BoostDriveMobileApp({super.key});
 
   @override
+  ConsumerState<BoostDriveMobileApp> createState() => _BoostDriveMobileAppState();
+}
+
+class _BoostDriveMobileAppState extends ConsumerState<BoostDriveMobileApp> {
+  /// Single navigator key survives hot reload and prevents duplicate NavigatorState keys on web.
+  final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+  @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
+      navigatorKey: _rootNavigatorKey,
       title: 'BoostDrive',
       debugShowCheckedModeBanner: false,
-      theme: BoostDriveTheme.darkTheme(context).copyWith(
-        scaffoldBackgroundColor: const Color(0xCC0D0D0D), // Semi-transparent black to show background
-      ),
+      theme: BoostDriveTheme.lightTheme(context),
+      darkTheme: BoostDriveTheme.darkTheme(context),
+      themeMode: themeMode,
       builder: (context, child) => child ?? const SizedBox.shrink(),
       home: const AuthGate(),
     );

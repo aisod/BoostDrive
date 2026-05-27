@@ -1,20 +1,33 @@
 [
   {
     "origin": [
+      "http://localhost",
       "http://localhost:*",
-      "http://localhost:55385"
+      "http://127.0.0.1",
+      "http://127.0.0.1:*",
+      "https://localhost",
+      "https://localhost:*"
     ],
     "method": [
       "GET",
+      "HEAD",
       "POST",
       "PUT",
+      "PATCH",
       "DELETE",
-      "HEAD"
+      "OPTIONS"
     ],
     "responseHeader": [
       "Content-Type",
+      "Content-Length",
+      "Content-Range",
       "Authorization",
-      "x-goog-resumable"
+      "apikey",
+      "x-client-info",
+      "x-upsert",
+      "Accept",
+      "Range",
+      "Cache-Control"
     ],
     "maxAgeSeconds": 3600
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth_design_tokens.dart';
+import 'dashboard_theme_toggle.dart';
 
 class AuthSplitLayout extends StatelessWidget {
   final AuthDesignTokens tokens;
@@ -51,6 +52,14 @@ class AuthSplitLayout extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                           child: formContent,
                         ),
+                        Positioned(
+                          top: 12,
+                          right: onClose != null ? 52 : 12,
+                          child: const DashboardThemeToggle(
+                            compact: true,
+                            onColoredHeader: false,
+                          ),
+                        ),
                         if (onClose != null)
                           Positioned(
                             top: 12,
@@ -93,6 +102,14 @@ class AuthSplitLayout extends StatelessWidget {
                       ),
                       if (topRightOverlay != null)
                         Positioned(top: 16, right: 16, child: topRightOverlay!),
+                      Positioned(
+                        top: 24,
+                        right: onClose != null ? 72 : 24,
+                        child: const DashboardThemeToggle(
+                          compact: true,
+                          onColoredHeader: false,
+                        ),
+                      ),
                       if (onClose != null)
                         Positioned(
                           top: 24,
@@ -203,18 +220,18 @@ class AuthPageHeader extends StatelessWidget {
         children: [
           Text(
             title,
-            style: GoogleFonts.montserrat(
+            style: GoogleFonts.manrope(
               fontSize: 32,
               fontWeight: FontWeight.w700,
               color: tokens.onSurface,
-              letterSpacing: -0.5,
-              height: 1.2,
+              letterSpacing: -0.32,
+              height: 1.25,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: GoogleFonts.montserrat(
+            style: GoogleFonts.manrope(
               fontSize: 16,
               fontWeight: FontWeight.w400,
               color: tokens.onSurfaceVariant,
@@ -344,6 +361,8 @@ class AuthPrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final IconData? trailingIcon;
+  /// Card-style CTA (52px, 12px radius) vs split-layout pill (56px).
+  final bool compact;
 
   const AuthPrimaryButton({
     super.key,
@@ -352,21 +371,25 @@ class AuthPrimaryButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
     this.trailingIcon,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final height = compact ? 52.0 : 56.0;
+    final radius = compact ? 12.0 : 999.0;
+
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: height,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: tokens.primaryContainer,
-          foregroundColor: tokens.onPrimaryContainer,
+          foregroundColor: compact ? Colors.white : tokens.onPrimaryContainer,
           elevation: tokens.isDark ? 4 : 2,
           shadowColor: tokens.primaryContainer.withValues(alpha: 0.2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
         ),
         child: isLoading
             ? SizedBox(
@@ -502,69 +525,208 @@ class _AuthOtpInputState extends State<AuthOtpInput> {
       validator: (_) => widget.validator?.call(widget.controller.text),
       builder: (state) {
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(6, (index) {
-                return SizedBox(
-                  width: 52,
-                  height: 64,
-                  child: TextField(
-                    controller: _digitControllers[index],
-                    focusNode: _focusNodes[index],
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: 1,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: widget.tokens.onSurface,
-                    ),
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      counterText: '',
-                      filled: true,
-                      fillColor: widget.tokens.surfaceContainer,
-                      contentPadding: EdgeInsets.zero,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: widget.tokens.outlineVariant, width: 2),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const gap = 6.0;
+                const cellHeight = 56.0;
+                final maxWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : MediaQuery.sizeOf(context).width - 40;
+                final cellWidth = ((maxWidth - gap * 5) / 6).clamp(0.0, 48.0);
+                final fontSize =
+                    cellWidth < 34 ? 18.0 : (cellWidth < 40 ? 20.0 : 24.0);
+                return Row(
+                  children: [
+                    for (var index = 0; index < 6; index++) ...[
+                      if (index > 0) const SizedBox(width: gap),
+                      SizedBox(
+                        width: cellWidth,
+                        height: cellHeight,
+                        child: _OtpDigitField(
+                          tokens: widget.tokens,
+                          controller: _digitControllers[index],
+                          focusNode: _focusNodes[index],
+                          fontSize: fontSize,
+                          onChanged: (v) => _onChanged(index, v),
+                          onAdvance: index < 5
+                              ? () => _focusNodes[index + 1].requestFocus()
+                              : null,
+                        ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: widget.tokens.outlineVariant, width: 2),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: widget.tokens.primaryContainer, width: 2),
-                      ),
-                    ),
-                    onChanged: (v) => _onChanged(index, v),
-                    onTap: () => _digitControllers[index].selection = TextSelection(
-                      baseOffset: 0,
-                      extentOffset: _digitControllers[index].text.length,
-                    ),
-                    onSubmitted: (_) {
-                      if (index < 5) {
-                        _focusNodes[index + 1].requestFocus();
-                      }
-                    },
-                  ),
+                    ],
+                  ],
                 );
-              }),
+              },
             ),
             if (state.hasError)
               Padding(
                 padding: const EdgeInsets.only(top: 8, left: 4),
                 child: Text(
                   state.errorText ?? '',
-                  style: GoogleFonts.montserrat(color: widget.tokens.error, fontSize: 12),
+                  style: GoogleFonts.manrope(color: widget.tokens.error, fontSize: 12),
                 ),
               ),
           ],
         );
       },
+    );
+  }
+}
+
+class _OtpDigitField extends StatelessWidget {
+  const _OtpDigitField({
+    required this.tokens,
+    required this.controller,
+    required this.focusNode,
+    required this.fontSize,
+    required this.onChanged,
+    this.onAdvance,
+  });
+
+  final AuthDesignTokens tokens;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final double fontSize;
+  final ValueChanged<String> onChanged;
+  final VoidCallback? onAdvance;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = tokens.outlineVariant.withValues(alpha: 0.2);
+
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      textAlign: TextAlign.center,
+      keyboardType: TextInputType.number,
+      maxLength: 1,
+      style: GoogleFonts.manrope(
+        fontSize: fontSize,
+        fontWeight: FontWeight.w700,
+        color: tokens.onSurface,
+      ),
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(
+        counterText: '',
+        filled: true,
+        fillColor: tokens.surfaceContainerLow,
+        contentPadding: EdgeInsets.zero,
+        isDense: true,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: tokens.primaryContainer, width: 2),
+        ),
+      ),
+      onChanged: onChanged,
+      onTap: () => controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: controller.text.length,
+      ),
+      onSubmitted: (_) => onAdvance?.call(),
+    );
+  }
+}
+
+/// OTP subtitle with emphasized email (forgot-password card).
+class AuthOtpEmailSubtitle extends StatelessWidget {
+  const AuthOtpEmailSubtitle({
+    super.key,
+    required this.tokens,
+    required this.email,
+    this.textAlign = TextAlign.center,
+  });
+
+  final AuthDesignTokens tokens;
+  final String email;
+  final TextAlign textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseStyle = GoogleFonts.manrope(
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      color: tokens.isDark ? tokens.onSurfaceVariant : const Color(0xFF64748B),
+      height: 1.5,
+    );
+
+    return Text.rich(
+      TextSpan(
+        style: baseStyle,
+        children: [
+          const TextSpan(text: 'Enter the 6-digit code sent to '),
+          TextSpan(
+            text: email,
+            style: baseStyle.copyWith(
+              color: tokens.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+      textAlign: textAlign,
+    );
+  }
+}
+
+/// Decorative tachometer gauge (Stitch card footer).
+class AuthTachometerHint extends StatelessWidget {
+  const AuthTachometerHint({super.key, required this.tokens});
+
+  final AuthDesignTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: 0.1,
+      child: SizedBox(
+        width: 96,
+        height: 48,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              bottom: 0,
+              child: Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: tokens.primaryContainer,
+                    width: 6,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              child: Transform.rotate(
+                angle: 0.785,
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  width: 4,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: tokens.primaryContainer,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

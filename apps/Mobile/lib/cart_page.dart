@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'messages_page.dart';
@@ -31,39 +32,7 @@ class _CartPageState extends ConsumerState<CartPage> {
       return;
     }
 
-    final action = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
-          'Checkout Options',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Choose how you want to continue:',
-          style: TextStyle(color: BoostDriveTheme.textDim),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          OutlinedButton(
-            onPressed: () => Navigator.pop(ctx, 'message_seller'),
-            child: const Text('Message Seller Directly'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, 'online_coming_soon'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: BoostDriveTheme.primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Online Payments (Coming Soon)'),
-          ),
-        ],
-      ),
-    );
+    final action = await ShopCommerceUi.showCheckoutOptionsDialog(context);
 
     if (!mounted || action == null) return;
     if (action == 'online_coming_soon') {
@@ -99,41 +68,17 @@ class _CartPageState extends ConsumerState<CartPage> {
     if (bySeller.length == 1) {
       selectedSellerId = bySeller.keys.first;
     } else {
-      selectedSellerId = await showDialog<String>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: BoostDriveTheme.surfaceDark,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text(
-            'Select Seller',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox(
-            width: 360,
-            child: ListView(
-              shrinkWrap: true,
-              children: bySeller.entries.map((entry) {
-                final sellerId = entry.key;
-                final items = entry.value;
-                final title = items.first.product.title;
-                return ListTile(
-                  title: Text(title, style: const TextStyle(color: Colors.white)),
-                  subtitle: Text(
-                    '${items.length} item(s)',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  onTap: () => Navigator.pop(ctx, sellerId),
-                );
-              }).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-            ),
-          ],
-        ),
+      selectedSellerId = await ShopCommerceUi.showSelectSellerDialog(
+        context,
+        sellers: bySeller.entries
+            .map(
+              (e) => (
+                sellerId: e.key,
+                title: e.value.first.product.title,
+                itemCount: e.value.length,
+              ),
+            )
+            .toList(),
       );
     }
 
@@ -175,17 +120,27 @@ class _CartPageState extends ConsumerState<CartPage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
     final cartItems = ref.watch(cartProvider);
     final total = ref.watch(cartProvider.notifier).grandTotal;
     final customerId = ref.watch(currentUserProvider)?.id;
     final pushesAsync = customerId == null ? null : ref.watch(_pendingCartPushesFamily(customerId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Cart'),
+      backgroundColor: palette.background,
+      appBar: ShopCommerceUi.glassAppBar(
+        context: context,
+        palette: palette,
+        title: 'My Cart',
+        onColoredHeader: false,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          ShopCommerceUi.marginMobile,
+          8,
+          ShopCommerceUi.marginMobile,
+          120,
+        ),
         children: [
           if (pushesAsync != null)
             pushesAsync.when(
@@ -194,220 +149,120 @@ class _CartPageState extends ConsumerState<CartPage> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'PARTS RECOMMENDED BY YOUR PROVIDER',
-                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+                    ShopCommerceUi.cartSectionHeading(
+                      palette,
+                      'Parts recommended by your provider',
                     ),
-                    const SizedBox(height: 10),
-                    ...pushes.map((push) => _buildPushCard(push)),
+                    ...pushes.map((push) => _buildPushCard(palette, push)),
                     const SizedBox(height: 20),
                   ],
                 );
               },
-              loading: () => const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: LinearProgressIndicator(minHeight: 2),
+              loading: () => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: LinearProgressIndicator(
+                  minHeight: 2,
+                  color: palette.primaryContainer,
+                  backgroundColor: palette.surfaceContainer,
+                ),
               ),
-              error: (e, _) => Text('Could not load provider recommendations: $e', style: const TextStyle(color: Colors.redAccent)),
+              error: (e, _) => Text(
+                'Could not load provider recommendations: $e',
+                style: TextStyle(color: palette.error),
+              ),
             ),
           if (cartItems.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 80),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.shopping_cart_outlined, size: 64, color: BoostDriveTheme.textDim),
-                    SizedBox(height: 16),
-                    Text('Your cart is empty', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 18)),
-                  ],
-                ),
-              ),
-            )
-          else
+            ShopCommerceUi.cartEmptyState(palette)
+          else ...[
+            ShopCommerceUi.cartSectionHeading(
+              palette,
+              'Items in cart (${cartItems.length})',
+            ),
             ...cartItems.map((item) {
-                return Dismissible(
-                  key: ValueKey(item.product.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16),
-                    child: const Icon(Icons.delete, color: Colors.white),
+              final isRental = item.product.category == 'rental';
+              final meta = isRental
+                  ? '${item.rentalStartDate?.toString().split(' ')[0] ?? ''} - ${item.rentalEndDate?.toString().split(' ')[0] ?? ''}'
+                  : 'Qty: ${item.quantity}';
+              return Dismissible(
+                key: ValueKey(item.product.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: palette.error,
+                    borderRadius: BorderRadius.circular(ShopCommerceUi.radiusCard),
                   ),
-                  onDismissed: (_) {
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                onDismissed: (_) {
+                  ref.read(cartProvider.notifier).removeItem(item.product.id);
+                },
+                child: ShopCommerceUi.cartLineItem(
+                  palette: palette,
+                  title: item.product.title,
+                  subtitle: item.product.subtitle.isNotEmpty
+                      ? item.product.subtitle
+                      : item.product.location,
+                  unitPriceLabel: 'N\$ ${item.product.price.toStringAsFixed(2)}',
+                  lineTotalLabel: 'N\$ ${item.totalPrice.toStringAsFixed(2)}',
+                  metaLabel: meta,
+                  isRental: isRental,
+                  imageUrl: item.product.imageUrls.isNotEmpty ? item.product.imageUrls.first : null,
+                  onRemove: () {
                     ref.read(cartProvider.notifier).removeItem(item.product.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Item removed from cart')),
+                    );
                   },
-                  child: Card(
-                    color: BoostDriveTheme.surfaceDark,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          // Thumbnail
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.grey[800],
-                              image: item.product.imageUrls.isNotEmpty
-                                  ? DecorationImage(image: NetworkImage(item.product.imageUrls.first), fit: BoxFit.cover)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(item.product.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                Text('N\$ ${item.product.price.toStringAsFixed(2)}', style: const TextStyle(color: BoostDriveTheme.primaryColor)),
-                                if (item.product.category == 'rental') ...[
-                                  Text(
-                                    '${item.rentalStartDate?.toString().split(" ")[0]} - ${item.rentalEndDate?.toString().split(" ")[0]}',
-                                    style: const TextStyle(fontSize: 10, color: BoostDriveTheme.textDim),
-                                  ),
-                                ] else ...[
-                                  Text('Qty: ${item.quantity}', style: const TextStyle(fontSize: 12, color: BoostDriveTheme.textDim)),
-                                ],
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                tooltip: 'Remove item',
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                onPressed: () {
-                                  ref.read(cartProvider.notifier).removeItem(item.product.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Item removed from cart')),
-                                  );
-                                },
-                              ),
-                              Text(
-                                'N\$ ${item.totalPrice.toStringAsFixed(2)}',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
+                ),
+              );
+            }),
+          ],
         ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: BoostDriveTheme.surfaceDark,
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Total', style: TextStyle(fontSize: 18, color: BoostDriveTheme.textDim)),
-                  Text(
-                    'N\$ ${total.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: cartItems.isEmpty || _isLoading ? null : _handleCheckout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _isLoading 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Checkout', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ),
+      bottomNavigationBar: ShopCommerceUi.cartFooter(
+        palette: palette,
+        totalLabel: 'N\$ ${total.toStringAsFixed(2)}',
+        checkoutEnabled: cartItems.isNotEmpty,
+        loading: _isLoading,
+        onCheckout: _handleCheckout,
       ),
     );
   }
 
-  Widget _buildPushCard(Map<String, dynamic> push) {
+  Widget _buildPushCard(DashboardPalette palette, Map<String, dynamic> push) {
     final pushId = push['id']?.toString() ?? '';
     final vehicle = push['vehicle_label']?.toString() ?? 'Vehicle';
     final notes = push['notes']?.toString() ?? '';
     final isProcessing = _processingPushIds.contains(pushId);
     final itemsAsync = ref.watch(_pushItemsFamily(pushId));
-    return Card(
-      color: BoostDriveTheme.surfaceDark,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(vehicle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            if (notes.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(notes, style: const TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
-            ],
-            const SizedBox(height: 8),
-            itemsAsync.when(
-              data: (rows) {
-                final total = rows.fold<double>(
-                  0,
-                  (sum, r) => sum + ((r['quantity'] as num?)?.toDouble() ?? 0) * ((r['unit_price'] as num?)?.toDouble() ?? 0),
-                );
-                return Text(
-                  '${rows.length} part(s) • N\$${total.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                );
-              },
-              loading: () => const Text('Loading parts...', style: TextStyle(color: Colors.white54, fontSize: 12)),
-              error: (e, _) => Text('$e', style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: isProcessing ? null : () => _viewPushDetails(pushId),
-                    child: const Text('VIEW DETAILS'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: isProcessing ? null : () => _rejectPush(pushId),
-                    child: const Text('DISMISS'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: isProcessing ? null : () => _acceptPush(pushId),
-                    style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
-                    child: Text(isProcessing ? 'ADDING...' : 'ADD TO CART'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+
+    final summaryLine = itemsAsync.when(
+      data: (rows) {
+        final rowTotal = rows.fold<double>(
+          0,
+          (sum, r) => sum + ((r['quantity'] as num?)?.toDouble() ?? 0) * ((r['unit_price'] as num?)?.toDouble() ?? 0),
+        );
+        return Text(
+          '${rows.length} part(s) • N\$${rowTotal.toStringAsFixed(2)}',
+          style: GoogleFonts.manrope(fontSize: 13, color: palette.secondary),
+        );
+      },
+      loading: () => Text('Loading parts...', style: TextStyle(color: palette.muted, fontSize: 12)),
+      error: (e, _) => Text('$e', style: TextStyle(color: palette.error, fontSize: 12)),
+    );
+
+    return ShopCommerceUi.providerRecommendationCard(
+      palette: palette,
+      vehicleLabel: vehicle,
+      notes: notes,
+      summaryLine: summaryLine,
+      isProcessing: isProcessing,
+      onViewDetails: () => _viewPushDetails(pushId),
+      onDismiss: () => _rejectPush(pushId),
+      onAddToCart: () => _acceptPush(pushId),
     );
   }
 
@@ -468,40 +323,55 @@ class _CartPageState extends ConsumerState<CartPage> {
   }
 
   Future<void> _viewPushDetails(String pushId) async {
+    final palette = DashboardPalette.of(context);
     final svc = ref.read(jobCardServiceProvider);
     final items = await svc.listCartPushItems(pushId);
     if (!mounted) return;
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: BoostDriveTheme.surfaceDark,
-        title: const Text('Recommended Parts', style: TextStyle(color: Colors.white)),
+        backgroundColor: palette.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShopCommerceUi.radiusCard)),
+        title: Text(
+          'Recommended Parts',
+          style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: palette.title),
+        ),
         content: SizedBox(
           width: 360,
           child: items.isEmpty
-              ? Text('No parts found for this recommendation.', style: TextStyle(color: BoostDriveTheme.textDim))
+              ? Text('No parts found for this recommendation.', style: TextStyle(color: palette.muted))
               : ListView.separated(
                   shrinkWrap: true,
                   itemCount: items.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1, color: Colors.white12),
+                  separatorBuilder: (_, _) => Divider(
+                    height: 1,
+                    color: palette.outlineVariant.withValues(alpha: 0.15),
+                  ),
                   itemBuilder: (_, i) {
                     final it = items[i];
                     final qty = (it['quantity'] as num?)?.toInt() ?? 1;
                     final unit = (it['unit_price'] as num?)?.toDouble() ?? 0;
-                    final total = qty * unit;
+                    final lineTotal = qty * unit;
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(it['part_name']?.toString() ?? '', style: const TextStyle(color: Colors.white)),
-                      subtitle: Text('Qty $qty × N\$${unit.toStringAsFixed(2)}',
-                          style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12)),
-                      trailing: Text('N\$${total.toStringAsFixed(2)}',
-                          style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      title: Text(it['part_name']?.toString() ?? '', style: TextStyle(color: palette.title)),
+                      subtitle: Text(
+                        'Qty $qty × N\$${unit.toStringAsFixed(2)}',
+                        style: TextStyle(color: palette.muted, fontSize: 12),
+                      ),
+                      trailing: Text(
+                        'N\$${lineTotal.toStringAsFixed(2)}',
+                        style: TextStyle(color: palette.title, fontWeight: FontWeight.bold),
+                      ),
                     );
                   },
                 ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CLOSE')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('CLOSE', style: TextStyle(color: palette.primaryContainer)),
+          ),
         ],
       ),
     );

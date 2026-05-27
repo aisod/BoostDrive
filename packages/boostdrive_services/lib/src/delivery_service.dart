@@ -26,12 +26,53 @@ class DeliveryService {
     );
   }
 
+  /// Pending unassigned orders plus all orders assigned to this logistics driver.
+  Stream<List<DeliveryOrder>> getLogisticsOrders(String logisticsUserId) {
+    final realtime = _supabase.from('delivery_orders').stream(primaryKey: ['id']).map((data) {
+      return _mergeLogisticsOrders(
+        data.map((json) => DeliveryOrder.fromMap(json)).toList(),
+        logisticsUserId,
+      );
+    });
+    return _withPollingFallback(
+      realtime,
+      () async {
+        final rows = await _supabase.from('delivery_orders').select();
+        return _mergeLogisticsOrders(
+          (rows as List<dynamic>)
+              .map((json) => DeliveryOrder.fromMap(Map<String, dynamic>.from(json as Map)))
+              .toList(),
+          logisticsUserId,
+        );
+      },
+      label: 'getLogisticsOrders',
+      interval: const Duration(seconds: 6),
+    );
+  }
+
+  List<DeliveryOrder> _mergeLogisticsOrders(List<DeliveryOrder> all, String logisticsUserId) {
+    final pending = all.where((o) {
+      final unassigned = o.driverId == null || o.driverId!.trim().isEmpty;
+      return o.status == 'pending' && unassigned;
+    });
+    final mine = all.where((o) => o.driverId == logisticsUserId);
+    final byId = <String, DeliveryOrder>{};
+    for (final o in [...pending, ...mine]) {
+      byId[o.id] = o;
+    }
+    final list = byId.values.toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
   Stream<List<DeliveryOrder>> getPendingQueue() {
     final realtime = _supabase
         .from('delivery_orders')
         .stream(primaryKey: ['id'])
-        .eq('status', 'pending')
-        .map((data) => data.map((json) => DeliveryOrder.fromMap(json)).toList());
+        .map((data) => data
+            .map((json) => DeliveryOrder.fromMap(json))
+            .where((o) => o.status == 'pending' && (o.driverId == null || o.driverId!.trim().isEmpty))
+            .toList());
     return _withPollingFallback(
       realtime,
       _fetchPendingQueueSnapshot,
@@ -39,14 +80,92 @@ class DeliveryService {
     );
   }
 
-  Future<void> updateDeliveryStatus(String orderId, String status, {String? eta, String? driverId}) async {
-    final updates = {
+  Future<void> assignOrderToDriver({
+    required String orderId,
+    required String driverId,
+    String? eta,
+    String? vehicleId,
+  }) async {
+    await updateDeliveryStatus(
+      orderId,
+      'picking_up',
+      driverId: driverId,
+      eta: eta ?? '30 min',
+      vehicleId: vehicleId,
+    );
+  }
+
+  Future<void> updateDeliveryStatus(
+    String orderId,
+    String status, {
+    String? eta,
+    String? driverId,
+    String? vehicleId,
+  }) async {
+    final updates = <String, dynamic>{
       'status': status,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
     if (eta != null) updates['eta'] = eta;
     if (driverId != null) updates['driver_id'] = driverId;
+    if (vehicleId != null) updates['vehicle_id'] = vehicleId;
 
     await _supabase.from('delivery_orders').update(updates).eq('id', orderId);
+  }
+
+  Future<void> updateDriverLocation(String orderId, double lat, double lng) async {
+    await _supabase.from('delivery_orders').update({
+      'driver_last_lat': lat,
+      'driver_last_lng': lng,
+      'driver_location_updated_at': DateTime.now().toUtc().toIso8601String(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', orderId);
+  }
+
+  Future<LogisticsFinanceSummary> getLogisticsFinanceSummary(String driverId) async {
+    final rows = await _supabase
+        .from('delivery_orders')
+        .select()
+        .eq('driver_id', driverId);
+    final orders = (rows as List<dynamic>)
+        .map((json) => DeliveryOrder.fromMap(Map<String, dynamic>.from(json as Map)))
+        .toList();
+
+    double sumFees(List<DeliveryOrder> list) =>
+        list.fold(0.0, (sum, o) => sum + (o.deliveryFee ?? 0));
+
+    final completed = orders.where((o) => o.status == 'delivered').toList();
+    final active = orders.where((o) => o.status != 'delivered' && o.status != 'cancelled').toList();
+    final cancelled = orders.where((o) => o.status == 'cancelled').toList();
+    final inTransit = orders.where((o) => o.status == 'in_transit' || o.status == 'picking_up').toList();
+
+    completed.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+    final periodCompleted =
+        completed.where((o) => o.createdAt.isAfter(monthStart)).toList();
+
+    double profileEarnings = 0;
+    try {
+      final profile = await _supabase.from('profiles').select('total_earnings').eq('id', driverId).maybeSingle();
+      if (profile != null) {
+        profileEarnings = double.tryParse(profile['total_earnings']?.toString() ?? '0') ?? 0;
+      }
+    } catch (_) {}
+
+    final feeTotal = sumFees(completed);
+    final lifetime = profileEarnings > 0 ? profileEarnings : feeTotal;
+
+    return LogisticsFinanceSummary(
+      lifetimeEarnings: lifetime,
+      periodEarnings: sumFees(periodCompleted),
+      pendingPayouts: sumFees(inTransit),
+      completedCount: completed.length,
+      activeCount: active.length,
+      cancelledCount: cancelled.length,
+      recentCompleted: completed.take(10).toList(),
+    );
   }
 
   Stream<double> getGlobalVolume() {
@@ -113,12 +232,10 @@ class DeliveryService {
   }
 
   Future<List<DeliveryOrder>> _fetchPendingQueueSnapshot() async {
-    final rows = await _supabase
-        .from('delivery_orders')
-        .select()
-        .eq('status', 'pending');
+    final rows = await _supabase.from('delivery_orders').select().eq('status', 'pending');
     return (rows as List<dynamic>)
         .map((json) => DeliveryOrder.fromMap(Map<String, dynamic>.from(json as Map)))
+        .where((o) => o.driverId == null || o.driverId!.trim().isEmpty)
         .toList();
   }
 
@@ -150,17 +267,28 @@ final deliveryServiceProvider = Provider<DeliveryService>((ref) {
 });
 
 final activeDeliveriesProvider = StreamProvider.family<List<DeliveryOrder>, String>((ref, userId) {
-  // Watch the refresh trigger for manual updates
   ref.watch(dashboardRefreshProvider);
-  
-  // Add 20-second polling fallback for external status changes
-  // ignore: unused_local_variable
   final keepAlive = Stream.periodic(const Duration(seconds: 20)).listen((_) {
     ref.invalidateSelf();
   });
   ref.onDispose(() => keepAlive.cancel());
 
   return ref.watch(deliveryServiceProvider).getActiveDeliveries(userId);
+});
+
+/// All orders visible to a BaTLorriH logistics driver (pending queue + assigned).
+final logisticsOrdersProvider = StreamProvider.family<List<DeliveryOrder>, String>((ref, userId) {
+  ref.watch(dashboardRefreshProvider);
+  final keepAlive = Stream.periodic(const Duration(seconds: 20)).listen((_) {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => keepAlive.cancel());
+  return ref.watch(deliveryServiceProvider).getLogisticsOrders(userId);
+});
+
+final logisticsFinanceProvider = FutureProvider.family<LogisticsFinanceSummary, String>((ref, userId) {
+  ref.watch(dashboardRefreshProvider);
+  return ref.watch(deliveryServiceProvider).getLogisticsFinanceSummary(userId);
 });
 
 final globalVolumeProvider = StreamProvider<double>((ref) {

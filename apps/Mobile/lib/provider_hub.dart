@@ -6,6 +6,7 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'batlorrih_logistics_dashboard.dart';
 import 'service_pro_dashboard.dart';
 import 'seller_dashboard.dart';
+import 'mobile_app_bar_actions.dart';
 
 class ProviderHub extends ConsumerStatefulWidget {
   const ProviderHub({super.key});
@@ -39,7 +40,9 @@ class _ProviderHubState extends ConsumerState<ProviderHub> with SingleTickerProv
 
     final isSeller = profile.role.toLowerCase().contains('seller');
 
-    return PremiumPageLayout(
+    return ProviderProfileSetupReminderScopeMobile(
+      profile: profile,
+      child: PremiumPageLayout(
       // Disable global web background image here to avoid right-edge image artifact/overlay.
       showBackground: false,
       appBar: AppBar(
@@ -51,6 +54,7 @@ class _ProviderHubState extends ConsumerState<ProviderHub> with SingleTickerProv
           'Provider Hub',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
         ),
+        actions: mobileAppBarActions(),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -77,6 +81,7 @@ class _ProviderHubState extends ConsumerState<ProviderHub> with SingleTickerProv
           ],
         ),
       ),
+    ),
     );
   }
 }

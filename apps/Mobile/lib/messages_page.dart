@@ -6,6 +6,7 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -13,6 +14,7 @@ import 'package:record/record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:intl/intl.dart';
+import 'mobile_app_bar_actions.dart';
 
 class MessagesPage extends ConsumerStatefulWidget {
   final String? initialConversationId;
@@ -608,71 +610,25 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   }
 
   Widget _buildVoiceRecordingBar() {
+    final palette = DashboardPalette.of(context);
     return GestureDetector(
       onPanStart: _onVoiceRecordingBarPanStart,
       onPanUpdate: _onVoiceRecordingBarPanUpdate,
       onPanEnd: _onVoiceRecordingBarPanEnd,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            // Pulsing red mic (WhatsApp-style)
-            Transform.scale(
-              scale: _voiceMicPulse ? 1.08 : 0.96,
-              child: const Icon(Icons.mic_rounded, color: Colors.redAccent, size: 28),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              _voiceRecordingDurationText,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                _voiceLocked
-                    ? 'Recording locked • Tap Stop or Trash'
-                    : _voiceSlideToCancel
-                        ? 'Release to cancel'
-                        : 'Slide left to cancel • Slide up to lock',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: _voiceSlideToCancel ? 0.9 : 0.6),
-                  fontSize: 13,
-                ),
-              ),
-            ),
-            if (_voiceLocked) ...[
-              IconButton(
-                onPressed: _toggleVoiceRecording,
-                icon: const Icon(Icons.stop_rounded, color: BoostDriveTheme.primaryColor, size: 24),
-                tooltip: 'Stop and send or discard',
-              ),
-              IconButton(
-                onPressed: _cancelVoiceRecording,
-                icon: Icon(Icons.delete_outline_rounded, color: Colors.white.withValues(alpha: 0.9), size: 24),
-                tooltip: 'Delete recording',
-              ),
-            ] else
-              IconButton(
-                onPressed: _voiceSlideToCancel ? _cancelVoiceRecording : _toggleVoiceRecording,
-                icon: Icon(
-                  _voiceSlideToCancel ? Icons.close_rounded : Icons.stop_rounded,
-                  color: _voiceSlideToCancel ? Colors.white70 : BoostDriveTheme.primaryColor,
-                  size: 24,
-                ),
-                tooltip: _voiceSlideToCancel ? 'Cancel' : 'Stop (then Send or Discard)',
-              ),
-          ],
-        ),
+      child: MessagesUi.voiceRecordingBar(
+        palette: palette,
+        durationText: _voiceRecordingDurationText,
+        hintText: _voiceLocked
+            ? 'Recording locked • Tap Stop or Trash'
+            : _voiceSlideToCancel
+                ? 'Release to cancel'
+                : 'Slide left to cancel • Slide up to lock',
+        micPulse: _voiceMicPulse,
+        voiceLocked: _voiceLocked,
+        voiceSlideToCancel: _voiceSlideToCancel,
+        onStop: _toggleVoiceRecording,
+        onCancel: _cancelVoiceRecording,
+        onDelete: _voiceLocked ? _cancelVoiceRecording : null,
       ),
     );
   }
@@ -680,143 +636,52 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   /// Bar shown after stopping a voice recording: user can Send or Discard before the message is sent.
   /// Tapping the mic icon or "Voice note" label continues recording (appends to the same note).
   Widget _buildPendingVoiceNoteBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            Tooltip(
-              message: 'Tap to add more',
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _continueVoiceRecording,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.mic_rounded, color: BoostDriveTheme.primaryColor, size: 24),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Voice note $_pendingVoiceNoteDuration',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            TextButton.icon(
-              onPressed: _sendPendingVoiceNote,
-              icon: const Icon(Icons.send_rounded, size: 18, color: BoostDriveTheme.primaryColor),
-              label: const Text('Send', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600)),
-            ),
-            TextButton.icon(
-              onPressed: _discardPendingVoiceNote,
-              icon: Icon(Icons.close_rounded, size: 18, color: Colors.white.withValues(alpha: 0.8)),
-              label: Text('Discard', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
-            ),
-          ],
-        ),
-      ),
+    final palette = DashboardPalette.of(context);
+    return MessagesUi.pendingVoiceBar(
+      palette: palette,
+      durationLabel: _pendingVoiceNoteDuration,
+      onContinue: _continueVoiceRecording,
+      onSend: _sendPendingVoiceNote,
+      onDiscard: _discardPendingVoiceNote,
     );
   }
 
   Widget _buildPendingThumbnails() {
+    final palette = DashboardPalette.of(context);
     final list = _pendingAttachments ?? [];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(list.length, (index) {
-            final att = list[index];
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.memory(
-                      att.bytes,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  Positioned(
-                    top: -6,
-                    right: -6,
-                    child: GestureDetector(
-                      onTap: () => _removePendingImage(index),
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Colors.black87,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.close, size: 16, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ),
-      ),
+    return MessagesUi.pendingImageThumbnails(
+      palette: palette,
+      thumbnails: List.generate(list.length, (index) {
+        final att = list[index];
+        return MessagesUi.pendingImageThumb(
+          palette: palette,
+          onRemove: () => _removePendingImage(index),
+          image: Image.memory(att.bytes, width: 56, height: 56, fit: BoxFit.cover),
+        );
+      }),
     );
   }
 
   void _showEmojiPicker() {
+    final palette = DashboardPalette.of(context);
     final emojis = [
       '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '👍', '👋', '🙌', '👏', '❤️', '🔥', '⭐', '✅', '❌', '💯', '🎉', '🙏',
     ];
-    showModalBottomSheet<void>(
+    MessagesUi.showEmojiPicker(
       context: context,
-      backgroundColor: BoostDriveTheme.surfaceDark,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: emojis.map((e) => InkWell(
-            onTap: () {
-              final pos = _messageController.selection.baseOffset;
-              final text = _messageController.text;
-              if (pos >= 0 && pos <= text.length) {
-                _messageController.text = '${text.substring(0, pos)}$e${text.substring(pos)}';
-                _messageController.selection = TextSelection.collapsed(offset: pos + e.length);
-              } else {
-                _messageController.text = text + e;
-                _messageController.selection = TextSelection.collapsed(offset: _messageController.text.length);
-              }
-              Navigator.pop(ctx);
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(e, style: const TextStyle(fontSize: 28)),
-            ),
-          )).toList(),
-        ),
-      ),
+      palette: palette,
+      emojis: emojis,
+      onEmojiSelected: (e) {
+        final pos = _messageController.selection.baseOffset;
+        final text = _messageController.text;
+        if (pos >= 0 && pos <= text.length) {
+          _messageController.text = '${text.substring(0, pos)}$e${text.substring(pos)}';
+          _messageController.selection = TextSelection.collapsed(offset: pos + e.length);
+        } else {
+          _messageController.text = text + e;
+          _messageController.selection = TextSelection.collapsed(offset: _messageController.text.length);
+        }
+      },
     );
   }
 
@@ -868,288 +733,172 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     return 'User';
   }
 
-  static const Color _inputBarBg = Color(0xFF0D0D0D);
-  static const Color _inputIconColor = Colors.white;
-
-  /// Message input bar: camera (mobile only), gallery, mic, text field (Aa + emoji), thumbs-up, send (far right).
-  /// Colors: black (bar bg), orange (send), white (icons).
   Widget _buildMessageInputBar({bool isSuspended = false}) {
+    final palette = DashboardPalette.of(context);
     if (isSuspended) {
-      return Container(
-        color: _inputBarBg,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: SafeArea(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      return MessagesUi.suspendedBanner(palette);
+    }
+
+    return MessagesUi.composerShell(
+      palette: palette,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!kIsWeb)
+            MessagesUi.composerIconButton(
+              palette: palette,
+              icon: Icons.camera_alt_rounded,
+              onPressed: () => _pickAndAddImages(ImageSource.camera),
+              tooltip: 'Camera',
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, color: BoostDriveTheme.primaryColor, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Messaging is disabled while your account is suspended.',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
+          MessagesUi.composerIconButton(
+            palette: palette,
+            icon: Icons.photo_library_rounded,
+            onPressed: () => _pickAndAddImages(ImageSource.gallery),
+            tooltip: 'Attach image',
+          ),
+          GestureDetector(
+            onLongPressStart: (_) => _startVoiceRecording(),
+            onLongPressEnd: (_) => _onVoiceRelease(),
+            onPanUpdate: (d) {
+              if (!_isRecordingVoice) return;
+              setState(() {
+                _voiceDragOffsetX += d.delta.dx;
+                _voiceDragOffsetY += d.delta.dy;
+                if (!_voiceLocked && _voiceDragOffsetY <= -_lockThresholdPx) _voiceLocked = true;
+                if (!_voiceLocked && _voiceDragOffsetX <= -_slideToCancelThresholdPx) _voiceSlideToCancel = true;
+              });
+            },
+            onPanEnd: (_) => _onVoiceRelease(),
+            child: MessagesUi.composerIconButton(
+              palette: palette,
+              icon: _isRecordingVoice ? Icons.stop_circle_rounded : Icons.mic_rounded,
+              iconColor: _isRecordingVoice ? palette.error : null,
+              onPressed: _toggleVoiceRecording,
+              tooltip: _isRecordingVoice
+                  ? 'Release to send • Slide left to cancel • Slide up to lock'
+                  : 'Hold to record • Release to send',
             ),
           ),
-        ),
-      );
-    }
-    return Container(
-      color: _inputBarBg,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // Camera – only on mobile, not web
-            if (!kIsWeb)
-              IconButton(
-                onPressed: () => _pickAndAddImages(ImageSource.camera),
-                icon: const Icon(Icons.camera_alt_rounded, color: _inputIconColor, size: 24),
-                tooltip: 'Camera',
-              ),
-            // Gallery – add to pending (max 5), send when user taps Send
-            IconButton(
-              onPressed: () => _pickAndAddImages(ImageSource.gallery),
-              icon: const Icon(Icons.photo_library_rounded, color: _inputIconColor, size: 24),
-              tooltip: 'Attach image',
-            ),
-            // Microphone – WhatsApp-style: long-press to record; release = send (Mode A); slide left = cancel (B); slide up = lock (C)
-            GestureDetector(
-              onLongPressStart: (_) => _startVoiceRecording(),
-              onLongPressEnd: (_) => _onVoiceRelease(),
-              onPanUpdate: (d) {
-                if (!_isRecordingVoice) return;
-                setState(() {
-                  _voiceDragOffsetX += d.delta.dx;
-                  _voiceDragOffsetY += d.delta.dy;
-                  if (!_voiceLocked && _voiceDragOffsetY <= -_lockThresholdPx) _voiceLocked = true;
-                  if (!_voiceLocked && _voiceDragOffsetX <= -_slideToCancelThresholdPx) _voiceSlideToCancel = true;
-                });
-              },
-              onPanEnd: (_) => _onVoiceRelease(),
-              child: IconButton(
-                onPressed: _toggleVoiceRecording,
-                icon: Icon(
-                  _isRecordingVoice ? Icons.stop_circle_rounded : Icons.mic_rounded,
-                  color: _isRecordingVoice ? Colors.redAccent : _inputIconColor,
-                  size: 24,
-                ),
-                tooltip: _isRecordingVoice
-                    ? 'Release to send • Slide left to cancel • Slide up to lock'
-                    : 'Hold to record • Release to send',
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Text field with pending image thumbnails above and "Aa" hint; emoji inside
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_isRecordingVoice) _buildVoiceRecordingBar(),
-                    if (_pendingVoiceNoteBytes != null) _buildPendingVoiceNoteBar(),
-                    if ((_pendingAttachments ?? []).isNotEmpty) _buildPendingThumbnails(),
-                    TextField(
-                      controller: _messageController,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                      onSubmitted: (_) => _sendMessage(),
-                      maxLines: 4,
-                      minLines: 1,
-                      decoration: InputDecoration(
-                        hintText: 'Aa',
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.only(left: 12, right: 8),
-                          child: Icon(Icons.text_fields_rounded, color: Colors.white.withValues(alpha: 0.7), size: 22),
-                        ),
-                        prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 24),
-                        suffixIcon: IconButton(
-                          onPressed: _showEmojiPicker,
-                          icon: Icon(Icons.emoji_emotions_outlined, color: Colors.white.withValues(alpha: 0.7), size: 22),
-                          tooltip: 'Emoji',
-                        ),
-                        suffixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 24),
+          const SizedBox(width: 6),
+          Expanded(
+            child: MessagesUi.composerTextFieldShell(
+              palette: palette,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_isRecordingVoice) _buildVoiceRecordingBar(),
+                  if (_pendingVoiceNoteBytes != null) _buildPendingVoiceNoteBar(),
+                  if ((_pendingAttachments ?? []).isNotEmpty) _buildPendingThumbnails(),
+                  TextField(
+                    controller: _messageController,
+                    style: GoogleFonts.manrope(fontSize: 15, color: palette.title),
+                    onSubmitted: (_) => _sendMessage(),
+                    maxLines: 4,
+                    minLines: 1,
+                    decoration: MessagesUi.composerInputDecoration(palette).copyWith(
+                      suffixIcon: IconButton(
+                        onPressed: _showEmojiPicker,
+                        icon: Icon(Icons.emoji_emotions_outlined, color: palette.onSurfaceVariant, size: 22),
+                        tooltip: 'Emoji',
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            // Thumbs-up (quick reaction)
-            IconButton(
-              onPressed: () => _sendText('👍'),
-              icon: const Icon(Icons.thumb_up_rounded, color: _inputIconColor, size: 24),
-              tooltip: 'Like',
-            ),
-            const SizedBox(width: 4),
-            // Send – orange rounded square, white icon, far right
-            Material(
-              color: BoostDriveTheme.primaryColor,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                onTap: _sendMessage,
-                borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Icon(Icons.send_rounded, color: Colors.white, size: 22),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 6),
+          MessagesUi.composerIconButton(
+            palette: palette,
+            icon: Icons.thumb_up_rounded,
+            onPressed: () => _sendText('👍'),
+            tooltip: 'Like',
+          ),
+          const SizedBox(width: 4),
+          MessagesUi.sendButton(palette: palette, onTap: _sendMessage),
+        ],
       ),
     );
   }
 
-  /// Builds an avatar for the other user in a conversation. Uses Image.network with
-  /// errorBuilder so that when the profile image fails to load (e.g. when viewed by
-  /// another user due to signed URLs), we fall back to initials.
-  Widget _buildOtherUserAvatar(UserProfile? profile, {double radius = 20, bool darkBg = true}) {
+  Widget _buildOtherUserAvatar(
+    UserProfile? profile, {
+    double radius = 22,
+    bool showOnlineDot = false,
+  }) {
+    final palette = DashboardPalette.of(context);
     final isSupport = profile?.role == 'admin' || profile?.role == 'super_admin';
-    final name = (profile?.fullName != null && profile!.fullName.isNotEmpty) 
-        ? profile.fullName 
+    final name = (profile?.fullName != null && profile!.fullName.isNotEmpty)
+        ? profile.fullName
         : (isSupport ? 'BoostDrive Support' : '?');
     final initial = isSupport ? 'S' : (name.isNotEmpty ? name[0].toUpperCase() : '?');
-    final imageUrl = profile?.profileImg;
-    final bgColor = isSupport ? Colors.orange : (darkBg ? BoostDriveTheme.primaryColor : Colors.white.withValues(alpha: 0.2));
-    final textStyle = TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-      fontSize: radius * 0.5,
-    );
-
-    if (imageUrl == null || imageUrl.isEmpty) {
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: bgColor,
-        child: Text(initial, style: textStyle),
-      );
-    }
-
-    return ClipOval(
-      child: Image.network(
-        imageUrl,
-        width: radius * 2,
-        height: radius * 2,
-        fit: BoxFit.cover,
-        loadingBuilder: (_, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return SizedBox(
-            width: radius * 2,
-            height: radius * 2,
-            child: Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
-                    : null,
-              ),
-            ),
-          );
-        },
-        errorBuilder: (_, _, _) => Container(
-          width: radius * 2,
-          height: radius * 2,
-          decoration: BoxDecoration(
-            color: bgColor,
-            shape: BoxShape.circle,
-          ),
-          child: Center(child: Text(initial, style: textStyle)),
-        ),
-      ),
+    return MessagesUi.otherUserAvatar(
+      palette: palette,
+      initial: initial,
+      imageUrl: profile?.profileImg,
+      isSupport: isSupport,
+      radius: radius,
+      showOnlineDot: showOnlineDot,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please log in to view messages')),
-      );
+      return MessagesUi.loginRequired(palette);
     }
 
     final profileAsync = ref.watch(userProfileProvider(user.id));
     final isSuspended = profileAsync.when(
       data: (p) => p?.status == 'suspended' || p?.status == 'banned',
       loading: () => false,
-      error: (_, __) => false,
+      error: (_, _) => false,
     );
 
     final isMobile = MediaQuery.of(context).size.width < 900;
 
     if (isMobile) {
+      final inChat = _selectedConversationId != null;
       return Scaffold(
-        backgroundColor: BoostDriveTheme.backgroundDark,
-        appBar: AppBar(
-          backgroundColor: BoostDriveTheme.primaryColor,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(
-            _selectedConversationId == null ? 'Messages' : 'Chat',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          leading: _selectedConversationId != null
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => setState(() => _selectedConversationId = null),
-                )
-              : null,
-        ),
-        body: _selectedConversationId == null
-            ? _buildConversationList(user.id)
-            : _buildChatView(user.id, isSuspended: isSuspended),
+        backgroundColor: MessagesUi.scaffoldBackground(palette),
+        appBar: inChat
+            ? MessagesUi.chatAppBar(
+                context: context,
+                palette: palette,
+                onBack: () => setState(() => _selectedConversationId = null),
+                trailing: mobileAppBarActions(),
+              )
+            : MessagesUi.listAppBar(context: context, palette: palette),
+        body: inChat
+            ? _buildChatView(user.id, isSuspended: isSuspended)
+            : _buildConversationList(user.id),
       );
     }
 
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
+      backgroundColor: MessagesUi.scaffoldBackground(palette),
       body: Row(
         children: [
-          // Conversations List
           SizedBox(
             width: 350,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+                color: palette.surfaceContainerLow,
+                border: Border(right: BorderSide(color: palette.outlineVariant.withValues(alpha: 0.2))),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      'Messages',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  MessagesUi.tabletListHeader(palette),
                   Expanded(child: _buildConversationList(user.id)),
                 ],
               ),
             ),
           ),
-          // Chat View
           Expanded(
             child: _selectedConversationId == null
                 ? _buildEmptyState()
@@ -1161,30 +910,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   }
 
   Future<void> _showDeleteConfirmation(String conversationId, String productTitle) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFFFFFFF),
-        title: const Text('Delete Conversation', style: TextStyle(color: Colors.white)),
-        content: Text(
-          'Are you sure you want to delete this conversation? This action cannot be undone.',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+    final palette = DashboardPalette.of(context);
+    final confirmed = await MessagesUi.showDeleteDialog(context, palette);
 
     if (confirmed == true) {
       final user = Supabase.instance.client.auth.currentUser;
@@ -1232,18 +959,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   }
 
   Widget _buildConversationList(String userId) {
+    final palette = DashboardPalette.of(context);
     return ref.watch(userConversationsProvider(userId)).when(
       data: (conversations) {
         if (conversations.isEmpty) {
-          return const Center(
-            child: Text(
-              'No conversations yet',
-              style: TextStyle(color: Colors.white54),
-            ),
-          );
+          return MessagesUi.emptyConversationList(palette);
         }
 
-        // Sort conversations by created_at descending to show newest first
         final sortedConversations = List<Map<String, dynamic>>.from(conversations);
         sortedConversations.sort((a, b) {
           final aTime = a['created_at'] != null ? DateTime.parse(a['created_at']) : DateTime(2000);
@@ -1251,9 +973,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
           return bTime.compareTo(aTime);
         });
 
-        return ListView.separated(
+        return ListView.builder(
+          padding: const EdgeInsets.only(top: 8, bottom: 24),
           itemCount: sortedConversations.length,
-          separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0x22FF6600)),
           itemBuilder: (context, index) {
             final conv = sortedConversations[index];
             final isSelected = conv['id'] == _selectedConversationId;
@@ -1262,285 +984,161 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             final productAsync = ref.watch(productByIdProvider(productId ?? ''));
             final product = productAsync.valueOrNull;
             final isDirectMessage = productId == null || productId.isEmpty;
-            final listingType = isDirectMessage ? 'SUPPORT' : _listingTypeLabel(product?.category);
-            final productTitle = product?.title ?? conv['product_title'] ?? (isDirectMessage ? 'General Inquiry' : 'Product');
-            
-            // Resolve the other party's identity
-            final otherProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
-            final otherProfile = otherProfileAsync.valueOrNull;
+            final listingType = isDirectMessage ? 'Support' : _listingTypeLabel(product?.category);
+            final productTitle =
+                product?.title ?? conv['product_title'] ?? (isDirectMessage ? 'General Inquiry' : 'Product');
+
+            final otherProfile = ref.watch(userProfileProvider(otherUserId ?? '')).valueOrNull;
             final isOtherAdmin = otherProfile?.role == 'admin' || otherProfile?.role == 'super_admin';
-            final otherName = (otherProfile != null)
+            final otherName = otherProfile != null
                 ? otherProfile.displayName
                 : (isOtherAdmin ? 'BoostDrive Support' : 'User');
-            
-            final roleLabel = isOtherAdmin ? 'Support' : _otherPartyRoleLabel(userId, conv['buyer_id'] as String?, conv['seller_id'] as String?);
-            
-            // Unread indicator and count (WhatsApp-style: number disappears when conversation is opened)
+            final roleLabel =
+                isOtherAdmin ? 'Support' : _otherPartyRoleLabel(userId, conv['buyer_id'] as String?, conv['seller_id'] as String?);
+
             final unreadConvs = ref.watch(unreadConversationsProvider(userId)).value ?? {};
             final isUnread = unreadConvs.contains(conv['id']);
             final unreadCounts = ref.watch(unreadCountByConversationProvider(userId)).value ?? {};
-            // When this conversation is open, show 0 so the badge disappears immediately
             final unreadCount = isSelected ? 0 : (unreadCounts[conv['id']] ?? 0);
 
-            // Selected row uses white background with dark text for contrast.
-            final fgColor = isSelected ? Colors.black87 : Colors.white;
-            final fgDim = isSelected ? Colors.black54 : Colors.white70;
-            final fgDimmer = isSelected ? Colors.black45 : Colors.white54;
+            final avatar = ref.watch(userProfileProvider(otherUserId)).when(
+              data: (profile) => _buildOtherUserAvatar(profile, radius: 24),
+              loading: () => CircleAvatar(
+                radius: 24,
+                backgroundColor: palette.surfaceContainer,
+                child: CircularProgressIndicator(strokeWidth: 2, color: palette.primaryContainer),
+              ),
+              error: (_, _) => CircleAvatar(
+                radius: 24,
+                backgroundColor: palette.surfaceContainer,
+                child: Icon(Icons.person, color: palette.onSurfaceVariant),
+              ),
+            );
 
-            return ListTile(
-              selected: isSelected,
-              selectedTileColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: ref.watch(userProfileProvider(otherUserId)).when(
-                data: (profile) => _buildOtherUserAvatar(profile, radius: 20, darkBg: true),
-                loading: () => const CircleAvatar(backgroundColor: Color(0x22FF6600), child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (_, _) => const CircleAvatar(backgroundColor: Color(0x22FF6600), child: Icon(Icons.person, color: Color(0x22FF6600))),
-              ),
-              title: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        otherName,
-                        style: TextStyle(
-                          color: fgColor,
-                          fontWeight: isUnread ? FontWeight.w900 : FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isDirectMessage ? Colors.orange : Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        listingType.toUpperCase(),
-                        style: TextStyle(
-                          color: isDirectMessage ? Colors.white : Colors.black87,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    roleLabel,
-                    style: TextStyle(color: fgDim, fontSize: 11, fontWeight: FontWeight.w500),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    productTitle,
-                    style: TextStyle(
-                      color: isSelected ? Colors.black87 : BoostDriveTheme.primaryColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    conv['last_message'] ?? 'Start a conversation',
-                    style: TextStyle(
-                      color: isUnread ? fgColor : fgDimmer,
-                      fontSize: 12,
-                      fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (unreadCount > 0)
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: BoostDriveTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        unreadCount > 99 ? '99+' : '$unreadCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (conv['created_at'] != null)
-                        Text(
-                          _formatMessageDate(conv['created_at']),
-                          style: TextStyle(
-                            color: isUnread ? BoostDriveTheme.primaryColor : (isSelected ? Colors.black54 : Color(0x22FF6600)),
-                            fontSize: 10,
-                            fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      const SizedBox(height: 4),
-                      GestureDetector(
-                        onTap: () => _showDeleteConfirmation(conv['id'], productTitle),
-                        child: Icon(
-                          Icons.delete_outline,
-                          color: isSelected ? Colors.black54 : Colors.red.withValues(alpha: 0.5),
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            return MessagesUi.conversationTile(
+              palette: palette,
+              isSelected: isSelected,
+              isUnread: isUnread,
+              avatar: avatar,
+              displayName: otherName,
+              listingTypeLabel: listingType,
+              isDirectMessage: isDirectMessage,
+              roleLabel: roleLabel,
+              productTitle: productTitle,
+              previewText: conv['last_message'] ?? 'Start a conversation',
+              dateLabel: conv['created_at'] != null ? _formatMessageDate(conv['created_at']) : null,
+              unreadCount: unreadCount,
               onTap: () async {
-                setState(() {
-                  _selectedConversationId = conv['id'];
-                });
+                setState(() => _selectedConversationId = conv['id']);
                 _startMessagePolling();
-                // Mark as read when selected so unread count disappears and bell/notification update
                 await ref.read(messageServiceProvider).markConversationAsRead(conv['id']);
                 if (mounted) {
                   ref.invalidate(unreadConversationsProvider(userId));
                   final _ = ref.refresh(unreadCountByConversationProvider(userId));
                 }
               },
+              onDelete: () => _showDeleteConfirmation(conv['id'], productTitle),
             );
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
+      loading: () => Center(child: CircularProgressIndicator(color: palette.primaryContainer)),
+      error: (err, _) => Center(
+        child: Text('Error: $err', style: TextStyle(color: palette.error)),
+      ),
     );
   }
 
   Widget _buildChatView(String userId, {bool isSuspended = false}) {
+    final palette = DashboardPalette.of(context);
+
     return Column(
       children: [
-        // Chat Header
         FutureBuilder<Map<String, dynamic>>(
           future: ref.read(messageServiceProvider).getConversation(_selectedConversationId!),
           builder: (context, convSnapshot) {
             if (!convSnapshot.hasData) return const SizedBox();
             final conversation = convSnapshot.data!;
-            final otherUserId = conversation['buyer_id'] == userId ? conversation['seller_id'] : conversation['buyer_id'];
+            final otherUserId =
+                conversation['buyer_id'] == userId ? conversation['seller_id'] : conversation['buyer_id'];
             final chatProductId = conversation['product_id'] as String?;
-            final chatProductAsync = ref.watch(productByIdProvider(chatProductId ?? ''));
-            final chatProduct = chatProductAsync.valueOrNull;
+            final chatProduct = ref.watch(productByIdProvider(chatProductId ?? '')).valueOrNull;
             final isChatDirect = chatProductId == null || chatProductId.isEmpty;
-            final chatListingType = isChatDirect ? 'SUPPORT' : _listingTypeLabel(chatProduct?.category);
-            final chatProductTitle = chatProduct?.title ?? conversation['product_title'] ?? (isChatDirect ? 'General Inquiry' : 'Product');
-            
-            final otherChatProfileAsync = ref.watch(userProfileProvider(otherUserId ?? ''));
-            final otherChatProfile = otherChatProfileAsync.valueOrNull;
-            final isOtherChatAdmin = otherChatProfile?.role == 'admin' || otherChatProfile?.role == 'super_admin';
-            final otherChatName = (otherChatProfile != null)
+            final chatListingType = isChatDirect ? 'Support' : _listingTypeLabel(chatProduct?.category);
+            final chatProductTitle =
+                chatProduct?.title ?? conversation['product_title'] ?? (isChatDirect ? 'General Inquiry' : 'Product');
+
+            final otherChatProfile = ref.watch(userProfileProvider(otherUserId ?? '')).valueOrNull;
+            final isOtherChatAdmin =
+                otherChatProfile?.role == 'admin' || otherChatProfile?.role == 'super_admin';
+            final otherChatName = otherChatProfile != null
                 ? otherChatProfile.displayName
                 : (isOtherChatAdmin ? 'BoostDrive Support' : 'User');
-            
-            final chatRoleLabel = isOtherChatAdmin ? 'Support' : _otherPartyRoleLabel(userId, conversation['buyer_id'] as String?, conversation['seller_id'] as String?);
-            
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: const BoxDecoration(
-                color: BoostDriveTheme.primaryColor,
-                border: Border(bottom: BorderSide(color: Color(0x22FF6600))),
+            final chatRoleLabel = isOtherChatAdmin
+                ? 'Support'
+                : _otherPartyRoleLabel(userId, conversation['buyer_id'] as String?, conversation['seller_id'] as String?);
+
+            final contextLine = isChatDirect ? chatProductTitle : 'Re: $chatProductTitle';
+
+            final avatar = ref.watch(userProfileProvider(otherUserId)).when(
+              data: (profile) => _buildOtherUserAvatar(profile, radius: 22, showOnlineDot: true),
+              loading: () => CircleAvatar(
+                radius: 22,
+                backgroundColor: palette.surfaceContainer,
+                child: CircularProgressIndicator(strokeWidth: 2, color: MessagesUi.primaryButtonFg(palette)),
               ),
-              child: Row(
-                children: [
-                  ref.watch(userProfileProvider(otherUserId)).when(
-                    data: (profile) => _buildOtherUserAvatar(profile, radius: 20, darkBg: false),
-                    loading: () => const CircleAvatar(radius: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                    error: (_, _) => const CircleAvatar(radius: 20, child: Icon(Icons.person, color: Colors.white)),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              otherChatName,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isChatDirect ? Colors.orange : Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                chatListingType.toUpperCase(),
-                                style: TextStyle(
-                                  color: isChatDirect ? Colors.white : Colors.black87,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          chatRoleLabel,
-                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          chatProductTitle,
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              error: (_, _) => CircleAvatar(
+                radius: 22,
+                child: Icon(Icons.person, color: MessagesUi.primaryButtonFg(palette)),
               ),
+            );
+
+            return MessagesUi.chatParticipantHeader(
+              palette: palette,
+              avatar: avatar,
+              displayName: otherChatName,
+              contextLine: contextLine,
+              listingTypeLabel: chatListingType,
+              isDirectMessage: isChatDirect,
+              roleLabel: palette.isDark ? chatRoleLabel : null,
             );
           },
         ),
         Expanded(
-          child: ref.watch(conversationMessagesProvider(_selectedConversationId!)).when(
-            data: (messages) {
-              return FutureBuilder<Map<String, dynamic>>(
-                future: ref.read(messageServiceProvider).getConversation(_selectedConversationId!),
-                builder: (context, convSnapshot) {
-                  if (!convSnapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  
-                  final conversation = convSnapshot.data!;
-                  final buyerId = conversation['buyer_id'] as String;
-                  final sellerId = conversation['seller_id'] as String;
-                  
-                  final sortedMessages = messages.reversed.toList();
-                  return _buildMessageList(sortedMessages, buyerId, sellerId, userId);
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
+          child: ColoredBox(
+            color: MessagesUi.threadBackground(palette),
+            child: ref.watch(conversationMessagesProvider(_selectedConversationId!)).when(
+              data: (messages) {
+                return FutureBuilder<Map<String, dynamic>>(
+                  future: ref.read(messageServiceProvider).getConversation(_selectedConversationId!),
+                  builder: (context, convSnapshot) {
+                    if (!convSnapshot.hasData) {
+                      return Center(child: CircularProgressIndicator(color: palette.primaryContainer));
+                    }
+                    final conversation = convSnapshot.data!;
+                    final buyerId = conversation['buyer_id'] as String;
+                    final sellerId = conversation['seller_id'] as String;
+                    final sortedMessages = messages.reversed.toList();
+                    return _buildMessageList(sortedMessages, buyerId, sellerId, userId);
+                  },
+                );
+              },
+              loading: () => Center(child: CircularProgressIndicator(color: palette.primaryContainer)),
+              error: (err, _) => Center(child: Text('Error: $err', style: TextStyle(color: palette.error))),
+            ),
           ),
         ),
-        const Divider(height: 1, color: Color(0x22FF6600)),
+        Divider(height: 1, color: palette.outlineVariant.withValues(alpha: palette.isDark ? 0.15 : 0.35)),
         _buildMessageInputBar(isSuspended: isSuspended),
       ],
     );
   }
 
   Widget _buildMessageList(List<Map<String, dynamic>> messages, String buyerId, String sellerId, String currentUserId) {
+    final palette = DashboardPalette.of(context);
+    final metaBelowBubble = !palette.isDark;
+    final maxWidth = MediaQuery.of(context).size.width * (MediaQuery.of(context).size.width < 900 ? 0.78 : 0.45);
+
     return ListView.builder(
       reverse: true,
       controller: _scrollController,
@@ -1549,145 +1147,102 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       itemBuilder: (context, index) {
         final msg = messages[index];
         final senderId = msg['sender_id'] as String;
-        
-        // Buyer messages (senderId == buyerId) -> RIGHT
-        // Seller messages (senderId == sellerId) -> LEFT
         final isBuyerMessage = senderId == buyerId;
         final isMe = senderId == currentUserId;
-        
+        final timeLabel = _formatMessageTime(msg['created_at']);
+
         return Align(
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
           child: Column(
             crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
-              // Date header logic
               if (index == messages.length - 1 || _shouldShowDateHeader(messages[index], messages[index + 1]))
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _formatMessageDate(msg['created_at']),
-                        style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ),
+                MessagesUi.dateSeparator(palette, _formatMessageDate(msg['created_at'])),
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * (MediaQuery.of(context).size.width < 900 ? 0.75 : 0.45)),
-                decoration: BoxDecoration(
-                  // My messages: Orange gradient
-                  gradient: isMe ? const LinearGradient(
-                    colors: [BoostDriveTheme.primaryColor, Colors.orangeAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ) : null,
-                  // Other messages: White/Glassmorphism
-                  color: isMe ? null : Colors.white,
-                  boxShadow: isMe ? [
-                    BoxShadow(
-                      color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3), 
-                      blurRadius: 8, 
-                      offset: const Offset(0, 4)
-                    )
-                  ] : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
-                  border: isMe ? null : Border.all(color: Color(0x22FF6600)),
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    topRight: const Radius.circular(16),
-                    bottomLeft: Radius.circular(isMe ? 16 : 4),
-                    bottomRight: Radius.circular(isMe ? 4 : 16),
-                  ),
-                ),
+                constraints: BoxConstraints(maxWidth: maxWidth),
                 child: Column(
                   crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Label logic: only show label for the message that isn't from the viewer
-                    if (!isMe)
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final senderProfile = ref.watch(userProfileProvider(senderId)).valueOrNull;
-                          final isSenderAdmin = senderProfile?.role == 'admin' || senderProfile?.role == 'super_admin';
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              isSenderAdmin ? 'Support' : (isBuyerMessage ? 'Buyer' : 'Seller'),
-                              style: TextStyle(
-                                color: isSenderAdmin ? BoostDriveTheme.primaryColor : Colors.black54,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                fontStyle: FontStyle.italic,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: MessagesUi.messageBubbleDecoration(palette: palette, isMe: isMe),
+                      child: Column(
+                        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!isMe)
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final senderProfile = ref.watch(userProfileProvider(senderId)).valueOrNull;
+                                final isSenderAdmin = senderProfile?.role == 'admin' ||
+                                    senderProfile?.role == 'super_admin';
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    isSenderAdmin ? 'Support' : (isBuyerMessage ? 'Buyer' : 'Seller'),
+                                    style: MessagesUi.senderLabelStyle(palette, isAdmin: isSenderAdmin),
+                                  ),
+                                );
+                              },
+                            ),
+                          if (_isImageUrl(msg['content'] as String? ?? ''))
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                msg['content'] as String,
+                                width: 200,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (_, child, progress) => progress == null
+                                    ? child
+                                    : SizedBox(
+                                        width: 200,
+                                        height: 150,
+                                        child: Center(
+                                          child: CircularProgressIndicator(color: palette.primaryContainer),
+                                        ),
+                                      ),
+                                errorBuilder: (_, _, _) => Text(
+                                  msg['content'] as String,
+                                  style: MessagesUi.messageTextStyle(palette, isMe: isMe),
+                                ),
+                              ),
+                            )
+                          else if (_isAudioUrl(msg['content'] as String? ?? ''))
+                            _VoiceMessagePlayer(
+                              url: msg['content'] as String,
+                              isMe: isMe,
+                              currentPlayingUrlNotifier: currentPlayingVoiceUrl,
+                            )
+                          else
+                            Text(
+                              msg['content'] as String,
+                              style: MessagesUi.messageTextStyle(palette, isMe: isMe),
+                            ),
+                          if (!metaBelowBubble)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: MessagesUi.messageMetaRow(
+                                palette: palette,
+                                isMe: isMe,
+                                timeLabel: timeLabel,
+                                isRead: msg['is_read'] == true,
+                                isDelivered: true,
+                                belowBubble: false,
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    if (_isImageUrl(msg['content'] as String? ?? ''))
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          msg['content'] as String,
-                          width: 200,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (_, child, progress) =>
-                              progress == null ? child : const SizedBox(width: 200, height: 150, child: Center(child: CircularProgressIndicator())),
-                          errorBuilder: (_, _, _) => Text(
-                            msg['content'] as String,
-                            style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontSize: 14),
-                          ),
-                        ),
-                      )
-                    else if (_isAudioUrl(msg['content'] as String? ?? ''))
-                      _VoiceMessagePlayer(
-                        url: msg['content'] as String,
-                        isMe: isMe,
-                        currentPlayingUrlNotifier: currentPlayingVoiceUrl,
-                      )
-                    else
-                      Text(
-                        msg['content'] as String,
-                        style: TextStyle(
-                          color: isMe ? Colors.white : Colors.black87,
-                          fontSize: 14,
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    // Time and read receipts (WhatsApp-style ticks) for sender
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          _formatMessageTime(msg['created_at']),
-                          style: TextStyle(
-                            color: isMe ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
-                            fontSize: 10,
-                          ),
-                        ),
-                        if (isMe) ...[
-                          const SizedBox(width: 4),
-                          _buildReadReceiptTicks(
-                            isRead: msg['is_read'] == true,
-                            isDelivered: true, // Message exists in DB, so treat as delivered
-                          ),
                         ],
-                      ],
+                      ),
                     ),
+                    if (metaBelowBubble)
+                      MessagesUi.messageMetaRow(
+                        palette: palette,
+                        isMe: isMe,
+                        timeLabel: timeLabel,
+                        isRead: msg['is_read'] == true,
+                        isDelivered: true,
+                        belowBubble: true,
+                      ),
                   ],
                 ),
               ),
@@ -1695,49 +1250,6 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
           ),
         );
       },
-    );
-  }
-
-  /// WhatsApp-style read receipts:
-  /// - Single grey tick  = sent to server (not currently distinguished in UI).
-  /// - Double grey ticks = delivered to the other user but not yet opened (`is_read == false`).
-  /// - Double orange     = opened/read by the other user (`is_read == true`).
-  Widget _buildReadReceiptTicks({required bool isRead, required bool isDelivered}) {
-    const double tickSize = 14;
-
-    // Read: double orange ticks
-    if (isRead) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.done_rounded, size: tickSize, color: BoostDriveTheme.primaryColor),
-          Transform.translate(
-            offset: const Offset(-4, 2),
-            child: Icon(Icons.done_rounded, size: tickSize, color: BoostDriveTheme.primaryColor),
-          ),
-        ],
-      );
-    }
-
-    // Delivered but not read: double grey ticks
-    if (isDelivered) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.done_rounded, size: tickSize, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
-          Transform.translate(
-            offset: const Offset(-4, 2),
-            child: Icon(Icons.done_rounded, size: tickSize, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1)),
-          ),
-        ],
-      );
-    }
-
-    // Fallback: single grey tick (sending state)
-    return Icon(
-      Icons.done_rounded,
-      size: tickSize,
-      color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
     );
   }
 
@@ -1794,19 +1306,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.chat_bubble_outline, size: 64, color: Color(0x22FF6600)),
-          SizedBox(height: 16),
-          Text(
-            'Select a conversation to start messaging',
-            style: TextStyle(color: Colors.white54, fontSize: 16),
-          ),
-        ],
-      ),
-    );
+    return MessagesUi.emptyChatSelection(DashboardPalette.of(context));
   }
 }
 
@@ -1920,8 +1420,9 @@ class _VoiceMessagePlayerState extends State<_VoiceMessagePlayer> {
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.isMe ? Colors.white : Colors.black87;
-    final secondary = color.withValues(alpha: 0.7);
+    final palette = DashboardPalette.of(context);
+    final color = widget.isMe ? MessagesUi.primaryButtonFg(palette) : palette.title;
+    final secondary = palette.onSurfaceVariant;
     if (_error != null) {
       return Text(
         'Could not play',

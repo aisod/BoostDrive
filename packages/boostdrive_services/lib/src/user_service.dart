@@ -742,15 +742,6 @@ final allProfilesProvider = StreamProvider<List<UserProfile>>((ref) {
   return ref.watch(userServiceProvider).getAllProfiles();
 });
 
-final providerStaffProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, providerId) {
-  final supabase = Supabase.instance.client;
-  return supabase
-      .from('provider_staff')
-      .stream(primaryKey: ['id'])
-      .eq('provider_id', providerId)
-      .order('created_at', ascending: false);
-});
-
 final recentAuditLogsStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   return ref.watch(userServiceProvider).getRecentAuditLogs();
 });

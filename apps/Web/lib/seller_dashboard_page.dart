@@ -9,6 +9,7 @@ import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boost_drive_web/add_listing_page.dart';
 import 'package:boost_drive_web/dashboard_shell.dart';
 import 'package:boost_drive_web/edit_listing_page.dart';
+import 'package:boost_drive_web/user_support_view.dart';
 
 /// Seller dashboard where users manage their marketplace listings.
 class SellerDashboardPage extends ConsumerStatefulWidget {
@@ -22,6 +23,7 @@ class SellerDashboardPage extends ConsumerStatefulWidget {
 class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
+  DashboardPortalSection _portalSection = DashboardPortalSection.dashboard;
   
   // Tabs: All, Active, Drafts, Sold/Rented, Rejected
   final List<String> _tabs = ['All', 'Active', 'Drafts', 'Sold/Rented', 'Rejected'];
@@ -61,32 +63,116 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     return DashboardAppShell(
       activeTab: DashboardNavTab.listings,
       sidebar: SellerDashboardSidebar(
-        displayName: displayName,
+        activeSection: _portalSection,
+        onSectionSelected: (s) => setState(() => _portalSection = s),
         onAddListing: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage())),
         onSettings: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSettingsPage())),
       ),
       child: DashboardPageContainer(
-        child: ref.watch(sellerProductsProvider(user.id)).when(
-          data: (products) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeaderStats(products),
-                const SizedBox(height: 32),
-                _buildTabs(),
-                const SizedBox(height: 24),
-                _buildFilteredListings(products),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text('Error loading listings: $err', style: TextStyle(color: DashboardPalette.of(context).error))),
-        ),
+        child: _buildPortalBody(user.id, displayName),
       ),
     );
   }
 
-  Widget _buildHeaderStats(List<Product> products) {
+  Widget _buildPortalBody(String userId, String displayName) {
+    switch (_portalSection) {
+      case DashboardPortalSection.orders:
+        return const DashboardPortalPlaceholder(
+          title: 'Orders',
+          message: 'Order management views will appear here. Your existing order data and workflows are unchanged.',
+          icon: Icons.shopping_cart_outlined,
+        );
+      case DashboardPortalSection.serviceHistory:
+        return const DashboardPortalPlaceholder(
+          title: 'Service History',
+          message: 'Service history for your seller account will appear here.',
+          icon: Icons.history,
+        );
+      case DashboardPortalSection.analytics:
+        return _buildAnalyticsPlaceholder();
+      case DashboardPortalSection.support:
+        return DashboardCard(
+          padding: const EdgeInsets.all(8),
+          child: UserSupportView(userId: userId, userType: 'seller', embedded: true),
+        );
+      case DashboardPortalSection.settings:
+        return DashboardPortalPlaceholder(
+          title: 'Settings',
+          message: 'Use the Settings link in the sidebar to open profile settings.',
+          icon: Icons.settings_outlined,
+        );
+      case DashboardPortalSection.inventory:
+      case DashboardPortalSection.dashboard:
+        return ref.watch(sellerProductsProvider(userId)).when(
+          data: (products) {
+            final palette = DashboardPalette.of(context);
+            return ColoredBox(
+              color: palette.background,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeaderStats(products, inventoryMode: _portalSection == DashboardPortalSection.inventory),
+                  const SizedBox(height: 24),
+                  _buildTabs(),
+                  const SizedBox(height: 16),
+                  _buildFilteredListings(products),
+                ],
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error loading listings: $err', style: TextStyle(color: DashboardPalette.of(context).error))),
+        );
+    }
+  }
+
+  Widget _buildAnalyticsPlaceholder() {
+    final palette = DashboardPalette.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DashboardPageHeader(
+          title: 'Analytics',
+          subtitle: 'Track listing performance and engagement.',
+        ),
+        const SizedBox(height: 24),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final narrow = constraints.maxWidth < 700;
+            final cards = [
+              DashboardStatCard(label: 'Total Views', value: '—', icon: Icons.visibility_outlined),
+              DashboardStatCard(label: 'Inquiries', value: '—', icon: Icons.mail_outline),
+              DashboardStatCard(label: 'Conversion', value: '—', icon: Icons.percent),
+            ];
+            if (narrow) {
+              return Column(children: cards.map((c) => Padding(padding: const EdgeInsets.only(bottom: 16), child: c)).toList());
+            }
+            return Row(
+              children: [
+                Expanded(child: cards[0]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[1]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[2]),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+        DashboardCard(
+          elevated: true,
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'Detailed analytics charts will appear here. Listing metrics continue to use your existing data sources.',
+            style: DashboardTypography.bodyMd(palette),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeaderStats(List<Product> products, {bool inventoryMode = false}) {
     final palette = DashboardPalette.of(context);
     final activeCount = products.where((p) => p.status == 'active').length;
     final pendingCount = products.where((p) => p.status == 'pending').length;
@@ -95,35 +181,25 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'My Listings',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: palette.title,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Manage your active vehicle inventory and leads.',
-                    style: GoogleFonts.montserrat(fontSize: 16, color: palette.body),
-                  ),
-                ],
-              ),
-            ),
-            DashboardPillButton(
-              label: 'Add New Listing',
-              icon: Icons.add_circle_outline,
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage())),
-            ),
-          ],
+        DashboardPageHeader(
+          title: inventoryMode ? 'Inventory Management' : 'My Listings',
+          subtitle: inventoryMode
+              ? 'Track performance and manage your active vehicle listings.'
+              : 'Manage your active vehicle inventory and leads.',
+          trailing: inventoryMode
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DashboardOutlinedAction(label: 'Filter', icon: Icons.filter_list),
+                    const SizedBox(width: 12),
+                    DashboardOutlinedAction(label: 'Export', icon: Icons.download),
+                  ],
+                )
+              : DashboardPillButton(
+                  label: 'Add New Listing',
+                  icon: Icons.add_circle_outline,
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage())),
+                ),
         ),
         const SizedBox(height: 24),
         LayoutBuilder(
@@ -154,14 +230,16 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
 
   Widget _buildTabs() {
     final palette = DashboardPalette.of(context);
-    return TabBar(
+    return ColoredBox(
+      color: palette.background,
+      child: TabBar(
       controller: _tabController,
       isScrollable: true,
       indicatorColor: palette.primaryBright,
       indicatorWeight: 3,
       labelColor: palette.primary,
       unselectedLabelColor: palette.body,
-      dividerColor: palette.cardBorder,
+      dividerColor: palette.cardBorder.withValues(alpha: 0.35),
       tabs: _tabs
           .map(
             (t) => Tab(
@@ -172,6 +250,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
             ),
           )
           .toList(),
+      ),
     );
   }
 
@@ -192,13 +271,32 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
       return _buildEmptyState(currentTab);
     }
 
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: filtered.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 24),
-      itemBuilder: (context, index) {
-        return _buildListingCard(filtered[index]);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 900;
+        if (isMobile) {
+          const spacing = 12.0;
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: spacing,
+              mainAxisSpacing: spacing,
+              childAspectRatio: 0.68,
+            ),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) => _buildListingCardCompact(filtered[index]),
+          );
+        }
+
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: filtered.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 24),
+          itemBuilder: (context, index) => _buildListingCardWide(filtered[index]),
+        );
       },
     );
   }
@@ -240,8 +338,162 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
-  /// Full listing card with image, meta, and inline action buttons.
-  Widget _buildListingCard(Product p) {
+  /// Compact listing tile for mobile two-column grid (no horizontal overflow).
+  Widget _buildListingCardCompact(Product p) {
+    final palette = DashboardPalette.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: palette.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.cardBorder.withValues(alpha: 0.45)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+        onTap: () => _handleEdit(p),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (p.status == 'rejected')
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                color: Colors.red.shade50,
+                child: Text(
+                  'Rejected',
+                  style: GoogleFonts.montserrat(
+                    color: Colors.red.shade900,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: ColoredBox(
+                color: palette.surfaceContainer,
+                child: p.imageUrl.isNotEmpty
+                    ? Image.network(
+                        p.imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (_, __, ___) =>
+                            Icon(Icons.directions_car, color: palette.muted, size: 32),
+                      )
+                    : Icon(Icons.image_not_supported, color: palette.muted, size: 32),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 6, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          p.category.toUpperCase(),
+                          style: GoogleFonts.montserrat(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: palette.muted,
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      _buildStatusTag(p.status, compact: true),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    p.title,
+                    style: GoogleFonts.montserrat(
+                      color: palette.title,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'N\$ ${p.price.toStringAsFixed(2)}',
+                    style: GoogleFonts.montserrat(
+                      color: palette.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.visibility_outlined, size: 12, color: palette.muted),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text(
+                          '${p.clickCount ?? 0}',
+                          style: GoogleFonts.montserrat(fontSize: 10, color: palette.body, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(Icons.favorite_border, size: 12, color: palette.muted),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text(
+                          '${p.saveCount ?? 0}',
+                          style: GoogleFonts.montserrat(fontSize: 10, color: palette.body, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.more_vert, size: 20, color: palette.body),
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'edit':
+                              _handleEdit(p);
+                            case 'promote':
+                              _handlePromote(p);
+                            case 'sold':
+                              _handleMarkSold(p);
+                            case 'delete':
+                              _handleDelete(p);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          if (p.status == 'active')
+                            const PopupMenuItem(value: 'promote', child: Text('Promote')),
+                          if (p.status != 'sold' && p.status != 'rented')
+                            const PopupMenuItem(value: 'sold', child: Text('Mark Sold')),
+                          const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      ),
+    );
+  }
+
+  /// Full-width listing card for desktop (horizontal layout).
+  Widget _buildListingCardWide(Product p) {
     final palette = DashboardPalette.of(context);
     return Container(
       decoration: BoxDecoration(
@@ -444,7 +696,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
   }
 
   /// Returns a status badge with color and label based on listing status.
-  Widget _buildStatusTag(String status) {
+  Widget _buildStatusTag(String status, {bool compact = false}) {
     Color bg;
     Color fg;
     String label;
@@ -479,14 +731,20 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 12, vertical: compact ? 3 : 6),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(compact ? 6 : 8),
       ),
       child: Text(
         label,
-        style: GoogleFonts.montserrat(color: fg, fontWeight: FontWeight.bold, fontSize: 12),
+        style: GoogleFonts.montserrat(
+          color: fg,
+          fontWeight: FontWeight.bold,
+          fontSize: compact ? 8 : 12,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

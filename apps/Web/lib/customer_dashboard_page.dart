@@ -139,7 +139,7 @@ class CustomerDashboardPage extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const DashboardStatusChip(label: 'In Progress'),
+                    const DashboardLiveBadge(label: 'In Progress'),
                   ],
                 ),
               ),
@@ -204,20 +204,44 @@ class CustomerDashboardPage extends ConsumerWidget {
                 ),
               );
             }
-            return Column(
-              children: [
-                ...vehicles.map(
-                  (v) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: CustomerGarageVehicleCard(
-                      vehicle: v,
-                      onDelete: () => confirmDeleteCustomerVehicle(context, ref, v),
-                      onEdit: () => showCustomerAddVehicleDialog(context, ref, uid, vehicle: v),
-                      onDetails: () => showCustomerVehicleDetailsModal(context, ref, v),
-                    ),
-                  ),
-                ),
-              ],
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final useGrid = constraints.maxWidth > 520 && vehicles.length > 1;
+                if (!useGrid) {
+                  return Column(
+                    children: vehicles
+                        .map(
+                          (v) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: CustomerGarageVehicleCard(
+                              vehicle: v,
+                              onDelete: () => confirmDeleteCustomerVehicle(context, ref, v),
+                              onEdit: () => showCustomerAddVehicleDialog(context, ref, uid, vehicle: v),
+                              onDetails: () => showCustomerVehicleDetailsModal(context, ref, v),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  );
+                }
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: vehicles
+                      .map(
+                        (v) => SizedBox(
+                          width: (constraints.maxWidth - 16) / 2,
+                          child: CustomerGarageVehicleCard(
+                            vehicle: v,
+                            onDelete: () => confirmDeleteCustomerVehicle(context, ref, v),
+                            onEdit: () => showCustomerAddVehicleDialog(context, ref, uid, vehicle: v),
+                            onDetails: () => showCustomerVehicleDetailsModal(context, ref, v),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                );
+              },
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -255,8 +279,10 @@ class CustomerDashboardPage extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, _) => const Text('Error loading orders'),
         ),
-        const SizedBox(height: 48),
-        UserSupportView(userId: uid, userType: 'customer'),
+        const SizedBox(height: 32),
+        DashboardSectionHeader(title: 'Help & Support', icon: Icons.support_agent_outlined),
+        const SizedBox(height: 16),
+        UserSupportView(userId: uid, userType: 'customer', embedded: true),
       ],
     );
   }
@@ -267,7 +293,18 @@ class CustomerDashboardPage extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DashboardSectionHeader(title: 'Service History', icon: Icons.history),
+        DashboardSectionHeader(
+          title: 'Service History',
+          icon: Icons.history,
+          trailing: Text(
+            'Timeline',
+            style: GoogleFonts.montserrat(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: palette.muted,
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
         ref.watch(userServiceHistoryProvider(uid)).when(
           data: (history) {

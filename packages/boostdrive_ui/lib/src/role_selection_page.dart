@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dashboard_palette.dart';
+import 'dashboard_typography.dart';
+import 'dashboard_theme_toggle.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 
@@ -28,13 +31,10 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
       final authState = ref.read(authStateProvider).value;
       final user = authState?.session?.user;
       if (user != null) {
-        // Map selected role to boolean values and string role
         String roleStr = _selectedRole!.toLowerCase().replaceAll(' ', '_');
         final bool isBuyer = roleStr == 'customer';
-        // Providers (mobile mechanics, towing, etc.) should NOT be treated as sellers.
-        // Only the "Seller" role sets `is_seller=true`.
         final bool isSeller = roleStr == 'seller';
-        
+
         await ref.read(userServiceProvider).updateRoles(
           uid: user.id,
           isBuyer: isBuyer,
@@ -56,105 +56,142 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
+
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
-      body: Center(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFF6600),
+        foregroundColor: Colors.white,
+        elevation: 2,
+        title: Text(
+          'BOOSTDRIVE',
+          style: GoogleFonts.manrope(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            letterSpacing: -0.5,
+          ),
+        ),
+        actions: [
+          const DashboardThemeToggle(compact: true, onColoredHeader: true),
+        ],
+      ),
+      body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.person_pin_circle_outlined, size: 64, color: BoostDriveTheme.primaryColor),
-                const SizedBox(height: 24),
-                const Text(
-                  'Choose Your Role',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: palette.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.person_pin_circle_outlined, size: 56, color: palette.primary),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Choose Your Role',
+                style: DashboardTypography.headlineLg(palette),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Select how you would like to use BoostDrive.',
+                textAlign: TextAlign.center,
+                style: DashboardTypography.bodyMd(palette).copyWith(color: palette.muted),
+              ),
+              const SizedBox(height: 40),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.95,
+                children: [
+                  _buildRoleCard(palette, 'Customer', 'Individuals looking to buy', Icons.person),
+                  _buildRoleCard(palette, 'Seller', 'Parts sellers & shops', Icons.storefront_outlined),
+                  _buildRoleCard(palette, 'Service Provider', 'Registered businesses', Icons.build_outlined),
+                ],
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton(
+                  onPressed: _isLoading ? null : _saveRoles,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6600),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Text(
+                          'CONTINUE',
+                          style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, fontSize: 14),
+                        ),
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Select how you would like to use BoostDrive.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 48),
-                
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 1.2,
-                  children: [
-                    _buildRoleCard('Customer', 'Individuals looking to buy', Icons.person),
-                    _buildRoleCard('Seller', 'Parts sellers & shops', Icons.store),
-                    _buildRoleCard('Service Provider', 'Registered Businesses', Icons.build),
-                  ],
-                ),
-                
-                const SizedBox(height: 56),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveRoles,
-                    child: _isLoading
-                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
-                        : const Text('Continue'),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildRoleCard(String title, String subtitle, IconData icon) {
-    bool isSelected = _selectedRole == title;
+  Widget _buildRoleCard(DashboardPalette palette, String title, String subtitle, IconData icon) {
+    final isSelected = _selectedRole == title;
     return GestureDetector(
       onTap: () => setState(() => _selectedRole = title),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+          color: isSelected
+              ? const Color(0xFFFF6600).withValues(alpha: 0.1)
+              : palette.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? BoostDriveTheme.primaryColor : Colors.transparent,
-            width: 2,
+            color: isSelected ? const Color(0xFFFF6600) : palette.outlineVariant.withValues(alpha: 0.35),
+            width: isSelected ? 2 : 1,
           ),
+          boxShadow: palette.isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: palette.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: BoostDriveTheme.primaryColor, size: 24),
+              child: Icon(icon, color: palette.primary, size: 26),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.white38, fontSize: 10),
-                ),
-              ],
+            const Spacer(),
+            Text(
+              title,
+              style: DashboardTypography.labelLg(palette).copyWith(fontSize: 15),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: DashboardTypography.bodySm(palette).copyWith(fontSize: 11),
             ),
           ],
         ),
@@ -162,4 +199,3 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
     );
   }
 }
-

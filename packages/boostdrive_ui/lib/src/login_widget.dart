@@ -17,7 +17,7 @@ class BoostLoginWidget extends StatefulWidget {
     String? primaryServiceCategory,
   }) onSignUp;
   final Function(String otp) onVerifyOtp;
-  final VoidCallback? onResendOtp;
+  final Future<void> Function()? onResendOtp;
   final VoidCallback? onCancelOtp;
   final VoidCallback? onClose;
   final VoidCallback? onForgotPassword;
@@ -59,6 +59,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
   bool _obscurePassword = true;
   Timer? _timer;
   int _secondsRemaining = 0;
+  bool _isResending = false;
 
   final List<Map<String, String>> _primaryServiceOptions = const [
     {'key': 'mechanic', 'label': 'Mechanics'},
@@ -255,17 +256,17 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
       children: [
         Text(
           'BOOSTDRIVE',
-          style: GoogleFonts.montserrat(
+          style: GoogleFonts.manrope(
             color: tokens.isDark ? tokens.primaryContainer : tokens.primaryFixedDim,
             fontSize: 24,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'The premium destination for Namibian automotive excellence.',
-          style: GoogleFonts.montserrat(
+          style: GoogleFonts.manrope(
             color: Colors.white.withValues(alpha: 0.9),
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -626,7 +627,7 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
               const SizedBox(height: 16),
               AuthErrorBanner(tokens: tokens, message: widget.errorText!),
             ],
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             AuthPrimaryButton(
               tokens: tokens,
               label: 'Verify',
@@ -637,13 +638,35 @@ class _BoostLoginWidgetState extends State<BoostLoginWidget> {
             const SizedBox(height: 24),
             Center(
               child: TextButton(
-                onPressed: _secondsRemaining == 0 ? widget.onResendOtp : null,
+                onPressed: (_secondsRemaining == 0 &&
+                        !_isResending &&
+                        !widget.isLoading &&
+                        widget.onResendOtp != null)
+                    ? () async {
+                        setState(() => _isResending = true);
+                        try {
+                          await widget.onResendOtp!();
+                          if (mounted) {
+                            _otpController.clear();
+                            _startTimer();
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isResending = false);
+                          }
+                        }
+                      }
+                    : null,
                 child: Text(
-                  _secondsRemaining > 0
-                      ? 'Resend code in ${_formatDuration(_secondsRemaining)}'
-                      : "Didn't receive a code? Resend",
+                  _isResending || widget.isLoading
+                      ? 'Sending new code...'
+                      : _secondsRemaining > 0
+                          ? 'Resend code in ${_formatDuration(_secondsRemaining)}'
+                          : "Didn't receive a code? Resend",
                   style: GoogleFonts.montserrat(
-                    color: _secondsRemaining == 0 ? tokens.primary : tokens.onSurfaceVariant,
+                    color: (_secondsRemaining == 0 && !_isResending && !widget.isLoading)
+                        ? tokens.primary
+                        : tokens.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),

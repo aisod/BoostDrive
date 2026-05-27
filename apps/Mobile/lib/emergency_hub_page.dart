@@ -16,6 +16,7 @@ import 'boostdrive_google_map_gate.dart';
 import 'customer_sos_waiting_map.dart';
 import 'messages_page.dart';
 import 'emergency_directory_page.dart';
+import 'providers.dart' show mobileCustomerShellTabProvider;
 
 /// Mobile SOS hub: situational context, hold-to-trigger, cancel window, category, active dispatch UI.
 class EmergencyHubPage extends ConsumerStatefulWidget {
@@ -251,13 +252,13 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> with Ticker
       _maybeShowReviewPopup(user.id, pendingReviews);
     }
 
+    final palette = DashboardPalette.of(context);
+
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
-      appBar: AppBar(
-        title: const Text('EMERGENCY SOS'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      backgroundColor: palette.background,
+      appBar: MobileCustomerUi.topAppBar(
+        context: context,
+        title: 'EMERGENCY SOS',
         actions: [
           IconButton(
             tooltip: 'Refresh location',
@@ -267,7 +268,7 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> with Ticker
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(MobileCustomerUi.marginMobile),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -328,29 +329,23 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> with Ticker
               vehiclesAsync!.when(
                 data: (vehicles) {
                   if (vehicles.isEmpty) {
-                    return Text(
-                      'Add a vehicle in Garage for faster SOS hand-off.',
-                      style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
+                    return InkWell(
+                      onTap: () => ref.read(mobileCustomerShellTabProvider.notifier).state = 2,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Add a vehicle in Garage for faster SOS hand-off.',
+                          style: TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 13),
+                        ),
+                      ),
                     );
                   }
                   final safeV = _vehicleIndex.clamp(0, vehicles.length - 1);
                   final v = vehicles[safeV];
                   return InkWell(
-                    onTap: () async {
-                      final picked = await showDialog<int>(
-                        context: context,
-                        builder: (ctx) => SimpleDialog(
-                          title: const Text('Active vehicle'),
-                          children: List.generate(vehicles.length, (i) {
-                            final x = vehicles[i];
-                            return SimpleDialogOption(
-                              onPressed: () => Navigator.pop(ctx, i),
-                              child: Text('${x.year} ${x.make} ${x.model}'),
-                            );
-                          }),
-                        ),
-                      );
-                      if (picked != null && mounted) setState(() => _vehicleIndex = picked);
+                    onTap: () {
+                      ref.read(mobileCustomerShellTabProvider.notifier).state = 2;
                     },
                     child: Container(
                       padding: const EdgeInsets.all(14),
@@ -372,7 +367,7 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> with Ticker
                                   '${v.year} ${v.make} ${v.model}',
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                 ),
-                                Text('Tap to change', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11)),
+                                Text('Tap to open Garage', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11)),
                               ],
                             ),
                           ),

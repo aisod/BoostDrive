@@ -4,6 +4,7 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
+import 'mobile_app_bar_actions.dart';
 import 'package:intl/intl.dart';
 
 class AdminVerificationsPage extends ConsumerStatefulWidget {
@@ -23,6 +24,7 @@ class _AdminVerificationsPageState extends ConsumerState<AdminVerificationsPage>
         backgroundColor: BoostDriveTheme.surfaceDark.withOpacity(0.8),
         elevation: 0,
         centerTitle: false,
+        actions: mobileAppBarActions(onColoredHeader: false),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),

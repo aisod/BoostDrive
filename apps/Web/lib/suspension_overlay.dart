@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 import 'account_recovery_page.dart';
 
@@ -16,60 +17,61 @@ class SuspensionOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
     return Material(
       type: MaterialType.transparency,
       child: Container(
-        color: Colors.black.withValues(alpha: 0.85),
+        color: palette.surfaceContainerLowest.withValues(alpha: 0.85),
         padding: const EdgeInsets.symmetric(horizontal: 40),
         child: Center(
           child: SingleChildScrollView(
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 550),
-              padding: const EdgeInsets.all(48),
+              constraints: const BoxConstraints(maxWidth: 560),
+              padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.3), width: 2),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: palette.primary.withValues(alpha: 0.25), width: 2),
                 boxShadow: [
-              BoxShadow(
-                color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                blurRadius: 40,
-                spreadRadius: 10,
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 48,
+                    offset: const Offset(0, 16),
+                  ),
+                ],
               ),
-            ],
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
+                  color: palette.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.report_problem_rounded,
-                  color: BoostDriveTheme.primaryColor,
+                  color: palette.primaryBright,
                   size: 64,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               Text(
                 'ACCOUNT SUSPENDED',
-                style: TextStyle(fontFamily: 'Manrope', 
+                style: GoogleFonts.manrope(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 2,
+                  color: const Color(0xFF1A262E),
+                  letterSpacing: 1.5,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               Text(
                 'Your service provider account has been flagged for a compliance review and is currently suspended.',
-                style: TextStyle(fontFamily: 'Manrope', 
+                style: GoogleFonts.montserrat(
                   fontSize: 16,
-                  color: Colors.white70,
+                  color: const Color(0xFF4A5568),
                   height: 1.6,
                 ),
                 textAlign: TextAlign.center,

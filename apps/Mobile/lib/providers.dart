@@ -21,6 +21,9 @@ String resolveMobileShellRole(UserProfile p) {
   return 'customer';
 }
 
+/// Customer [MainShell] bottom-nav index (0=Home, 1=SOS, 2=Garage, 3=Shop, 4=Providers, 5=Profile).
+final mobileCustomerShellTabProvider = StateProvider<int>((ref) => 0);
+
 /// Effective navigation shell after login, driven by server profile (not hard-coded).
 final mobileShellRoleProvider = Provider<String>((ref) {
   final user = ref.watch(currentUserProvider);

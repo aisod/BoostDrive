@@ -96,6 +96,8 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
     final isMobile = MediaQuery.sizeOf(context).width < 900;
     final profile = ref.watch(userProfileProvider(user.id)).value;
     final showSellerLinks = profile != null && isMarketplaceSeller(profile);
+    final hideFindProvider =
+        profile != null && (profile.isProvider || isWebProviderRole(profile.role));
 
     return Material(
       color: BoostDriveTheme.primaryColor,
@@ -145,17 +147,18 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
                               isActive: activeItem == AuthenticatedNavHighlight.marketplace,
                               onTap: () => _openMarketplace(context),
                             ),
-                            _AuthNavLink(
-                              label: 'FIND A PROVIDER',
-                              isActive: activeItem == AuthenticatedNavHighlight.findProvider,
-                              onTap: () {
-                                if (profile != null) {
-                                  openFindProviderOrHub(context, ref, profile);
-                                } else if (ModalRoute.of(context)?.settings.name != '/find-provider') {
-                                  Navigator.of(context).pushNamed('/find-provider');
-                                }
-                              },
-                            ),
+                            if (!hideFindProvider)
+                              _AuthNavLink(
+                                label: 'FIND A PROVIDER',
+                                isActive: activeItem == AuthenticatedNavHighlight.findProvider,
+                                onTap: () {
+                                  if (profile != null) {
+                                    openFindProviderOrHub(context, ref, profile);
+                                  } else if (ModalRoute.of(context)?.settings.name != '/find-provider') {
+                                    Navigator.of(context).pushNamed('/find-provider');
+                                  }
+                                },
+                              ),
                             _AuthNavLink(
                               label: 'MESSAGES',
                               isActive: activeItem == AuthenticatedNavHighlight.messages,

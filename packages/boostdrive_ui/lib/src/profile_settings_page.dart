@@ -12,7 +12,10 @@ import 'package:file_picker/file_picker.dart';
 import 'theme.dart';
 import 'boostdrive_stepper.dart';
 import 'dashboard_palette.dart';
+import 'dashboard_typography.dart';
 import 'dashboard_ui_components.dart';
+import 'provider_profile_ui.dart';
+import 'dashboard_theme_toggle.dart';
 
 /// Editable name/phone row for SOS emergency contacts (backed by [EmergencyContact] on save).
 class _EmergencyContactFieldPair {
@@ -142,6 +145,18 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   /// Registered service businesses (mechanic/towing/etc.) — not a casual marketplace seller.
   bool _isRegisteredServiceShop(UserProfile profile) => _isProviderRole(profile.role);
+
+  /// Provider edit settings + in-flow provider edit can change profile photo.
+  bool get _canChangeProfilePhoto =>
+      widget.initialProviderEditMode || _isProviderEditMode;
+
+  void _invalidateProfileAfterPhotoChange() {
+    final user = ref.read(currentUserProvider);
+    ref.invalidate(currentUserProvider);
+    if (user != null) {
+      ref.invalidate(userProfileProvider(user.id));
+    }
+  }
 
   @override
   void initState() {
@@ -346,35 +361,30 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildAccountActions() {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: () => _handleLogout(),
-            icon: const Icon(Icons.logout, color: Colors.black, size: 20),
-            label: const Text('Log Out', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.bold, color: Colors.black)),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFFFFCCAA)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+    final palette = DashboardPalette.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final row = constraints.maxWidth > 600;
+        final logout = OutlinedButton(
+          onPressed: () => _handleLogout(),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(140, 48),
+            side: BorderSide(color: palette.primary),
+            foregroundColor: palette.primary,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: TextButton.icon(
-            onPressed: () => _handleDeleteAccount(),
-            icon: const Icon(Icons.delete_forever, color: Colors.red, size: 20),
-            label: const Text('Delete Account', style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.bold, color: Colors.red)),
-            style: TextButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ),
-      ],
+          child: Text('Log Out', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+        );
+        final delete = TextButton(
+          onPressed: () => _handleDeleteAccount(),
+          style: TextButton.styleFrom(minimumSize: const Size(140, 48)),
+          child: Text('Delete Account', style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: palette.error)),
+        );
+        if (row) {
+          return Row(children: [logout, const SizedBox(width: 16), delete]);
+        }
+        return Column(children: [logout, const SizedBox(height: 12), delete]);
+      },
     );
   }
 
@@ -384,7 +394,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       setState(() {
         _isUploading = true;
         _optimisticImage = null;
-        _isOptimisticDelete = showInitials; // If showing initials, we are effectively deleting the image
+        _isOptimisticDelete = true;
       });
 
       final user = ref.read(currentUserProvider);
@@ -395,11 +405,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       // Update profile with null or empty string based on showInitials
       await ref.read(authServiceProvider).updateProfile(
         userId: user.id,
-        avatarUrl: showInitials ? '' : null,
+        avatarUrl: '',
       );
 
-      // Refresh profile by invalidating the provider
-      ref.invalidate(currentUserProvider);
+      _invalidateProfileAfterPhotoChange();
 
       if (mounted) {
         setState(() {
@@ -608,16 +617,17 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Future<void> _showProfilePhotoOptions() async {
-    debugPrint('DEBUG: _showProfilePhotoOptions called');
-    await showModalBottomSheet(
+    final palette = DashboardPalette.of(context);
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Material(
+      builder: (sheetContext) => Material(
         color: Colors.transparent,
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: palette.surfaceContainerLowest,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.2)),
           ),
           child: SafeArea(
             child: Column(
@@ -628,44 +638,43 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFCCAA),
+                    color: palette.outlineVariant.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
                   'Profile Photo',
-                  style: TextStyle(fontFamily: 'Manrope', 
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF000000),
-                  ),
+                  style: DashboardTypography.headlineMd(palette).copyWith(fontSize: 18),
                 ),
                 const SizedBox(height: 20),
                 _buildPhotoOption(
+                  palette: palette,
                   icon: Icons.photo_library,
                   title: 'Choose Photo',
                   subtitle: 'Select from your device',
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                     _pickAndUploadImage();
                   },
                 ),
                 _buildPhotoOption(
+                  palette: palette,
                   icon: Icons.person_outline,
                   title: 'No Profile Photo',
                   subtitle: 'Display your initials',
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                     _removeProfilePhoto(showInitials: true);
                   },
                 ),
                 _buildPhotoOption(
+                  palette: palette,
                   icon: Icons.delete_outline,
                   title: 'Delete Photo',
                   subtitle: 'Remove current photo',
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                     _removeProfilePhoto(showInitials: false);
                   },
                   isDestructive: true,
@@ -680,12 +689,14 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildPhotoOption({
+    required DashboardPalette palette,
     required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
+    final accent = isDestructive ? palette.error : palette.primary;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -696,16 +707,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: isDestructive 
-                    ? Colors.red.withValues(alpha: 0.1) 
-                    : const Color(0xFFFFFFFF),
+                color: accent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: isDestructive ? Colors.red : const Color(0xFF000000),
-                size: 24,
-              ),
+              child: Icon(icon, color: accent, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -714,28 +719,16 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(fontFamily: 'Manrope', 
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: isDestructive ? Colors.red : const Color(0xFF000000),
+                    style: DashboardTypography.labelLg(palette).copyWith(
+                      color: isDestructive ? palette.error : palette.onBackground,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontFamily: 'Manrope', 
-                      fontSize: 13,
-                      color: const Color(0xFF000000),
-                    ),
-                  ),
+                  Text(subtitle, style: DashboardTypography.bodySm(palette)),
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: Color(0xFF000000),
-              size: 20,
-            ),
+            Icon(Icons.chevron_right, color: palette.muted, size: 20),
           ],
         ),
       ),
@@ -790,9 +783,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             _optimisticImage = croppedBytes;
           });
 
+          final uploadName = _profileImageUploadFileName(image.name);
           final publicUrl = await ref.read(authServiceProvider).uploadProfileImage(
             croppedBytes,
-            image.name,
+            uploadName,
           );
 
           final user = ref.read(currentUserProvider);
@@ -801,27 +795,29 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               userId: user.id,
               avatarUrl: publicUrl,
             );
-            
-            // Refresh profile
-            ref.invalidate(currentUserProvider);
+
+            _invalidateProfileAfterPhotoChange();
           }
-           
-           if (mounted) {
-             setState(() {
-               _isUploading = false;
-               _isOptimisticDelete = false;
-             });
-             ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Profile picture updated successfully')),
-             );
-           }
+
+          if (mounted) {
+            setState(() {
+              _isUploading = false;
+              _isOptimisticDelete = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Profile picture updated successfully')),
+            );
+          }
+        } else if (mounted) {
+          setState(() {
+            _isUploading = false;
+            _optimisticImage = null;
+          });
         }
       } catch (e) {
         debugPrint('Error in profile photo upload: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error uploading image: $e')),
-          );
+          _showProfilePhotoUploadError(e);
         }
       } finally {
         if (mounted) {
@@ -832,6 +828,31 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         }
       }
     }
+  }
+
+  /// Web cropper often omits an extension; storage bucket requires image/* MIME types.
+  String _profileImageUploadFileName(String pickedName) {
+    final trimmed = pickedName.trim();
+    const allowed = {'jpg', 'jpeg', 'png', 'webp', 'gif'};
+    if (trimmed.contains('.')) {
+      final ext = trimmed.split('.').last.toLowerCase();
+      if (allowed.contains(ext)) return trimmed;
+    }
+    return 'avatar.jpg';
+  }
+
+  void _showProfilePhotoUploadError(Object error) {
+    final message = error.toString().replaceFirst('Exception: ', '');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 12),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+        ),
+      ),
+    );
   }
 
   Future<void> _showChangePasswordDialog() async {
@@ -995,59 +1016,36 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Scaffold _buildProviderProfileScaffold(UserProfile profile, bool isWide) {
-    const bg = Color(0xFFFFFFFF);
+    final palette = DashboardPalette.of(context);
     final isEditOnlyPage = widget.initialProviderEditMode;
 
     return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: BoostDriveTheme.primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-          onPressed: () {
-            if (isEditOnlyPage) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pop(context);
-            }
-          },
-        ),
-        title: Text(
-          isEditOnlyPage ? 'Edit Profile Settings' : 'Provider Profile',
-          style: TextStyle(fontFamily: 'Manrope', color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
-        ),
-        centerTitle: true,
-        actions: [
-          if (isEditOnlyPage)
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Exit Edit Mode',
-                style: TextStyle(color: Colors.white),
+      backgroundColor: palette.background,
+      extendBodyBehindAppBar: true,
+      appBar: ProviderProfileUi.providerAppBar(
+        context: context,
+        palette: palette,
+        title: isEditOnlyPage ? 'Edit Profile Settings' : 'Provider Profile',
+        onBack: () => Navigator.pop(context),
+        action: isEditOnlyPage
+            ? ProviderProfileUi.exitEditTextButton(onPressed: () => Navigator.pop(context))
+            : ProviderProfileUi.editProfilePillButton(
+                palette: palette,
+                label: 'Edit Profile',
+                onPressed: () async {
+                  await Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProfileSettingsPage(initialProviderEditMode: true),
+                    ),
+                  );
+                  if (mounted) {
+                    _didInitFromProfile = false;
+                    ref.invalidate(userProfileProvider(profile.uid));
+                    setState(() {});
+                  }
+                },
               ),
-            )
-            else
-            TextButton(
-              onPressed: () async {
-                await Navigator.push<void>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProfileSettingsPage(initialProviderEditMode: true),
-                  ),
-                );
-                if (mounted) {
-                  _didInitFromProfile = false;
-                  ref.invalidate(userProfileProvider(profile.uid));
-                  setState(() {});
-                }
-              },
-              child: const Text(
-                'Edit Profile',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -1058,37 +1056,16 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             Center(
               child: Column(
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        profile.displayName,
-                        style: TextStyle(fontFamily: 'Manrope', fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF000000)),
-                      ),
-                      if (_isProviderApproved(profile.verificationStatus)) ...[
-                        const SizedBox(width: 8),
-                        Icon(Icons.verified, color: BoostDriveTheme.primaryColor, size: 24),
-                      ],
-                    ],
+                  ProviderProfileUi.identityName(
+                    palette,
+                    profile.displayName,
+                    verified: _isProviderApproved(profile.verificationStatus),
                   ),
                   if (_isProviderApproved(profile.verificationStatus)) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2)),
-                      ),
-                      child: Text(
-                        'Verified ${_getCategoryLabel(profile)}',
-                        style: TextStyle(fontFamily: 'Manrope', 
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: BoostDriveTheme.primaryColor,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                    const SizedBox(height: 10),
+                    ProviderProfileUi.verifiedChip(
+                      palette,
+                      'Verified ${_getCategoryLabel(profile)}',
                     ),
                   ],
                 ],
@@ -1105,48 +1082,388 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildProviderViewContent(UserProfile profile, bool isWide) {
+    final palette = DashboardPalette.of(context);
+    final hPad = isWide ? 40.0 : 16.0;
+
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
+      padding: EdgeInsets.symmetric(horizontal: hPad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 24),
-
-          _buildBusinessInformation(profile),
-          if (!kIsWeb) ...[
-            const SizedBox(height: 32),
-            _buildSafetySection(),
+          if (isWide && !_isProviderEditMode)
+            _buildProviderViewBento(profile, palette)
+          else ...[
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.business_center_outlined,
+              title: 'Business Information',
+              child: _buildBusinessInformation(profile),
+            ),
+            if (!kIsWeb) ...[
+              const SizedBox(height: 24),
+              ProviderProfileUi.sectionCard(
+                palette: palette,
+                icon: Icons.emergency_outlined,
+                title: 'Safety & SOS',
+                accentTint: true,
+                child: _buildSafetySection(),
+              ),
+            ],
+            const SizedBox(height: 24),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.location_on_outlined,
+              title: 'Service Area & Hours',
+              child: _buildProviderServiceAreaAndHours(profile),
+            ),
+            if (!kIsWeb) ...[
+              const SizedBox(height: 24),
+              ProviderProfileUi.sectionCard(
+                palette: palette,
+                icon: Icons.build_circle_outlined,
+                title: 'Services You Provide',
+                child: _buildProviderServiceTypes(profile),
+              ),
+            ],
+            const SizedBox(height: 24),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.business_center_outlined,
+              title: 'Operational & Business Details',
+              child: _buildOperationalBusinessDetails(profile),
+            ),
+            const SizedBox(height: 24),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.build_circle_outlined,
+              title: 'Service Specializations',
+              child: _buildServiceSpecializations(profile),
+            ),
+            const SizedBox(height: 24),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Financial & Payout',
+              accentTint: true,
+              child: _buildFinancialPayout(),
+            ),
+            const SizedBox(height: 24),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.verified_user_outlined,
+              title: 'Trust & Experience',
+              child: _buildTrustExperience(),
+            ),
+            if (!kIsWeb) ...[
+              const SizedBox(height: 24),
+              ProviderProfileUi.sectionCard(
+                palette: palette,
+                icon: Icons.folder_outlined,
+                title: 'Documents Vault',
+                child: _buildDocumentsVault(profile),
+              ),
+            ],
           ],
           const SizedBox(height: 32),
-          _buildProviderServiceAreaAndHours(profile),
-          if (!kIsWeb) ...[
-            const SizedBox(height: 32),
-            _buildProviderServiceTypes(profile),
-          ],
+          ProviderProfileUi.sectionCard(
+            palette: palette,
+            icon: Icons.hub_outlined,
+            title: 'Control Center',
+            child: _buildControlCenterSection(profile),
+          ),
           const SizedBox(height: 32),
-          _buildOperationalBusinessDetails(profile),
-          const SizedBox(height: 32),
-          _buildServiceSpecializations(profile),
-          const SizedBox(height: 32),
-          _buildFinancialPayout(),
-          const SizedBox(height: 32),
-          _buildTrustExperience(),
-          if (!kIsWeb) ...[
-            const SizedBox(height: 32),
-            _buildDocumentsVault(profile),
-        ],
-        const SizedBox(height: 32),
-          _buildControlCenterSection(profile),
-        const SizedBox(height: 40),
           _buildAccountActions(),
           const SizedBox(height: 24),
-          Text(
-            'BoostDrive Version 2.4.1 (1209)',
-            style: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000), fontSize: 11, fontWeight: FontWeight.w500),
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'BoostDrive Version 2.4.1 (1209)',
+                  style: DashboardTypography.bodySm(palette),
+                ),
+                Text(
+                  'AUTHORIZED PROVIDER INSTANCE',
+                  style: DashboardTypography.sectionLabel(palette).copyWith(fontSize: 10, letterSpacing: 1),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+
+  Widget _buildProviderViewBento(UserProfile profile, DashboardPalette palette) {
+    final businessTypeLabel = switch (_businessType) {
+      'pty_ltd' => 'Pty Ltd',
+      'sole_prop' => 'Sole Proprietor',
+      _ => 'Close Corporation (CC)',
+    };
+    final categoryLabel = _getCategoryLabel(profile);
+
+    return Column(
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth > 900;
+            if (!wide) {
+              return Column(
+                children: [
+                  ProviderProfileUi.sectionCard(
+                    palette: palette,
+                    icon: Icons.business_center_outlined,
+                    title: 'Business Information',
+                    child: _buildBusinessInformation(profile),
+                  ),
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 8,
+                  child: ProviderProfileUi.sectionCard(
+                    palette: palette,
+                    icon: Icons.business_center_outlined,
+                    title: 'Business Information',
+                    child: _buildBusinessInformationReadOnlyGrid(profile, businessTypeLabel),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    children: [
+                      ProviderProfileUi.sectionCard(
+                        palette: palette,
+                        icon: Icons.engineering_outlined,
+                        title: 'Operational Details',
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            ProviderProfileUi.statRow(
+                              palette,
+                              'In Operation',
+                              _yearsInOperationController.text.isEmpty
+                                  ? '—'
+                                  : '${_yearsInOperationController.text} Years',
+                            ),
+                            Divider(color: palette.outlineVariant.withValues(alpha: 0.2)),
+                            ProviderProfileUi.statRow(palette, 'Category', categoryLabel),
+                            Divider(color: palette.outlineVariant.withValues(alpha: 0.2)),
+                            ProviderProfileUi.statRow(
+                              palette,
+                              'Team Size',
+                              _teamSizeController.text.isEmpty ? '—' : '${_teamSizeController.text} Experts',
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ProviderProfileUi.sectionCard(
+                        palette: palette,
+                        icon: Icons.payments_outlined,
+                        title: 'Financial & Payout',
+                        accentTint: true,
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: palette.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.15)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Standard Rate', style: DashboardTypography.labelMd(palette)),
+                                  Text(
+                                    _standardLaborRateController.text.isEmpty
+                                        ? '—'
+                                        : 'N\$ ${_standardLaborRateController.text}/hr',
+                                    style: DashboardTypography.headlineMd(palette).copyWith(
+                                      color: palette.primary,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: palette.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.15)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _bankNameController.text.isEmpty ? 'Bank not set' : _bankNameController.text,
+                                    style: DashboardTypography.labelMd(palette),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _bankAccountNumberController.text.isEmpty
+                                        ? '•••• •••• —'
+                                        : '•••• •••• ${_bankAccountNumberController.text.length > 4 ? _bankAccountNumberController.text.substring(_bankAccountNumberController.text.length - 4) : _bankAccountNumberController.text}',
+                                    style: DashboardTypography.bodyMd(palette).copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final twoCol = constraints.maxWidth > 700;
+            final serviceArea = ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.map_outlined,
+              title: 'Service Area & Hours',
+              child: Column(
+                children: [
+                  ProviderProfileUi.iconFactTile(
+                    palette: palette,
+                    icon: Icons.location_on,
+                    title: 'Service Range',
+                    subtitle: _serviceAreaController.text.isEmpty ? 'Not set' : _serviceAreaController.text,
+                  ),
+                  const SizedBox(height: 20),
+                  ProviderProfileUi.iconFactTile(
+                    palette: palette,
+                    icon: Icons.schedule,
+                    title: 'Working Hours',
+                    subtitle: _workingHoursController.text.isEmpty ? 'Not set' : _workingHoursController.text,
+                  ),
+                ],
+              ),
+            );
+            final specs = ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.stars_outlined,
+              title: 'Specializations',
+              child: _buildServiceSpecializationsReadOnly(palette),
+            );
+            if (!twoCol) {
+              return Column(children: [serviceArea, const SizedBox(height: 24), specs]);
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: serviceArea),
+                const SizedBox(width: 24),
+                Expanded(child: specs),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+        ProviderProfileUi.sectionCard(
+          palette: palette,
+          icon: Icons.history_edu_outlined,
+          title: 'Trust & Experience',
+          child: _buildTrustExperience(),
+        ),
+        if (!kIsWeb) ...[
+          const SizedBox(height: 24),
+          ProviderProfileUi.sectionCard(
+            palette: palette,
+            icon: Icons.folder_outlined,
+            title: 'Documents Vault',
+            child: _buildDocumentsVault(profile),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBusinessInformationReadOnlyGrid(UserProfile profile, String businessTypeLabel) {
+    final palette = DashboardPalette.of(context);
+    final contacts = _businessPhoneControllers.map((c) => c.text.trim()).where((s) => s.isNotEmpty).toList();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoCol = constraints.maxWidth > 520;
+        final children = <Widget>[
+          ProviderProfileUi.readOnlyField(
+            palette,
+            'Registered Business Name',
+            _registeredBusinessNameController.text,
+          ),
+          ProviderProfileUi.readOnlyField(palette, 'Trading Name', _tradingNameController.text),
+          ProviderProfileUi.readOnlyField(
+            palette,
+            'Contact Details',
+            contacts.isEmpty ? 'Not set' : contacts.join('\n'),
+          ),
+          ProviderProfileUi.readOnlyField(
+            palette,
+            'Business Type & Registration',
+            '${businessTypeLabel}\n${_registrationNumberController.text.isEmpty ? '—' : _registrationNumberController.text}',
+          ),
+        ];
+        if (!twoCol) {
+          return Column(
+            children: children.map((w) => Padding(padding: const EdgeInsets.only(bottom: 20), child: w)).toList(),
+          );
+        }
+        return Wrap(
+          spacing: 48,
+          runSpacing: 24,
+          children: children.map((w) => SizedBox(width: (constraints.maxWidth - 48) / 2, child: w)).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildServiceSpecializationsReadOnly(DashboardPalette palette) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Manufacturer Experts', style: DashboardTypography.sectionLabel(palette)),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _selectedBrandExpertise.isEmpty
+              ? [Text('None selected', style: DashboardTypography.bodySm(palette))]
+              : _selectedBrandExpertise
+                  .map((k) => _providerChipLabel(_brandOptions, _dynamicBrandOptions, k))
+                  .map((label) => ProviderProfileUi.brandChip(palette, label))
+                  .toList(),
+        ),
+        const SizedBox(height: 20),
+        Text('Services Provided', style: DashboardTypography.sectionLabel(palette)),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _selectedServiceTags.isEmpty
+              ? [Text('None selected', style: DashboardTypography.bodySm(palette))]
+              : _selectedServiceTags
+                  .map((k) => _providerChipLabel(_serviceTagOptions, _dynamicServiceTagOptions, k))
+                  .map((label) => ProviderProfileUi.specializationChip(palette, label))
+                  .toList(),
+        ),
+      ],
     );
   }
 
@@ -1155,13 +1472,15 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       'Business Profile',
       'Legal Docs & Certs',
     ];
+    final palette = DashboardPalette.of(context);
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
+      padding: EdgeInsets.symmetric(horizontal: isWide ? 40 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BoostDriveStepper(
+          ProviderProfileUi.providerStepper(
+            palette: palette,
             currentStep: _providerCurrentStep,
             stepTitles: steps,
           ),
@@ -1179,6 +1498,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 ),
               const Spacer(),
               ElevatedButton(
+                style: ProviderProfileUi.primaryButtonStyle(palette),
                 onPressed: () async {
                   if (!_isProviderStepValid(_providerCurrentStep, profile)) {
                     if (mounted) {
@@ -1257,20 +1577,17 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                       });
                     }
                   },
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 48),
-                    side: const BorderSide(color: Color(0xFFFFCCAA)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  style: ProviderProfileUi.outlinedButtonStyle(palette),
                   child: Text(
                     'Cancel',
-                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: const Color(0xFF000000)),
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: palette.onBackground),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
+                  style: ProviderProfileUi.primaryButtonStyle(palette),
                   onPressed: () async {
                     // Reuse the same validation and legal-document checks as the
                     // stepper validation, but allow saving from any step.
@@ -1298,14 +1615,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     // global "Exit Edit Mode" action in the app bar still
                     // closes this screen when they are done.
                   },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(0, 48),
-                    backgroundColor: BoostDriveTheme.primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
                   child: Text(
                     'Save Changes',
-                    style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: Colors.white),
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, color: Colors.white),
                   ),
                 ),
               ),
@@ -1318,27 +1630,63 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildProviderStepContent(UserProfile profile) {
+    final palette = _providerPalette;
     switch (_providerCurrentStep) {
       case 0: // Business Profile + Contact Info + Specializations + Location & Payouts
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildBusinessInformation(profile),
-            const SizedBox(height: 32),
-            const SizedBox(height: 32),
-            _buildTrustExperience(),
-            const SizedBox(height: 32),
-            _buildServiceSpecializations(profile),
-            const SizedBox(height: 32),
-            _buildOperationalBusinessDetails(profile),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.business_center_outlined,
+              title: 'Business Information',
+              child: _buildBusinessInformation(profile),
+            ),
             const SizedBox(height: 24),
-            _buildProviderServiceAreaAndHours(profile),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.verified_user_outlined,
+              title: 'Trust & Experience',
+              child: _buildTrustExperience(),
+            ),
             const SizedBox(height: 24),
-            _buildFinancialPayout(),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.build_circle_outlined,
+              title: 'Service Specializations',
+              child: _buildServiceSpecializations(profile),
+            ),
+            const SizedBox(height: 24),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.business_center_outlined,
+              title: 'Operational & Business Details',
+              child: _buildOperationalBusinessDetails(profile),
+            ),
+            const SizedBox(height: 24),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.location_on_outlined,
+              title: 'Service Area & Hours',
+              child: _buildProviderServiceAreaAndHours(profile),
+            ),
+            const SizedBox(height: 24),
+            ProviderProfileUi.sectionCard(
+              palette: palette,
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Financial & Payout',
+              accentTint: true,
+              child: _buildFinancialPayout(),
+            ),
           ],
         );
       case 1: // Legal Docs & Certs (BIPA/ID + NTA/RA)
-        return _buildDocumentsVault(profile);
+        return ProviderProfileUi.sectionCard(
+          palette: palette,
+          icon: Icons.folder_outlined,
+          title: 'Documents Vault',
+          child: _buildDocumentsVault(profile),
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -1366,79 +1714,126 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     }
   }
 
+  Widget _buildProfileAvatarContent({
+    required UserProfile profile,
+    required DashboardPalette palette,
+    required double radius,
+    required double initialsFontSize,
+    String? initialsName,
+  }) {
+    final showInitials = _optimisticImage == null &&
+        (_isOptimisticDelete || profile.profileImg.isEmpty);
+    final name = initialsName ?? profile.displayName;
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: palette.surfaceContainerLow,
+      backgroundImage: _optimisticImage != null
+          ? MemoryImage(_optimisticImage!) as ImageProvider
+          : (!showInitials ? NetworkImage(profile.profileImg) : null),
+      child: showInitials
+          ? Text(
+              getInitials(name),
+              style: GoogleFonts.manrope(
+                fontSize: initialsFontSize,
+                fontWeight: FontWeight.w800,
+                color: palette.primary,
+              ),
+            )
+          : null,
+    );
+  }
+
   Widget _buildProviderBanner(UserProfile profile) {
+    final palette = DashboardPalette.of(context);
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
+    final canChangePhoto = _canChangeProfilePhoto;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 180,
+          height: 180 + topInset,
           width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                BoostDriveTheme.primaryColor.withValues(alpha: 0.9),
-                BoostDriveTheme.primaryColor,
-              ],
-            ),
-          ),
+          decoration: ProviderProfileUi.heroBannerDecoration(palette),
         ),
-        // Banner edit button removed (no explicit banner edit control for now).
         Positioned(
           left: 0,
           right: 0,
           bottom: -44,
           child: Center(
-            child: MouseRegion(
-              cursor: _isProviderEditMode ? SystemMouseCursors.click : SystemMouseCursors.basic,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: (_isUploading || !_isProviderEditMode) ? null : () {
-                  _showProfilePhotoOptions();
-                },
-                child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 52,
-                    backgroundColor: Colors.white,
-                    backgroundImage: _optimisticImage != null
-                        ? MemoryImage(_optimisticImage!) as ImageProvider
-                        : (profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null),
-                    child: profile.profileImg.isEmpty && _optimisticImage == null
-                        ? Text(
-                            getInitials(profile.displayName),
-                             style: TextStyle(fontFamily: 'Manrope', 
-                               fontSize: 28,
-                               fontWeight: FontWeight.w800,
-                               color: BoostDriveTheme.primaryColor,
-                             ),
-                           )
-                        : null,
-                  ),
-                  if (_isProviderEditMode)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: BoostDriveTheme.primaryColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                MouseRegion(
+                  cursor: canChangePhoto ? SystemMouseCursors.click : SystemMouseCursors.basic,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: (_isUploading || !canChangePhoto) ? null : _showProfilePhotoOptions,
+                    child: Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: ProviderProfileUi.premiumShadow(palette),
+                          ),
+                          child: _buildProfileAvatarContent(
+                            profile: profile,
+                            palette: palette,
+                            radius: 52,
+                            initialsFontSize: 28,
+                          ),
                         ),
-                        child: const Icon(Icons.edit, color: Colors.white, size: 14),
-                      ),
+                        if (_isUploading)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (canChangePhoto && !_isUploading)
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: palette.primaryContainer,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
+                ),
+                if (canChangePhoto) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tap photo to change',
+                    style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _buildAdminBanner(UserProfile profile) {
     return Stack(
@@ -1664,26 +2059,16 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(Icons.location_on_outlined, color: BoostDriveTheme.primaryColor, size: 22),
-            const SizedBox(width: 10),
-            Text('Service area & working hours', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
+        _providerSectionSubtitle(
           'Shown to customers on Find a Provider. E.g. "Within 50 km of Windhoek" and "Mon–Fri 8am–6pm".',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000)),
         ),
-        const SizedBox(height: 16),
         _providerLabel('How far you\'re located / service area'),
         const SizedBox(height: 8),
         TextField(
           controller: _serviceAreaController,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+          style: _providerFieldStyle(),
           decoration: _providerInputDecoration(hint: 'e.g. Within 50 km of Windhoek, City centre'),
         ),
         const SizedBox(height: 16),
@@ -1693,7 +2078,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           controller: _workingHoursController,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+          style: _providerFieldStyle(),
           decoration: _providerInputDecoration(hint: 'e.g. Mon–Fri 8am–6pm, Sat 9am–1pm or 24/7'),
         ),
       ],
@@ -1710,22 +2095,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   /// Mobile only: multi-select for which services this provider offers. Min 1 required.
   Widget _buildProviderServiceTypes(UserProfile profile) {
+    final palette = _providerPalette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(Icons.build_circle_outlined, color: BoostDriveTheme.primaryColor, size: 22),
-            const SizedBox(width: 10),
-            Text('Services you provide', style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Select at least 1 service. You can select multiple.',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000)),
-        ),
-        const SizedBox(height: 16),
+        _providerSectionSubtitle('Select at least 1 service. You can select multiple.'),
         Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -1733,47 +2107,21 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             final value = e.key;
             final label = e.value;
             final selected = _selectedServiceTypes.contains(value);
-            return GestureDetector(
-              onTap: () {
-                if (!_isProviderEditMode) return;
-                setState(() {
-                  if (selected) {
-                    _selectedServiceTypes = List<String>.from(_selectedServiceTypes)..remove(value);
-                  } else {
-                    _selectedServiceTypes = List<String>.from(_selectedServiceTypes)..add(value);
-                  }
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: selected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: selected ? BoostDriveTheme.primaryColor : const Color(0xFFFFCCAA),
-                    width: selected ? 2 : 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      selected ? Icons.check_circle : Icons.radio_button_unchecked,
-                      size: 20,
-                      color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF000000),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      label,
-                      style: TextStyle(fontFamily: 'Manrope', 
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: selected ? BoostDriveTheme.primaryColor : const Color(0xFF000000),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            return ProviderProfileUi.choiceChip(
+              palette: palette,
+              label: label,
+              selected: selected,
+              onTap: !_isProviderEditMode
+                  ? null
+                  : () {
+                      setState(() {
+                        if (selected) {
+                          _selectedServiceTypes = List<String>.from(_selectedServiceTypes)..remove(value);
+                        } else {
+                          _selectedServiceTypes = List<String>.from(_selectedServiceTypes)..add(value);
+                        }
+                      });
+                    },
             );
           }).toList(),
         ),
@@ -1782,12 +2130,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildSectionTitle(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, color: BoostDriveTheme.primaryColor, size: 22),
-        const SizedBox(width: 10),
-        Text(title, style: TextStyle(fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF000000))),
-      ],
+    return ProviderProfileUi.sectionHeader(
+      palette: DashboardPalette.of(context),
+      title: title,
+      icon: icon,
     );
   }
 
@@ -1802,6 +2148,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildMultiSelectChips(List<MapEntry<String, String>> options, List<String> selected, void Function(String) onToggle) {
+    final palette = _providerPalette;
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -1809,8 +2156,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         final value = e.key;
         final label = e.value;
         final isSelected = selected.contains(value);
-        return GestureDetector(
-          onTap: () async {
+        return ProviderProfileUi.choiceChip(
+          palette: palette,
+          label: label,
+          selected: isSelected,
+          onTap: !_isProviderEditMode
+              ? null
+              : () async {
             if (!_isProviderEditMode) return;
             if (options.contains(const MapEntry('other', 'Other')) && value == 'other') {
               final result = await showDialog<String>(
@@ -1914,25 +2266,6 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               onToggle(value);
             }
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isSelected ? BoostDriveTheme.primaryColor.withValues(alpha: 0.15) : const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFFFFCCAA),
-                width: isSelected ? 2 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, size: 20, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF000000)),
-                const SizedBox(width: 8),
-                Text(label, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? BoostDriveTheme.primaryColor : const Color(0xFF000000))),
-              ],
-            ),
-          ),
         );
       }).toList(),
     );
@@ -1940,26 +2273,26 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   Widget _buildOperationalBusinessDetails(UserProfile profile) {
     final isTowingOrSos = profile.role.toLowerCase().contains('towing') || profile.role.toLowerCase().contains('service');
+    final palette = _providerPalette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Operational & Business Details', Icons.business_center_outlined),
-        const SizedBox(height: 12),
-        Text('Powers "Open Now" filter and SOS matching.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
+        _providerSectionSubtitle('Powers "Open Now" filter and SOS matching.'),
         const SizedBox(height: 16),
         if (isTowingOrSos) ...[
           Row(
             children: [
-              Expanded(child: Text('Open 24/7', style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF000000)))),
+              Expanded(child: Text('Open 24/7', style: DashboardTypography.labelMd(palette))),
               Switch(
                 value: _businessHours24_7,
                 onChanged: _isProviderEditMode ? (v) => setState(() => _businessHours24_7 = v) : null,
-                activeTrackColor: BoostDriveTheme.primaryColor,
+                activeThumbColor: palette.primaryContainer,
+                activeTrackColor: palette.primary.withValues(alpha: 0.35),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Text('When on, your profile shows "24/7" for Open Now. When off, use Working hours above.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
+          _providerSectionSubtitle('When on, your profile shows "24/7" for Open Now. When off, use Working hours above.'),
           const SizedBox(height: 16),
         ],
         _providerLabel('Service radius (km)'),
@@ -1969,13 +2302,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           keyboardType: TextInputType.number,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+          style: _providerFieldStyle(),
           decoration: _providerInputDecoration(hint: 'Max distance you travel for jobs'),
         ),
         const SizedBox(height: 16),
         _providerLabel('Workshop address'),
         const SizedBox(height: 8),
-        TextField(controller: _workshopAddressController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
+        TextField(controller: _workshopAddressController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: _providerFieldStyle(), decoration: _providerInputDecoration(hint: 'Physical location for drop-offs')),
         const SizedBox(height: 16),
       ],
     );
@@ -2011,9 +2344,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Service Specializations', Icons.build_circle_outlined),
-        const SizedBox(height: 12),
-        Text('Used for search filters and matching.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
+        _providerSectionSubtitle('Used for search filters and matching.'),
         const SizedBox(height: 16),
         _providerLabel('Brand expertise'),
         const SizedBox(height: 8),
@@ -2044,29 +2375,27 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Financial & Payout', Icons.account_balance_wallet_outlined),
-        const SizedBox(height: 12),
-        Text('For automated payouts and customer price estimates.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
+        _providerSectionSubtitle('For automated payouts and customer price estimates.'),
         const SizedBox(height: 16),
         _providerLabel('Bank name'),
         const SizedBox(height: 8),
-        TextField(controller: _bankNameController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
+        TextField(controller: _bankNameController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: _providerFieldStyle(), decoration: _providerInputDecoration(hint: 'e.g. Bank Windhoek, FNB')),
         const SizedBox(height: 12),
         _providerLabel('Branch'),
         const SizedBox(height: 8),
-        TextField(controller: _bankBranchController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Branch name or code')),
+        TextField(controller: _bankBranchController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: _providerFieldStyle(), decoration: _providerInputDecoration(hint: 'Branch name or code')),
         const SizedBox(height: 12),
         _providerLabel('Account number'),
         const SizedBox(height: 8),
-        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Bank account number')),
+        TextField(controller: _bankAccountNumberController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: _providerFieldStyle(), decoration: _providerInputDecoration(hint: 'Bank account number')),
         const SizedBox(height: 12),
         _providerLabel(r'Estimated hourly rate (N$)'),
         const SizedBox(height: 8),
-        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
+        TextField(controller: _standardLaborRateController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: _providerFieldStyle(), decoration: _providerInputDecoration(hint: 'Standard labor rate for quotes')),
         const SizedBox(height: 12),
         _providerLabel('Tax / VAT number'),
         const SizedBox(height: 8),
-        TextField(controller: _taxVatNumberController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'For legal invoices')),
+        TextField(controller: _taxVatNumberController, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: _providerFieldStyle(), decoration: _providerInputDecoration(hint: 'For legal invoices')),
       ],
     );
   }
@@ -2187,12 +2516,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   Widget _buildTrustExperience() {
     final galleryImages = _galleryImageUrls;
     final canAddMore = galleryImages.length < _galleryMaxImages;
+    final palette = _providerPalette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Trust & Experience', Icons.verified_user_outlined),
-        const SizedBox(height: 12),
-        Text('Business bio and portfolio build customer trust.', style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000))),
+        _providerSectionSubtitle('Business bio and portfolio build customer trust.'),
         const SizedBox(height: 16),
         _providerLabel('Business bio (About us)'),
         const SizedBox(height: 8),
@@ -2202,38 +2530,41 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           maxLength: 1300,
           readOnly: !_isProviderEditMode,
           enabled: _isProviderEditMode,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+          style: _providerFieldStyle(),
           decoration: _providerInputDecoration(hint: 'Your history and passion'),
         ),
         const SizedBox(height: 16),
         _providerLabel('Team size (qualified technicians)'),
         const SizedBox(height: 8),
-        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)), decoration: _providerInputDecoration(hint: 'Number on-site')),
+        TextField(controller: _teamSizeController, keyboardType: TextInputType.number, readOnly: !_isProviderEditMode, enabled: _isProviderEditMode, style: _providerFieldStyle(), decoration: _providerInputDecoration(hint: 'Number on-site')),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               'Gallery (${galleryImages.length}/$_galleryMaxImages photos)',
-              style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF000000)),
+              style: DashboardTypography.labelMd(palette),
             ),
             if (galleryImages.isEmpty)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: palette.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.orange.shade200),
+                  border: Border.all(color: palette.primary.withValues(alpha: 0.25)),
                 ),
-                child: Text('Min 1 required', style: TextStyle(fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w600, color: Colors.orange.shade700)),
+                child: Text(
+                  'Min 1 required',
+                  style: DashboardTypography.labelMd(palette).copyWith(
+                    fontSize: 10,
+                    color: palette.primary,
+                  ),
+                ),
               ),
           ],
         ),
         const SizedBox(height: 4),
-        Text(
-          'Workshop, tow truck, or completed repairs. Upload 1–10 photos.',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 12, color: const Color(0xFF000000)),
-        ),
+        _providerSectionSubtitle('Workshop, tow truck, or completed repairs. Upload 1–10 photos.'),
         const SizedBox(height: 12),
         if (_isUploadingDocuments)
           const Padding(
@@ -2255,16 +2586,22 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     width: 90,
                     height: 90,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
+                      color: palette.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFFFCCAA), style: BorderStyle.solid),
+                      border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.4)),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_photo_alternate_outlined, color: BoostDriveTheme.primaryColor, size: 28),
+                        Icon(Icons.add_photo_alternate_outlined, color: palette.primary, size: 28),
                         const SizedBox(height: 4),
-                        Text('Add Photo', style: TextStyle(fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w600, color: BoostDriveTheme.primaryColor)),
+                        Text(
+                          'Add Photo',
+                          style: DashboardTypography.labelMd(palette).copyWith(
+                            fontSize: 10,
+                            color: palette.primary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -2276,6 +2613,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildGalleryThumbnail(String url) {
+    final palette = _providerPalette;
     return Stack(
       children: [
         ClipRRect(
@@ -2289,10 +2627,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
+                color: palette.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.broken_image_outlined, color: Color(0xFF000000)),
+              child: Icon(Icons.broken_image_outlined, color: palette.muted),
             ),
           ),
         ),
@@ -2319,24 +2657,39 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
 
   Widget _buildDocumentsVault(UserProfile profile) {
-    final hasDocs = _galleryUrls.any((url) => url.trim().isNotEmpty);
+    final palette = _providerPalette;
     final isTowingProvider =
         (profile.role.toLowerCase() == 'towing') || (_primaryServiceCategory.toLowerCase() == 'towing');
+    final requiredSlots = <int>[0, 1, 2, 3, 5, 6];
+    if (isTowingProvider) requiredSlots.add(4);
+    var completed = 0;
+    for (final i in requiredSlots) {
+      if (i < _galleryUrls.length && _galleryUrls[i].trim().isNotEmpty) completed++;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Documents Vault', Icons.folder_outlined),
-        const SizedBox(height: 10),
-        Text(
-          'Upload your official business documents for verification, for example BIPA and tax certificates. '
-          'Only upload one file per document type. If you have several versions or pages of the same document, '
-          'please merge them into a single file and upload that one file only for that row.',
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 16, color: const Color(0xFF000000)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _providerSectionSubtitle(
+                'Upload official business documents for verification (BIPA, tax certificates, etc.). '
+                'One file per document type — merge multi-page PDFs before uploading.',
+              ),
+            ),
+            const SizedBox(width: 12),
+            ProviderProfileUi.vaultProgressBadge(
+              palette,
+              completed: completed,
+              total: requiredSlots.length,
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: const Color(0xFFFFFFFF), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFFCCAA))),
+          decoration: ProviderProfileUi.glassCardDecoration(palette),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2614,19 +2967,20 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _documentStatusRow(String name, String fallbackStatus) {
+    final palette = _providerPalette;
     final backendStatus = _documentStatuses[name];
     final rejectionReason = _documentRejectionReasons[name];
     
-    Color statusColor = const Color(0xFF000000);
+    Color statusColor = palette.muted;
     String displayStatus = fallbackStatus;
     IconData? statusIcon;
 
     if (backendStatus == 'approved') {
-      statusColor = Colors.green;
+      statusColor = palette.secondary;
       displayStatus = 'Approved';
       statusIcon = Icons.check_circle;
     } else if (backendStatus == 'rejected') {
-      statusColor = Colors.red;
+      statusColor = palette.error;
       displayStatus = 'Rejected';
       statusIcon = Icons.cancel;
     }
@@ -2637,7 +2991,12 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(name, style: TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF000000))),
+            Expanded(
+              child: Text(
+                name,
+                style: DashboardTypography.labelLg(palette).copyWith(fontSize: 14),
+              ),
+            ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -2699,6 +3058,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _documentInputRow(String label, int slotIndex) {
+    final palette = _providerPalette;
     String? url;
     if (slotIndex < _galleryUrls.length) {
       url = _galleryUrls[slotIndex];
@@ -2711,14 +3071,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(fontFamily: 'Manrope', 
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF000000),
-            ),
-          ),
+          Text(label, style: DashboardTypography.labelMd(palette)),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -2726,17 +3079,16 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: palette.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFFCCAA)),
+                    border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.35)),
                   ),
                   child: Text(
                     fileName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: 'Manrope', 
-                      fontSize: 13,
-                      color: hasUrl ? const Color(0xFF000000) : const Color(0xFF000000),
+                    style: DashboardTypography.bodySm(palette).copyWith(
+                      color: hasUrl ? palette.onBackground : palette.muted,
                     ),
                   ),
                 ),
@@ -2745,14 +3097,15 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: _isUploadingDocuments ? null : () => _pickAndUploadProviderDocumentForSlot(slotIndex),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    minimumSize: const Size(0, 40),
+                  style: ProviderProfileUi.primaryButtonStyle(palette).copyWith(
+                    padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    minimumSize: WidgetStateProperty.all(const Size(0, 40)),
                   ),
                   child: Text(
                     'Upload',
-                    style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2760,10 +3113,10 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   onPressed: _isUploadingDocuments || !hasUrl ? null : () => _confirmAndRemoveProviderDocument(url!),
                   child: Text(
                     'Remove',
-                    style: TextStyle(fontFamily: 'Manrope', 
+                    style: GoogleFonts.manrope(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: hasUrl ? const Color(0xFFB42318) : const Color(0xFF000000),
+                      color: hasUrl ? palette.error : palette.muted,
                     ),
                   ),
                 ),
@@ -2776,20 +3129,26 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _providerLabel(String text) {
-    return Text(text, style: TextStyle(fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF000000)));
+    final palette = DashboardPalette.of(context);
+    return ProviderProfileUi.fieldLabel(palette, text);
   }
 
   InputDecoration _providerInputDecoration({String? hint}) {
-    return InputDecoration(
-      hintText: hint ?? '',
-      hintStyle: TextStyle(fontFamily: 'Manrope', color: const Color(0xFF000000)),
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFFFCCAA))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: BoostDriveTheme.primaryColor, width: 1.5)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    final palette = DashboardPalette.of(context);
+    return ProviderProfileUi.inputDecoration(palette, hint: hint, readOnly: !_isProviderEditMode);
+  }
+
+  TextStyle _providerFieldStyle() {
+    return ProviderProfileUi.fieldTextStyle(
+      DashboardPalette.of(context),
+      readOnly: !_isProviderEditMode,
     );
+  }
+
+  DashboardPalette get _providerPalette => DashboardPalette.of(context);
+
+  Widget _providerSectionSubtitle(String text) {
+    return ProviderProfileUi.sectionSubtitle(_providerPalette, text);
   }
 
   // ignore: unused_element
@@ -2845,7 +3204,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _warehouseAddressController,
-          style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+          style: _providerFieldStyle(),
           decoration: _providerInputDecoration(hint: 'Not set'),
         ),
       ],
@@ -3145,6 +3504,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ),
             centerTitle: false,
             actions: [
+              const DashboardThemeToggle(compact: true, onColoredHeader: true),
               IconButton(
                 icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                 onPressed: () {},
@@ -3161,35 +3521,31 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
             ],
           ),
           body: SingleChildScrollView(
-            child: Column(
+            child: DashboardPageContainer(
+              maxWidth: 960,
+              child: Column(
               children: [
                 if (profile.role.toLowerCase() == 'admin') ...[
                   _buildAdminProfileView(profile, isWide),
                 ] else ...[
-                  const SizedBox(height: 32),
-                  _buildProfileHeader(profile),
                   const SizedBox(height: 16),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
-                    child: Column(
+                  _buildProfileHeader(profile),
+                  const SizedBox(height: 24),
+                  Column(
                       children: [
                         _buildPersonalInformation(showInlineEdit: true),
                         if (!kIsWeb) ...[
                           const SizedBox(height: 32),
                           _buildSafetySection(),
                         ],
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         _buildControlCenterSection(profile),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                       ],
                     ),
-                  ),
                 ],
-                const SizedBox(height: 40),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isWide ? 64 : 24),
-                  child: _buildAccountActions(),
-                ),
+                const SizedBox(height: 32),
+                _buildAccountActions(),
                 const SizedBox(height: 24),
                 Text(
                   'BoostDrive Version 2.4.1 (1209)',
@@ -3201,6 +3557,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 ),
                 const SizedBox(height: 40),
               ],
+            ),
             ),
           ),
         );
@@ -3256,32 +3613,15 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                   height: 110,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 4),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+                    border: Border.all(color: palette.primaryFixed, width: 4),
+                    boxShadow: palette.cardShadowLow,
                   ),
-                  child: CircleAvatar(
-                    backgroundColor: const Color(0xFFFFCCAA),
-                    backgroundImage: _optimisticImage != null
-                        ? MemoryImage(_optimisticImage!) as ImageProvider
-                        : (!_isOptimisticDelete && profile.profileImg.isNotEmpty)
-                            ? NetworkImage(profile.profileImg)
-                            : null,
-                    child: (_optimisticImage == null && (_isOptimisticDelete || profile.profileImg.isEmpty))
-                        ? Text(
-                            getInitials(profile.fullName),
-                            style: TextStyle(fontFamily: 'Manrope', 
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              color: BoostDriveTheme.primaryColor,
-                            ),
-                          )
-                        : null,
+                  child: _buildProfileAvatarContent(
+                    profile: profile,
+                    palette: palette,
+                    radius: 55,
+                    initialsFontSize: 32,
+                    initialsName: profile.fullName,
                   ),
                 ),
                 if (_isUploading)
@@ -3301,8 +3641,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: BoostDriveTheme.primaryColor,
+                      decoration: BoxDecoration(
+                        color: palette.primary,
                         shape: BoxShape.circle,
                       ),
                       child: _isUploading 
@@ -3366,46 +3706,35 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     );
   }
 
+  String _providerChipLabel(
+    List<MapEntry<String, String>> options,
+    List<MapEntry<String, String>> dynamicOptions,
+    String key,
+  ) {
+    for (final e in options) {
+      if (e.key == key) return e.value;
+    }
+    for (final e in dynamicOptions) {
+      if (e.key == key) return e.value;
+    }
+    return key.replaceAll('_', ' ');
+  }
+
   Widget _buildBusinessInformation(UserProfile profile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'BUSINESS INFORMATION',
-          style: TextStyle(fontFamily: 'Manrope', 
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF000000),
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFFFFFFF)),
-          ),
-          child: Column(
+        Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Core Business Identity',
-                style: TextStyle(fontFamily: 'Manrope', 
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF000000),
-                ),
-              ),
-              const SizedBox(height: 16),
+              ProviderProfileUi.subsectionHeading(_providerPalette, 'Core Business Identity'),
               _providerLabel('Registered business name'),
               const SizedBox(height: 8),
               TextField(
                 controller: _registeredBusinessNameController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(
                   hint: 'Official BIPA name e.g. Mubiana Mechanical Services CC',
                 ),
@@ -3417,7 +3746,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _tradingNameController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(
                   hint: 'Name customers see, e.g. The Turbo Doc',
                 ),
@@ -3445,7 +3774,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             readOnly: !_isProviderEditMode,
                             enabled: _isProviderEditMode,
                             keyboardType: TextInputType.phone,
-                            style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                            style: _providerFieldStyle(),
                             decoration: _providerInputDecoration(
                               hint: 'Office WhatsApp or landline',
                             ),
@@ -3529,21 +3858,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _registrationNumberController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(
                   hint: 'e.g. CC/2026/0123',
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                'Operational Details',
-                style: TextStyle(fontFamily: 'Manrope', 
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF000000),
-                ),
-              ),
-              const SizedBox(height: 16),
+              ProviderProfileUi.subsectionHeading(_providerPalette, 'Operational Details'),
               _providerLabel('Years in operation'),
               const SizedBox(height: 8),
               TextField(
@@ -3551,7 +3872,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
                 keyboardType: TextInputType.number,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(hint: 'e.g. 5'),
               ),
               const SizedBox(height: 16),
@@ -3614,26 +3935,18 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 keyboardType: TextInputType.number,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(hint: 'Number of staff on your team'),
               ),
               const SizedBox(height: 24),
-              Text(
-                'Physical & Digital Presence',
-                style: TextStyle(fontFamily: 'Manrope', 
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF000000),
-                ),
-              ),
-              const SizedBox(height: 16),
+              ProviderProfileUi.subsectionHeading(_providerPalette, 'Physical & Digital Presence'),
               _providerLabel('Workshop physical address'),
               const SizedBox(height: 8),
               TextField(
                 controller: _workshopAddressController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(hint: 'Registered base of operations'),
               ),
               const SizedBox(height: 16),
@@ -3643,7 +3956,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _socialFacebookController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(hint: 'Facebook business page URL'),
               ),
               const SizedBox(height: 8),
@@ -3651,7 +3964,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _socialInstagramController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(hint: 'Instagram handle / URL'),
               ),
               const SizedBox(height: 8),
@@ -3659,12 +3972,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                 controller: _websiteUrlController,
                 readOnly: !_isProviderEditMode,
                 enabled: _isProviderEditMode,
-                style: TextStyle(fontFamily: 'Manrope', fontSize: 14, color: const Color(0xFF000000)),
+                style: _providerFieldStyle(),
                 decoration: _providerInputDecoration(hint: 'Website URL (optional)'),
               ),
             ],
           ),
-        ),
       ],
     );
   }
@@ -3705,7 +4017,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     // In stepper edit mode (showInlineEdit = false) for providers, it should only be editable if _isProviderEditMode is true.
     // Otherwise, respect _isEditing for normal user settings.
     final isSectionEditable = isProviderProfile ? _isProviderEditMode : (showInlineEdit ? _isEditing : true);
-    return Column(
+    final palette = DashboardPalette.of(context);
+    return DashboardCard(
+      padding: const EdgeInsets.all(24),
+      elevated: true,
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -3713,12 +4029,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           children: [
             Text(
               isProviderProfile ? 'PRIMARY ACCOUNT DETAILS' : 'PERSONAL INFORMATION',
-              style: TextStyle(fontFamily: 'Manrope', 
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF000000),
-                letterSpacing: 0.5,
-              ),
+              style: DashboardTypography.sectionLabel(palette),
             ),
             if (showInlineEdit)
               IconButton(
@@ -3739,9 +4050,9 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFFFFFFF)),
+            color: palette.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(palette.radiusDefault),
+            border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.4)),
           ),
           child: Column(
             children: [
@@ -3872,6 +4183,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
           ),
         ],
       ],
+    ),
     );
   }
 
@@ -3938,80 +4250,49 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildSafetySection() {
+    final palette = _providerPalette;
     final contacts = _emergencyContactsFromPairs();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+    return ProviderProfileUi.safetyPanel(
+      palette: palette,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'SAFETY & SOS',
-            style: TextStyle(fontFamily: 'Manrope', 
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFFD92D20),
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3F2),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFEE4E2)),
-            ),
-            child: Column(
-              children: [
-                Row(
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: palette.error.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'SOS',
+                  style: DashboardTypography.labelLg(palette).copyWith(
+                    color: palette.error,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEE4E2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'SOS',
-                        style: TextStyle(fontFamily: 'Manrope', 
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFFD92D20),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Emergency contacts',
-                            style: TextStyle(fontFamily: 'Manrope', 
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF000000),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Notifications can be sent to these contacts in case of a breakdown or collision.',
-                            style: TextStyle(fontFamily: 'Manrope', 
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF000000),
-                            ),
-                          ),
-                        ],
-                      ),
+                    Text('Emergency contacts', style: DashboardTypography.labelLg(palette)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Notifications can be sent to these contacts in case of a breakdown or collision.',
+                      style: DashboardTypography.bodySm(palette),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  child: InkWell(
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Material(
+            color: palette.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: _showEmergencyContactsEditor,
                     child: Padding(
@@ -4023,12 +4304,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                             child: contacts.isEmpty
                                 ? Text(
                                     'No contacts saved. Tap Manage to add people we can reference for SOS.',
-                                    style: TextStyle(
-                                      fontFamily: 'Manrope',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: const Color(0xFF000000),
-                                    ),
+                                    style: DashboardTypography.bodySm(palette),
                                   )
                                 : Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -4040,11 +4316,8 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                                           children: [
                                             Text(
                                               '${i + 1}. ',
-                                              style: TextStyle(
-                                                fontFamily: 'Manrope',
-                                                fontSize: 13,
+                                              style: DashboardTypography.labelMd(palette).copyWith(
                                                 fontWeight: FontWeight.w800,
-                                                color: const Color(0xFF000000),
                                               ),
                                             ),
                                             Expanded(
@@ -4053,21 +4326,11 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                                                 children: [
                                                   Text(
                                                     contacts[i].name.isEmpty ? 'Unnamed' : contacts[i].name,
-                                                    style: TextStyle(
-                                                      fontFamily: 'Manrope',
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: const Color(0xFF000000),
-                                                    ),
+                                                    style: DashboardTypography.labelLg(palette).copyWith(fontSize: 14),
                                                   ),
                                                   Text(
                                                     contacts[i].phone.isEmpty ? 'No phone' : contacts[i].phone,
-                                                    style: TextStyle(
-                                                      fontFamily: 'Manrope',
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.w500,
-                                                      color: const Color(0xFF000000),
-                                                    ),
+                                                    style: DashboardTypography.bodySm(palette),
                                                   ),
                                                 ],
                                               ),
@@ -4080,12 +4343,7 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                                           padding: const EdgeInsets.only(top: 8),
                                           child: Text(
                                             '+ ${contacts.length - 4} more',
-                                            style: TextStyle(
-                                              fontFamily: 'Manrope',
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF666666),
-                                            ),
+                                            style: DashboardTypography.bodySm(palette).copyWith(color: palette.muted),
                                           ),
                                         ),
                                     ],
@@ -4094,20 +4352,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
                           const SizedBox(width: 8),
                           Text(
                             'Manage',
-                            style: TextStyle(fontFamily: 'Manrope', 
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFFD92D20),
-                            ),
+                            style: DashboardTypography.labelLg(palette).copyWith(color: palette.error),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -4250,111 +4501,77 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   /// Control Center: emergency contacts (non-shops), shop-only staff/payouts.
   Widget _buildControlCenterSection(UserProfile profile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'CONTROL CENTER',
-          style: TextStyle(
-            fontFamily: 'Manrope',
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF000000),
-            letterSpacing: 0.5,
+    final palette = _providerPalette;
+    return ProviderProfileUi.controlCenterShell(
+      palette: palette,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+            onSurface: palette.onBackground,
+            onSurfaceVariant: palette.muted,
+          ),
+          listTileTheme: ListTileThemeData(
+            iconColor: palette.primary,
+            textColor: palette.onBackground,
+            titleTextStyle: DashboardTypography.labelLg(palette),
+            subtitleTextStyle: DashboardTypography.bodySm(palette),
+          ),
+          expansionTileTheme: ExpansionTileThemeData(
+            iconColor: palette.primary,
+            collapsedIconColor: palette.primary,
           ),
         ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE8E8E8)),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          childrenPadding: const EdgeInsets.only(bottom: 8),
+          title: Text(
+            'Hub & operations',
+            style: DashboardTypography.labelLg(palette).copyWith(color: palette.primary),
           ),
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              dividerColor: Colors.transparent,
-              colorScheme: Theme.of(context).colorScheme.copyWith(
-                onSurface: const Color(0xFF000000),
-                onSurfaceVariant: const Color(0xFF000000),
-              ),
-              listTileTheme: ListTileThemeData(
-                iconColor: const Color(0xFF000000),
-                textColor: const Color(0xFF000000),
-                titleTextStyle: const TextStyle(
-                  fontFamily: 'Manrope',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF000000),
-                ),
-                subtitleTextStyle: const TextStyle(
-                  fontFamily: 'Manrope',
-                  fontSize: 13,
-                  height: 1.35,
-                  color: Color(0xFF000000),
-                ),
-              ),
-              expansionTileTheme: ExpansionTileThemeData(
-                iconColor: BoostDriveTheme.primaryColor,
-                collapsedIconColor: BoostDriveTheme.primaryColor,
-              ),
-            ),
-            child: ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              childrenPadding: const EdgeInsets.only(bottom: 8),
-              title: Text(
-                'Hub & operations',
-                style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, color: BoostDriveTheme.primaryColor),
-              ),
-              subtitle: Text(
-                _isRegisteredServiceShop(profile)
-                    ? 'Staff, payouts.'
-                    : 'Emergency contacts.',
-                style: const TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Color(0xFF000000)),
-              ),
-              children: [
-                if (!_isRegisteredServiceShop(profile))
-                  ListTile(
-                    leading: const Icon(Icons.contact_phone_outlined, color: Color(0xFF000000)),
-                    title: const Text('Emergency contacts', style: TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.w600)),
-                    subtitle: Text(
-                      _emergencyContactsControlSubtitle(),
-                      style: const TextStyle(color: Color(0xFF000000)),
-                    ),
-                    onTap: _showEmergencyContactsEditor,
-                  ),
-                if (_isRegisteredServiceShop(profile)) ...[
-                  ListTile(
-                    leading: const Icon(Icons.groups_outlined, color: Color(0xFF000000)),
-                    title: const Text('Staff & roles', style: TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.w600)),
-                    subtitle: const Text(
-                      'Delegate dispatch, finance, and SOS oversight (org rollout).',
-                      style: TextStyle(color: Color(0xFF000000)),
-                    ),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Multi-user staff workspaces will link from here soon.')),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.payments_outlined, color: Color(0xFF000000)),
-                    title: const Text('Payouts', style: TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.w600)),
-                    subtitle: const Text(
-                      'Bank and VAT details live under Financial & Payout in your provider profile.',
-                      style: TextStyle(color: Color(0xFF000000)),
-                    ),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Payout configuration stays in your business profile for now.')),
-                      );
-                    },
-                  ),
-                ],
-              ],
-            ),
+          subtitle: Text(
+            _isRegisteredServiceShop(profile) ? 'Staff, payouts.' : 'Emergency contacts.',
+            style: DashboardTypography.bodySm(palette),
           ),
+          children: [
+            if (!_isRegisteredServiceShop(profile))
+              ListTile(
+                leading: Icon(Icons.contact_phone_outlined, color: palette.primary),
+                title: Text('Emergency contacts', style: DashboardTypography.labelLg(palette)),
+                subtitle: Text(_emergencyContactsControlSubtitle(), style: DashboardTypography.bodySm(palette)),
+                onTap: _showEmergencyContactsEditor,
+              ),
+            if (_isRegisteredServiceShop(profile)) ...[
+              ListTile(
+                leading: Icon(Icons.groups_outlined, color: palette.primary),
+                title: Text('Staff & roles', style: DashboardTypography.labelLg(palette)),
+                subtitle: Text(
+                  'Delegate dispatch, finance, and SOS oversight (org rollout).',
+                  style: DashboardTypography.bodySm(palette),
+                ),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Multi-user staff workspaces will link from here soon.')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.payments_outlined, color: palette.primary),
+                title: Text('Payouts', style: DashboardTypography.labelLg(palette)),
+                subtitle: Text(
+                  'Bank and VAT details live under Financial & Payout in your provider profile.',
+                  style: DashboardTypography.bodySm(palette),
+                ),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Payout configuration stays in your business profile for now.')),
+                  );
+                },
+              ),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 
