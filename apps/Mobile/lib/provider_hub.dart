@@ -6,8 +6,6 @@ import 'package:boostdrive_services/boostdrive_services.dart';
 import 'batlorrih_logistics_dashboard.dart';
 import 'service_pro_dashboard.dart';
 import 'seller_dashboard.dart';
-import 'mobile_app_bar_actions.dart';
-
 class ProviderHub extends ConsumerStatefulWidget {
   const ProviderHub({super.key});
 
@@ -40,48 +38,44 @@ class _ProviderHubState extends ConsumerState<ProviderHub> with SingleTickerProv
 
     final isSeller = profile.role.toLowerCase().contains('seller');
 
+    final palette = DashboardPalette.of(context);
+
     return ProviderProfileSetupReminderScopeMobile(
       profile: profile,
-      child: PremiumPageLayout(
-      // Disable global web background image here to avoid right-edge image artifact/overlay.
-      showBackground: false,
-      appBar: AppBar(
-        backgroundColor: BoostDriveTheme.primaryColor,
-        elevation: 0,
-        automaticallyImplyLeading: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'Provider Hub',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
+      child: Scaffold(
+        backgroundColor: palette.background,
+        appBar: MobileProviderUi.glassAppBar(
+          context: context,
+          palette: palette,
+          title: 'BoostDrive',
+          avatar: MobileProviderUi.profileAvatar(
+            palette: palette,
+            imageUrl: profile.profileImg,
+          ),
         ),
-        actions: mobileAppBarActions(),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
-          tabs: [
-            Tab(text: isSeller ? 'MY STORE' : 'MY SERVICES'),
-            const Tab(text: 'BATLORRIH'),
-          ],
-        ),
-      ),
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height - 120, // Adjust for AppBar and TabBar
-        child: TabBarView(
-          controller: _tabController,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Tab 1: Trade-specific Dashboard
-            isSeller ? const SellerDashboard() : const ServiceProDashboard(),
-            
-            // Tab 2: BaTLorriH Dashboard
-            const BaTLorriHLogisticsDashboard(),
+            MobileProviderUi.hubTabBar(
+              palette: palette,
+              controller: _tabController,
+              tabs: [
+                Tab(text: isSeller ? 'MY STORE' : 'MY SERVICES'),
+                const Tab(text: 'BATLORRIH'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  isSeller ? const SellerDashboard() : const ServiceProDashboard(),
+                  const BaTLorriHLogisticsDashboard(),
+                ],
+              ),
+            ),
           ],
         ),
       ),
-    ),
     );
   }
 }

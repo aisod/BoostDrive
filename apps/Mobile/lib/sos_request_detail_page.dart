@@ -10,8 +10,6 @@ import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
-import 'mobile_app_bar_actions.dart';
-
 import 'boostdrive_google_map_gate.dart';
 
 /// Provider opens this screen to review a pending SOS; customer sees a responding heartbeat on the map.
@@ -103,51 +101,81 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
             ? 'ASSIGNED TO YOU'
             : 'ALREADY ASSIGNED';
 
+    final palette = DashboardPalette.of(context);
+    final profile = userId != null ? ref.watch(userProfileProvider(userId)).valueOrNull : null;
+
     return Scaffold(
-      backgroundColor: BoostDriveTheme.backgroundDark,
-      appBar: AppBar(
-        title: const Text('SOS REQUEST'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: mobileAppBarActions(onColoredHeader: false),
+      backgroundColor: palette.background,
+      appBar: MobileProviderUi.glassAppBar(
+        context: context,
+        palette: palette,
+        title: 'SOS Detail',
+        showBack: true,
+        avatar: profile != null
+            ? MobileProviderUi.profileAvatar(palette: palette, imageUrl: profile.profileImg, radius: 16, orangeRing: true)
+            : null,
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  widget.request.userNote.isNotEmpty ? widget.request.userNote : 'Emergency assistance',
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          Positioned.fill(child: _buildRequesterMap()),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Spacer(),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: MobileProviderUi.marginMobile, bottom: 12),
+                  child: MobileProviderUi.floatingEtaBadge(
+                    palette: palette,
+                    etaLabel: 'En route',
+                    distanceLabel: '${widget.request.lat.toStringAsFixed(1)} km',
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Type: ${type.isNotEmpty ? type.toUpperCase() : '—'}'
-                  '${cat != null && cat.isNotEmpty ? ' · $cat' : ''}',
-                  style: TextStyle(color: BoostDriveTheme.textDim),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  MobileProviderUi.marginMobile,
+                  0,
+                  MobileProviderUi.marginMobile,
+                  20,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Location: ${widget.request.lat.toStringAsFixed(5)}, ${widget.request.lng.toStringAsFixed(5)}',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: _buildRequesterMap())),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'The customer can see that a provider is reviewing this request while you stay on this screen.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
-                ),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: MobileProviderUi.glassCard(palette),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          MobileProviderUi.urgencyBadge(palette: palette, label: 'Critical Alert', critical: true),
+                          const SizedBox(width: 8),
+                          if (type.isNotEmpty)
+                            MobileProviderUi.urgencyBadge(palette: palette, label: type),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.request.userNote.isNotEmpty ? widget.request.userNote : 'Emergency assistance',
+                        style: DashboardTypography.headlineMd(palette).copyWith(fontSize: 20),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Type: ${type.isNotEmpty ? type.toUpperCase() : '—'}'
+                        '${cat != null && cat.isNotEmpty ? ' · $cat' : ''}',
+                        style: DashboardTypography.bodySm(palette),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Location: ${widget.request.lat.toStringAsFixed(5)}, ${widget.request.lng.toStringAsFixed(5)}',
+                        style: DashboardTypography.bodySm(palette),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'The customer can see that a provider is reviewing this request while you stay on this screen.',
+                        textAlign: TextAlign.center,
+                        style: DashboardTypography.bodySm(palette),
+                      ),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: !canAccept
@@ -157,7 +185,7 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                             await ref.read(sosServiceProvider).acceptRequest(widget.request.id, userId);
                             _refreshSosState(userId);
                             if (!context.mounted) return;
-                            Navigator.of(context).pop();
+                            Navigator.of(context).maybePop();
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Request accepted. Customer will see you as assigned.'),
@@ -172,8 +200,11 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                           }
                         },
                   style: FilledButton.styleFrom(
-                    backgroundColor: BoostDriveTheme.primaryColor,
+                    backgroundColor: palette.primaryContainer,
                     minimumSize: const Size.fromHeight(56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(MobileProviderUi.radiusControl),
+                    ),
                   ),
                   child: Text(actionLabel, style: const TextStyle(fontWeight: FontWeight.w900)),
                 ),
@@ -213,29 +244,22 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                             final noteController = TextEditingController();
                             final confirm = await showDialog<bool>(
                               context: context,
-                              builder: (ctx) => AlertDialog(
-                                backgroundColor: BoostDriveTheme.surfaceDark,
-                                title: const Text('Complete assignment?', style: TextStyle(color: Colors.white)),
+                              builder: (ctx) => MobileProviderUi.kineticAlertDialog(
+                                palette: palette,
+                                title: const Text('Complete assignment?'),
                                 content: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'You must be near the customer location to complete this SOS.',
-                                      style: TextStyle(color: BoostDriveTheme.textDim),
                                     ),
                                     const SizedBox(height: 10),
                                     TextField(
                                       controller: noteController,
-                                      style: const TextStyle(color: Colors.white),
-                                      decoration: InputDecoration(
-                                        hintText: 'Completion note (optional)',
-                                        hintStyle: TextStyle(color: BoostDriveTheme.textDim),
-                                        filled: true,
-                                        fillColor: Colors.white.withValues(alpha: 0.06),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                          borderSide: BorderSide.none,
-                                        ),
+                                      style: TextStyle(color: palette.title),
+                                      decoration: MobileProviderUi.fieldDecoration(
+                                        palette,
+                                        hint: 'Completion note (optional)',
                                       ),
                                     ),
                                   ],
@@ -247,6 +271,9 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                                   ),
                                   FilledButton(
                                     onPressed: () => Navigator.pop(ctx, true),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: palette.primaryContainer,
+                                    ),
                                     child: const Text('ASSIGNMENT DONE'),
                                   ),
                                 ],
@@ -264,7 +291,7 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                                   );
                               _refreshSosState(userId);
                               if (!context.mounted) return;
-                              Navigator.of(context).pop();
+                              Navigator.of(context).maybePop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Assignment completed. Customer can now leave a review.'),
@@ -305,29 +332,22 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                             final reasonController = TextEditingController();
                             final confirm = await showDialog<bool>(
                               context: context,
-                              builder: (ctx) => AlertDialog(
-                                backgroundColor: BoostDriveTheme.surfaceDark,
-                                title: const Text('Cancel assignment?', style: TextStyle(color: Colors.white)),
+                              builder: (ctx) => MobileProviderUi.kineticAlertDialog(
+                                palette: palette,
+                                title: const Text('Cancel assignment?'),
                                 content: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'This returns the SOS to pending so another provider can accept it.',
-                                      style: TextStyle(color: BoostDriveTheme.textDim),
                                     ),
                                     const SizedBox(height: 10),
                                     TextField(
                                       controller: reasonController,
-                                      style: const TextStyle(color: Colors.white),
-                                      decoration: InputDecoration(
-                                        hintText: 'Reason (optional)',
-                                        hintStyle: TextStyle(color: BoostDriveTheme.textDim),
-                                        filled: true,
-                                        fillColor: Colors.white.withValues(alpha: 0.06),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                          borderSide: BorderSide.none,
-                                        ),
+                                      style: TextStyle(color: palette.title),
+                                      decoration: MobileProviderUi.fieldDecoration(
+                                        palette,
+                                        hint: 'Reason (optional)',
                                       ),
                                     ),
                                   ],
@@ -339,7 +359,7 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                                   ),
                                   FilledButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                                    style: FilledButton.styleFrom(backgroundColor: palette.error),
                                     child: const Text('CANCEL ASSIGNMENT'),
                                   ),
                                 ],
@@ -357,7 +377,7 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                                   );
                               _refreshSosState(userId);
                               if (!context.mounted) return;
-                              Navigator.of(context).pop();
+                              Navigator.of(context).maybePop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Assignment cancelled. SOS returned to pending queue.'),
@@ -379,8 +399,11 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                     ),
                   ),
                 ],
-              ],
-            ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

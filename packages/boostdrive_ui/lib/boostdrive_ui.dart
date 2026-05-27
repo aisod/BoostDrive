@@ -32,6 +32,8 @@ export 'src/emergency_directory_ui.dart';
 export 'src/provider_directory_ui.dart';
 export 'src/messages_ui.dart';
 export 'src/customer_profile_settings_ui.dart';
+export 'src/mobile_provider_ui.dart';
+export 'src/mobile_logistics_ui.dart';
 export 'src/garage/customer_garage_ui.dart';
 export 'src/garage/customer_garage_widgets.dart';
 export 'src/garage/customer_garage_dialogs.dart';

@@ -126,14 +126,16 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
       });
     });
 
+    final palette = DashboardPalette.of(context);
+
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        padding: const EdgeInsets.symmetric(horizontal: MobileProviderUi.marginMobile),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
-            _buildHeader(context, ref, user.id),
+            _buildHeader(context, ref, user.id, palette),
             const SizedBox(height: 24),
             _buildStatusToggle(ref, user.id),
             const SizedBox(height: 24),
@@ -155,18 +157,20 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref, String uid) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref, String uid, DashboardPalette palette) {
     final liveAlerts = ref.watch(globalActiveSosRequestsProvider).valueOrNull ?? [];
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
-        return Row(
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: MobileProviderUi.premiumCard(palette),
+          child: Row(
           children: [
-            CircleAvatar(
+            MobileProviderUi.profileAvatar(
+              palette: palette,
+              imageUrl: profile.profileImg,
               radius: 24,
-              backgroundColor: BoostDriveTheme.surfaceDark,
-              backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-              child: profile.profileImg.isEmpty ? const Icon(Icons.person, color: BoostDriveTheme.primaryColor) : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -175,11 +179,11 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    profile.displayName,
+                    'BoostDrive Pro: ${profile.displayName}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.manrope(
-                      color: Colors.white,
+                      color: palette.title,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
@@ -188,7 +192,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                     'PRO ID: @${profile.uid.length >= 8 ? profile.uid.substring(0, 8).toUpperCase() : profile.uid.toUpperCase()}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                    style: DashboardTypography.bodySm(palette),
                   ),
                 ],
               ),
@@ -233,7 +237,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                               decoration: BoxDecoration(
                                 color: Colors.red,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: BoostDriveTheme.backgroundDark, width: 2),
+                                border: Border.all(color: palette.background, width: 2),
                               ),
                             ),
                           ),
@@ -290,6 +294,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
               ],
             ),
           ],
+        ),
         );
       },
       loading: () => const CircularProgressIndicator(),
@@ -334,17 +339,16 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Widget _buildHeaderIcon(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, color: Colors.white, size: 22),
+    final palette = DashboardPalette.of(context);
+    return MobileCustomerUi.iconActionButton(
+      palette: palette,
+      icon: icon,
+      onTap: () {},
     );
   }
 
   Widget _buildStatusToggle(WidgetRef ref, String uid) {
+    final palette = DashboardPalette.of(context);
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
@@ -372,97 +376,12 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
             }
           }
         }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'AVAILABILITY STATUS',
-              style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _updatingAvailability ? null : () => setAvailability(true),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isOnline ? BoostDriveTheme.primaryColor : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.wifi_tethering, color: isOnline ? Colors.white : Colors.white24, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              'AVAILABLE',
-                              style: TextStyle(
-                                color: isOnline ? Colors.white : Colors.white24,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _updatingAvailability ? null : () => setAvailability(false),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: !isOnline ? Colors.white10 : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.power_settings_new, color: !isOnline ? Colors.white : Colors.white24, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              'OFFLINE',
-                              style: TextStyle(
-                                color: !isOnline ? Colors.white : Colors.white24,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (_updatingAvailability)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 4),
-                child: Text(
-                  'Updating availability...',
-                  style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ),
-            if (isOnline)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 4),
-                child: Text(
-                  '• Live location visible to SOS dispatch',
-                  style: TextStyle(color: Colors.green.shade400, fontSize: 11, fontWeight: FontWeight.w500),
-                ),
-              ),
-          ],
+        return MobileProviderUi.availabilityToggle(
+          palette: palette,
+          isOnline: isOnline,
+          updating: _updatingAvailability,
+          onChanged: setAvailability,
+          statusHint: isOnline ? '• Live location visible to SOS dispatch' : null,
         );
       },
       loading: () => const SizedBox(),
@@ -471,20 +390,22 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Widget _buildActiveJobMap() {
+    final palette = DashboardPalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'ACTIVE JOB MAP',
-          style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
-        ),
+        MobileProviderUi.sectionTitle(palette, 'Active job map'),
         const SizedBox(height: 12),
         Container(
           height: 220,
           width: double.infinity,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            borderRadius: BorderRadius.circular(MobileProviderUi.radiusCard),
+            border: Border.all(
+              color: palette.isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.05),
+            ),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -516,7 +437,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                       _mapController?.animateCamera(CameraUpdate.newLatLng(_currentPosition!));
                     }
                   },
-                  backgroundColor: BoostDriveTheme.primaryColor,
+                  backgroundColor: palette.primaryContainer,
                   child: const Icon(Icons.my_location, color: Colors.white),
                 ),
               ),
@@ -526,17 +447,17 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
+                    color: palette.surfaceContainerLow.withValues(alpha: 0.92),
                     borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.25)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.navigation, color: Colors.blueAccent, size: 14),
+                      Icon(Icons.navigation, color: palette.tertiary, size: 14),
                       const SizedBox(width: 8),
-                      const Text(
+                      Text(
                         'ONE-TAP NAV READY',
-                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900),
+                        style: DashboardTypography.labelMd(palette).copyWith(fontWeight: FontWeight.w800),
                       ),
                     ],
                   ),
@@ -550,6 +471,7 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Widget _buildStatsRow(WidgetRef ref, String uid) {
+    final palette = DashboardPalette.of(context);
     final jobsAsync = ref.watch(providerCompletedSosCountProvider(uid));
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
@@ -561,17 +483,33 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
         );
         return Row(
           children: [
-            Expanded(child: _buildStatCard('Earnings', '\$${profile.totalEarnings.toStringAsFixed(0)}', 'LIFETIME', true)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('Jobs', jobsLabel, 'COMPLETED', false)),
+            Expanded(
+              child: MobileProviderUi.compactStatCard(
+                palette: palette,
+                label: 'Earnings',
+                value: '\$${profile.totalEarnings.toStringAsFixed(0)}',
+                subtext: 'Lifetime',
+                subtextColor: palette.success,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard(
-                'Rating',
-                '—',
-                'NO REVIEWS YET',
-                false,
-                subtextMuted: true,
+              child: MobileProviderUi.compactStatCard(
+                palette: palette,
+                label: 'Jobs',
+                value: jobsLabel,
+                subtext: 'Completed',
+                subtextColor: palette.primaryContainer,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: MobileProviderUi.compactStatCard(
+                palette: palette,
+                label: 'Rating',
+                value: '—',
+                subtext: 'No reviews yet',
+                subtextColor: palette.muted,
               ),
             ),
           ],
@@ -582,43 +520,8 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     );
   }
 
-  Widget _buildStatCard(
-    String label,
-    String value,
-    String subtext,
-    bool isPositive, {
-    bool subtextMuted = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 10, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          Text(
-            subtext,
-            style: TextStyle(
-              color: subtextMuted
-                  ? BoostDriveTheme.textDim
-                  : (isPositive ? Colors.green : BoostDriveTheme.primaryColor),
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLiveRequests(WidgetRef ref) {
+    final palette = DashboardPalette.of(context);
     final uid = ref.watch(currentUserProvider)?.id;
     final providerTypes = uid != null
         ? (ref.watch(userProfileProvider(uid)).valueOrNull?.providerServiceTypes ?? const <String>[])
@@ -627,18 +530,20 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'LIVE SOS ALERTS',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+        MobileProviderUi.sectionHeader(
+          palette: palette,
+          title: 'Live SOS alerts',
+          trailing: TextButton(
+            onPressed: () {},
+            child: Text(
+              'HISTORY',
+              style: GoogleFonts.montserrat(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: palette.primaryContainer,
+              ),
             ),
-            TextButton(
-              onPressed: () {},
-              child: const Text('HISTORY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 16),
         StreamBuilder<List<SosRequest>>(
@@ -650,38 +555,19 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                 : requests.where((r) => sosRequestMatchesProviderServiceTypes(r, providerTypes)).toList();
 
             if (providerTypes.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.02),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                ),
-                child: Center(
-                  child: Text(
+              return MobileProviderUi.emptyStateCard(
+                palette: palette,
+                message:
                     'Add service types in Account → Profile so you only see SOS requests you can fulfill.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, height: 1.35),
-                  ),
-                ),
+                icon: Icons.tune,
               );
             }
 
             if (filtered.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.02),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                ),
-                child: Center(
-                  child: Text(
+              return MobileProviderUi.emptyStateCard(
+                palette: palette,
+                message:
                     'No pending SOS requests match your services (${providerTypes.join(", ")}).',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, height: 1.35),
-                  ),
-                ),
               );
             }
 
@@ -707,10 +593,11 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
     required SosRequest request,
     required String? userId,
   }) {
+    final palette = DashboardPalette.of(context);
     final tag = 'SOS — ${request.type.toUpperCase()}';
     final title = request.userNote.isNotEmpty ? request.userNote : 'No notes provided';
     final userLine = 'Customer ID: ${request.userId.length >= 8 ? request.userId.substring(0, 8) : request.userId}';
-    final tagColor = request.type.toLowerCase() == 'towing' ? Colors.redAccent : Colors.blueAccent;
+    final critical = request.type.toLowerCase() == 'towing';
     final requestId = request.id;
 
     String distanceLabel = kIsWeb ? 'Allow location for distance' : 'Enable GPS for distance';
@@ -727,146 +614,122 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
       );
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: tagColor.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: openDetail,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: tagColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(tag, style: TextStyle(color: tagColor, fontSize: 10, fontWeight: FontWeight.w900)),
+    return MobileProviderUi.glassOrderCard(
+      palette: palette,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: openDetail,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      MobileProviderUi.urgencyBadge(
+                        palette: palette,
+                        label: tag,
+                        critical: critical,
+                      ),
+                      Text(
+                        distanceLabel,
+                        style: GoogleFonts.manrope(
+                          color: palette.primaryContainer,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
                         ),
-                        Text(distanceLabel, style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    title,
+                    style: GoogleFonts.manrope(
+                      color: palette.title,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 16),
-                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text(userLine, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.touch_app, size: 16, color: BoostDriveTheme.primaryColor.withValues(alpha: 0.9)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Tap to open — customer sees you are responding (before you accept).',
-                            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12, height: 1.25),
-                          ),
+                  ),
+                  Text(userLine, style: DashboardTypography.bodySm(palette)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.touch_app, size: 16, color: palette.primaryContainer),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Tap to open — customer sees you are responding (before you accept).',
+                          style: DashboardTypography.bodySm(palette).copyWith(height: 1.25),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: requestId.isEmpty ? null : openDetail,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white24),
-                      minimumSize: const Size(0, 52),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: const Text('OPEN REQUEST', style: TextStyle(fontWeight: FontWeight.w800)),
-                  ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: MobileProviderUi.outlineButton(
+                  palette: palette,
+                  label: 'OPEN REQUEST',
+                  onPressed: requestId.isEmpty ? null : openDetail,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: (userId == null || requestId.isEmpty)
-                        ? null
-                        : () async {
-                            final sos = ref.read(sosServiceProvider);
-                            try {
-                              await sos.upsertProviderResponding(requestId);
-                              await sos.acceptRequest(requestId, userId);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Request accepted. Customer will see you as assigned.')),
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to accept: $e')),
-                                );
-                              }
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: MobileProviderUi.primaryButton(
+                  palette: palette,
+                  label: 'ACCEPT',
+                  onPressed: (userId == null || requestId.isEmpty)
+                      ? null
+                      : () async {
+                          final sos = ref.read(sosServiceProvider);
+                          try {
+                            await sos.upsertProviderResponding(requestId);
+                            await sos.acceptRequest(requestId, userId);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Request accepted. Customer will see you as assigned.')),
+                              );
                             }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: BoostDriveTheme.primaryColor,
-                      minimumSize: const Size(0, 52),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: const Text('ACCEPT', style: TextStyle(fontWeight: FontWeight.w900)),
-                  ),
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to accept: $e')),
+                              );
+                            }
+                          }
+                        },
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInProgressJobs(WidgetRef ref, String uid) {
+    final palette = DashboardPalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'ONGOING FULFILLMENT',
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-        ),
+        MobileProviderUi.sectionHeader(palette: palette, title: 'Ongoing fulfillment'),
         const SizedBox(height: 16),
         ref.watch(providerAssignedRequestsProvider(uid)).when(
               data: (list) {
                 if (list.isEmpty) {
-                  return Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.assignment_outlined, size: 48, color: BoostDriveTheme.textDim),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No ongoing jobs',
-                            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
+                  return MobileProviderUi.emptyStateCard(
+                    palette: palette,
+                    message: 'No ongoing jobs',
+                    icon: Icons.assignment_outlined,
                   );
                 }
                 return Column(
@@ -874,10 +737,9 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Material(
-                        color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.transparent,
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(MobileProviderUi.radiusCard),
                           onTap: r.id.isEmpty
                               ? null
                               : () {
@@ -885,11 +747,12 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                                     MaterialPageRoute<void>(builder: (_) => SosRequestDetailPage(request: r)),
                                   );
                                 },
-                          child: Padding(
+                          child: Container(
                             padding: const EdgeInsets.all(16),
+                            decoration: MobileProviderUi.premiumCard(palette),
                             child: Row(
                               children: [
-                                Icon(Icons.local_shipping, color: BoostDriveTheme.primaryColor, size: 28),
+                                Icon(Icons.local_shipping, color: palette.primaryContainer, size: 28),
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
@@ -897,8 +760,8 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                                     children: [
                                       Text(
                                         r.userNote.isNotEmpty ? r.userNote : 'SOS — ${r.type.toUpperCase()}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: GoogleFonts.manrope(
+                                          color: palette.title,
                                           fontWeight: FontWeight.w700,
                                           fontSize: 15,
                                         ),
@@ -908,12 +771,12 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                                       const SizedBox(height: 4),
                                       Text(
                                         'Status: ${r.status}',
-                                        style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
+                                        style: DashboardTypography.bodySm(palette),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.chevron_right, color: Colors.white54),
+                                Icon(Icons.chevron_right, color: palette.muted),
                               ],
                             ),
                           ),
@@ -923,58 +786,34 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                   }).toList(),
                 );
               },
-              loading: () => const Center(
+              loading: () => Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor),
+                  padding: const EdgeInsets.all(24),
+                  child: CircularProgressIndicator(color: palette.primaryContainer),
                 ),
               ),
-              error: (e, _) => Text('Could not load jobs: $e', style: TextStyle(color: Colors.red.shade200)),
+              error: (e, _) => Text('Could not load jobs: $e', style: TextStyle(color: palette.error)),
             ),
       ],
     );
   }
 
   Widget _buildActiveServicesSection(WidgetRef ref, String uid) {
+    final palette = DashboardPalette.of(context);
     final catalogAsync = ref.watch(_dashboardProviderServicesFamily(uid));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'ACTIVE SERVICES',
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-        ),
+        MobileProviderUi.sectionHeader(palette: palette, title: 'Active services'),
         const SizedBox(height: 16),
         catalogAsync.when(
               data: (rows) {
                 final activeRows = rows.where((r) => r['is_active'] != false).toList();
                 if (activeRows.isEmpty) {
-                  return Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.settings_outlined, size: 48, color: BoostDriveTheme.textDim),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No services listed',
-                            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 16),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Add services in the Services tab to show them here.',
-                            style: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.8), fontSize: 13),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
+                  return MobileProviderUi.emptyStateCard(
+                    palette: palette,
+                    message: 'No services listed. Add services in the Services tab to show them here.',
+                    icon: Icons.settings_outlined,
                   );
                 }
                 return Wrap(
@@ -986,18 +825,19 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
                     return Chip(
                       label: Text(
                         label,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w600),
                       ),
-                      backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                      side: BorderSide(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.4)),
+                      backgroundColor: palette.primaryContainer.withValues(alpha: 0.12),
+                      side: BorderSide(color: palette.primaryContainer.withValues(alpha: 0.35)),
+                      labelStyle: TextStyle(color: palette.title),
                     );
                   }).toList(),
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              loading: () => Center(child: CircularProgressIndicator(color: palette.primaryContainer, strokeWidth: 2)),
               error: (e, _) => Text(
                 'Could not load services: $e',
-                style: TextStyle(color: Colors.red.shade200, fontSize: 12),
+                style: TextStyle(color: palette.error, fontSize: 12),
               ),
             ),
       ],
@@ -1005,34 +845,22 @@ class _ServiceProDashboardState extends ConsumerState<ServiceProDashboard> {
   }
 
   Widget _buildIncomingJobCardRequests(WidgetRef ref, String providerId) {
+    final palette = DashboardPalette.of(context);
     final asyncCards = ref.watch(_incomingProviderJobCardsFamily(providerId));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'CUSTOMER JOB CARD REQUESTS',
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-        ),
+        MobileProviderUi.sectionHeader(palette: palette, title: 'Customer job card requests'),
         const SizedBox(height: 12),
         asyncCards.when(
           data: (rows) {
             if (rows.isEmpty) {
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                ),
-                child: Text(
-                  'No new job card requests yet.',
-                  style: TextStyle(color: BoostDriveTheme.textDim),
-                ),
+              return MobileProviderUi.emptyStateCard(
+                palette: palette,
+                message: 'No new job card requests yet.',
               );
             }
             final visible = rows.take(3).toList();
-            final palette = DashboardPalette.of(context);
             return Column(
               children: visible.map((row) {
                 final status = (row['status']?.toString() ?? 'submitted').toLowerCase();

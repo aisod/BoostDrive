@@ -2,7 +2,7 @@ plugins {
     // We remove the version="..." part so it uses the one already on the classpath
     id("com.android.application") apply false
     id("com.android.library") apply false
-    id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
 // Apply common Android SDK versions to all Android modules.
@@ -10,12 +10,11 @@ subprojects {
     afterEvaluate {
         val android = project.extensions.findByName("android")
         if (android != null && android is com.android.build.gradle.BaseExtension) {
-            android.compileSdkVersion(34)
-            android.buildToolsVersion("34.0.0")
+            android.compileSdkVersion(36)
 
             android.defaultConfig {
-                minSdkVersion(21)
-                targetSdkVersion(34)
+                minSdkVersion(24)
+                targetSdkVersion(36)
             }
         }
     }

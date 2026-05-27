@@ -14,9 +14,6 @@ class SellerDashboard extends ConsumerStatefulWidget {
 
 class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final Color _accentBlue = const Color(0xFF0095FF);
-  final Color _cardBg = const Color(0xFF131D25);
-  final Color _borderCol = Colors.white.withValues(alpha: 0.05);
 
   @override
   void initState() {
@@ -34,23 +31,24 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     if (user == null) return const Center(child: Text('Please log in'));
+    final palette = DashboardPalette.of(context);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: MobileProviderUi.marginMobile),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              _buildHeader(ref, user.id),
+              _buildHeader(ref, user.id, palette),
               const SizedBox(height: 32),
-              _buildPerformanceSection(ref, user.id),
+              _buildPerformanceSection(ref, user.id, palette),
               const SizedBox(height: 32),
-              _buildTabSection(ref, user.id),
+              _buildTabSection(ref, user.id, palette),
               const SizedBox(height: 32),
-              _buildServiceRequestsSection(),
+              _buildServiceRequestsSection(palette),
               const SizedBox(height: 120),
             ],
           ),
@@ -58,55 +56,54 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
-        backgroundColor: _accentBlue,
+        backgroundColor: palette.primaryContainer,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
         child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
     );
   }
 
-  Widget _buildHeader(WidgetRef ref, String uid) {
+  Widget _buildHeader(WidgetRef ref, String uid, DashboardPalette palette) {
     return ref.watch(userProfileProvider(uid)).when(
       data: (profile) {
         if (profile == null) return const SizedBox();
-        return Row(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: _cardBg,
-              backgroundImage: profile.profileImg.isNotEmpty ? NetworkImage(profile.profileImg) : null,
-              child: profile.profileImg.isEmpty ? const Icon(Icons.person, color: Colors.white54) : null,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'BoostDrive Seller',
-                    style: GoogleFonts.manrope(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  Text(
-                    '${profile.registeredBusinessName ?? "My Store"} • Official Seller',
-                    style: GoogleFonts.manrope(
-                      color: BoostDriveTheme.textDim,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: MobileProviderUi.premiumCard(palette),
+          child: Row(
+            children: [
+              MobileProviderUi.profileAvatar(
+                palette: palette,
+                imageUrl: profile.profileImg,
+                radius: 28,
               ),
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.search, color: Colors.white70, size: 28),
-            ),
-            _buildNotificationIcon(true),
-          ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BoostDrive Seller',
+                      style: GoogleFonts.manrope(
+                        color: palette.title,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      '${profile.registeredBusinessName ?? "My Store"} • Official Seller',
+                      style: DashboardTypography.bodySm(palette),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: Icon(Icons.search, color: palette.muted, size: 28),
+              ),
+              _buildNotificationIcon(palette, true),
+            ],
+          ),
         );
       },
       loading: () => const SizedBox(height: 56),
@@ -114,12 +111,12 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
     );
   }
 
-  Widget _buildNotificationIcon(bool hasUnread) {
+  Widget _buildNotificationIcon(DashboardPalette palette, bool hasUnread) {
     return Stack(
       children: [
         IconButton(
           onPressed: () {},
-          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white70, size: 28),
+          icon: Icon(Icons.notifications_none_rounded, color: palette.muted, size: 28),
         ),
         if (hasUnread)
           Positioned(
@@ -129,9 +126,9 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               height: 10,
               width: 10,
               decoration: BoxDecoration(
-                color: const Color(0xFFFF4D4D),
+                color: palette.error,
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF0D1117), width: 2),
+                border: Border.all(color: palette.background, width: 2),
               ),
             ),
           ),
@@ -139,7 +136,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
     );
   }
 
-  Widget _buildPerformanceSection(WidgetRef ref, String uid) {
+  Widget _buildPerformanceSection(WidgetRef ref, String uid, DashboardPalette palette) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,7 +146,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
             Text(
               'Performance',
               style: GoogleFonts.manrope(
-                color: Colors.white,
+                color: palette.title,
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
               ),
@@ -159,12 +156,12 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                 Text(
                   'Last 7 Days',
                   style: GoogleFonts.manrope(
-                    color: _accentBlue,
+                    color: palette.primaryContainer,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                Icon(Icons.keyboard_arrow_down, color: _accentBlue, size: 20),
+                Icon(Icons.keyboard_arrow_down, color: palette.primaryContainer, size: 20),
               ],
             ),
           ],
@@ -174,11 +171,11 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _buildPerformanceCard('Total Sales', '\$12,450', '+12%', true),
+              _buildPerformanceCard(palette, 'Total Sales', '\$12,450', '+12%', true),
               const SizedBox(width: 16),
-              _buildPerformanceCard('Active Listings', '1,248', '+3%', true),
+              _buildPerformanceCard(palette, 'Active Listings', '1,248', '+3%', true),
               const SizedBox(width: 16),
-              _buildPerformanceCard('Pending Orders', '14', '0%', false),
+              _buildPerformanceCard(palette, 'Pending Orders', '14', '0%', false),
             ],
           ),
         ),
@@ -186,22 +183,24 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
     );
   }
 
-  Widget _buildPerformanceCard(String label, String value, String trend, bool isPositive) {
+  Widget _buildPerformanceCard(
+    DashboardPalette palette,
+    String label,
+    String value,
+    String trend,
+    bool isPositive,
+  ) {
     return Container(
       width: 160,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _borderCol),
-      ),
+      decoration: MobileProviderUi.premiumCard(palette),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: GoogleFonts.manrope(
-              color: BoostDriveTheme.textDim,
+              color: palette.muted,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -210,7 +209,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
           Text(
             value,
             style: GoogleFonts.manrope(
-              color: Colors.white,
+              color: palette.title,
               fontSize: 24,
               fontWeight: FontWeight.w800,
             ),
@@ -239,55 +238,42 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
     );
   }
 
-  Widget _buildTabSection(WidgetRef ref, String uid) {
+  Widget _buildTabSection(WidgetRef ref, String uid, DashboardPalette palette) {
     return Column(
       children: [
-        TabBar(
+        MobileProviderUi.segmentTabBar(
+          palette: palette,
           controller: _tabController,
-          indicatorColor: _accentBlue,
-          indicatorWeight: 3,
-          indicatorSize: TabBarIndicatorSize.tab,
-          labelColor: _accentBlue,
-          unselectedLabelColor: BoostDriveTheme.textDim,
-          dividerColor: Colors.white.withValues(alpha: 0.05),
-          labelStyle: GoogleFonts.manrope(
-            fontWeight: FontWeight.w800,
-            fontSize: 13,
-            letterSpacing: 0.5,
-          ),
-          tabs: const [
-            Tab(text: 'INVENTORY'),
-            Tab(text: 'SERVICE REQUESTS'),
-            Tab(text: 'ORDERS'),
-          ],
+          labels: const ['INVENTORY', 'REQUESTS', 'ORDERS'],
         ),
         const SizedBox(height: 24),
-        _buildInventorySearchAndList(ref, uid),
+        _buildInventorySearchAndList(ref, uid, palette),
       ],
     );
   }
 
-  Widget _buildInventorySearchAndList(WidgetRef ref, String uid) {
+  Widget _buildInventorySearchAndList(WidgetRef ref, String uid, DashboardPalette palette) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
                 height: 56,
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: _cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _borderCol),
+                  color: MobileProviderUi.fieldSurface(palette),
+                  borderRadius: BorderRadius.circular(MobileProviderUi.radiusControl),
+                  border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.35)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.search, color: Colors.white38, size: 24),
+                    Icon(Icons.search, color: palette.muted, size: 24),
                     const SizedBox(width: 12),
                     Text(
-                      'Search SKU, name or VIN...',
-                      style: GoogleFonts.manrope(color: Colors.white38, fontSize: 15),
+                      'Search SKU, name or VIN…',
+                      style: GoogleFonts.manrope(color: palette.muted, fontSize: 15),
                     ),
                   ],
                 ),
@@ -298,11 +284,11 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               height: 56,
               width: 56,
               decoration: BoxDecoration(
-                color: _cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _borderCol),
+                color: MobileProviderUi.fieldSurface(palette),
+                borderRadius: BorderRadius.circular(MobileProviderUi.radiusControl),
+                border: Border.all(color: palette.outlineVariant.withValues(alpha: 0.35)),
               ),
-              child: const Icon(Icons.tune_rounded, color: Colors.white70, size: 24),
+              child: Icon(Icons.tune_rounded, color: palette.muted, size: 24),
             ),
           ],
         ),
@@ -314,6 +300,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               return Column(
                 children: [
                   _buildInventoryCard(
+                    palette,
                     'V8 Engine Block - 2018 Ford F-150 Lariat',
                     'FRD-5520-X1',
                     '2,499.00',
@@ -324,16 +311,18 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                   ),
                   const SizedBox(height: 16),
                   _buildInventoryCard(
+                    palette,
                     'LED Headlight Assembly (Right)',
                     'BMW-L-2022-M3',
                     '845.00',
                     'Out of Stock',
                     'NEW OEM',
-                    _accentBlue,
+                    palette.primaryContainer,
                     'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&q=80&w=200',
                   ),
                   const SizedBox(height: 16),
                   _buildInventoryCard(
+                    palette,
                     'Alloy Wheel Rim 19" - Set of 4',
                     'WHL-99-TSL',
                     '1,100.00',
@@ -349,12 +338,13 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               children: products.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _buildInventoryCard(
+                  palette,
                   p.title,
                   p.id.substring(0, 8).toUpperCase(),
                   p.price.toStringAsFixed(2),
                   p.status == 'active' ? 'In Stock' : 'Out of Stock',
                   p.condition.toUpperCase(),
-                  p.condition == 'new' ? _accentBlue : (p.condition == 'used' ? const Color(0xFFA855F7) : const Color(0xFFFF8A00)),
+                  p.condition == 'new' ? palette.primaryContainer : (p.condition == 'used' ? const Color(0xFFA855F7) : const Color(0xFFFF8A00)),
                   p.imageUrl,
                   clickCount: p.clickCount ?? 0,
                 ),
@@ -369,6 +359,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
   }
 
   Widget _buildInventoryCard(
+    DashboardPalette palette,
     String title,
     String sku,
     String price,
@@ -380,11 +371,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _borderCol),
-      ),
+      decoration: MobileProviderUi.premiumCard(palette),
       child: Row(
         children: [
           Stack(
@@ -393,14 +380,14 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                 height: 100,
                 width: 100,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: palette.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(16),
                   image: imageUrl != null && imageUrl.isNotEmpty 
                       ? DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover) 
                       : null,
                 ),
                 child: imageUrl == null || imageUrl.isEmpty 
-                    ? const Icon(Icons.image_outlined, color: Colors.white10, size: 32) 
+                    ? Icon(Icons.image_outlined, color: palette.muted.withValues(alpha: 0.5), size: 32) 
                     : null,
               ),
               Positioned(
@@ -436,7 +423,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                       child: Text(
                         title,
                         style: GoogleFonts.manrope(
-                          color: Colors.white,
+                          color: palette.title,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -444,13 +431,13 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Icon(Icons.more_vert, color: Colors.white38),
+                    Icon(Icons.more_vert, color: palette.muted),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'SKU: $sku',
-                  style: GoogleFonts.manrope(color: BoostDriveTheme.textDim, fontSize: 12),
+                  style: DashboardTypography.bodySm(palette),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -458,7 +445,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                     Text(
                       '\$$price',
                       style: GoogleFonts.manrope(
-                        color: _accentBlue,
+                        color: palette.primaryContainer,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
@@ -488,12 +475,12 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.visibility_outlined, size: 16, color: Colors.white38),
+                    Icon(Icons.visibility_outlined, size: 16, color: palette.muted),
                     const SizedBox(width: 6),
                     Text(
                       'Clicks: $clickCount',
                       style: GoogleFonts.manrope(
-                        color: Colors.white38,
+                        color: palette.muted,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -508,7 +495,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
     );
   }
 
-  Widget _buildServiceRequestsSection() {
+  Widget _buildServiceRequestsSection(DashboardPalette palette) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -518,7 +505,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
             Text(
               'Service Requests',
               style: GoogleFonts.manrope(
-                color: Colors.white,
+                color: palette.title,
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
               ),
@@ -528,7 +515,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               child: Text(
                 'VIEW ALL',
                 style: GoogleFonts.manrope(
-                  color: _accentBlue,
+                  color: palette.primaryContainer,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),
@@ -539,11 +526,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: _cardBg,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _borderCol),
-          ),
+          decoration: MobileProviderUi.premiumCard(palette),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -552,16 +535,16 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: _accentBlue.withValues(alpha: 0.1),
+                      color: palette.primaryContainer.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.build_rounded, color: _accentBlue, size: 24),
+                    child: Icon(Icons.build_rounded, color: palette.primaryContainer, size: 24),
                   ),
                   const SizedBox(width: 16),
                   Text(
                     'INSTALLATION REQUEST',
                     style: GoogleFonts.manrope(
-                      color: _accentBlue,
+                      color: palette.primaryContainer,
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0.5,
@@ -573,7 +556,7 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               Text(
                 'Transmission Swap - Alex Johnson',
                 style: GoogleFonts.manrope(
-                  color: Colors.white,
+                  color: palette.title,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -581,45 +564,24 @@ class _SellerDashboardState extends ConsumerState<SellerDashboard> with SingleTi
               const SizedBox(height: 6),
               Text(
                 'Linked Part: 2015 Camry Transmission (Used)',
-                style: GoogleFonts.manrope(
-                  color: BoostDriveTheme.textDim,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: DashboardTypography.bodyMd(palette),
               ),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
+                    child: MobileProviderUi.primaryButton(
+                      palette: palette,
+                      label: 'Accept Task',
                       onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _accentBlue,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 56),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: Text(
-                        'Accept Task',
-                        style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 15),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton(
+                    child: MobileProviderUi.outlineButton(
+                      palette: palette,
+                      label: 'Decline',
                       onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 56),
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: Text(
-                        'Decline',
-                        style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 15),
-                      ),
                     ),
                   ),
                 ],

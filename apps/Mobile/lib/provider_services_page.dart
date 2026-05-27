@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
@@ -64,185 +65,167 @@ class ProviderServicesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Provider ID is required to scope catalog rows.
+    final palette = DashboardPalette.of(context);
     final uid = ref.watch(currentUserProvider)?.id;
     if (uid == null) {
-      return const Center(child: Text('Please log in'));
+      return Scaffold(
+        backgroundColor: palette.background,
+        body: Center(child: Text('Please log in', style: DashboardTypography.bodyMd(palette))),
+      );
     }
     final role = ref.watch(mobileShellRoleProvider);
     final canManage = role == 'service_pro' || role == 'logistics';
     if (!canManage) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'Service catalog management is available to service providers only.',
-            style: TextStyle(color: BoostDriveTheme.textDim, height: 1.4),
-            textAlign: TextAlign.center,
+      return Scaffold(
+        backgroundColor: palette.background,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Service catalog management is available to service providers only.',
+              style: DashboardTypography.bodyMd(palette),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       );
     }
 
-    // Load provider service catalog from backend.
+    final profile = ref.watch(userProfileProvider(uid)).valueOrNull;
     final listAsync = ref.watch(_providerServicesCatalogFamily(uid));
 
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: BoostDriveTheme.backgroundDark,
-      child: SafeArea(
-        child: Stack(
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Text(
-                  'SERVICES',
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: MobileProviderUi.glassAppBar(
+        context: context,
+        palette: palette,
+        title: 'BoostDrive',
+        avatar: MobileProviderUi.profileAvatar(
+          palette: palette,
+          imageUrl: profile?.profileImg,
+        ),
+      ),
+      body: Stack(
+        children: [
           listAsync.when(
             data: (rows) {
               if (rows.isEmpty) {
-                // Empty state when provider has no services yet.
                 return ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 48, 20, 100),
+                  padding: const EdgeInsets.fromLTRB(
+                    MobileProviderUi.marginMobile,
+                    16,
+                    MobileProviderUi.marginMobile,
+                    100,
+                  ),
                   children: [
-                    Text(
-                      'Define offerings customers can book. Data syncs to provider_services.',
-                      style: TextStyle(color: BoostDriveTheme.textDim, height: 1.4),
+                    MobileProviderUi.pageHeader(
+                      palette: palette,
+                      title: 'Services Catalog',
+                      subtitle: 'Define offerings customers can book. Data syncs to provider_services.',
                     ),
                   ],
                 );
               }
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(20, 48, 20, 100),
-                itemCount: rows.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final r = rows[index];
-                  // Resolve row id using modern and legacy keys.
-                  final rowId = _serviceRowId(r);
-                  final active = r['is_active'] == true;
-                  final estMin = r['estimated_minutes'] ?? r['duration_minutes'] ?? 0;
-                  return Material(
-                    color: BoostDriveTheme.surfaceDark.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  r['name']?.toString() ?? '',
-                                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              Text('Active', style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 11)),
-                              Switch.adaptive(
-                                value: active,
-                                onChanged: rowId == null
-                                    ? null
-                                    : (v) async {
-                                        try {
-                                          // Persist active flag change.
-                                          await ref.read(providerOpsServiceProvider).updateProviderServiceActive(
-                                                id: rowId,
-                                                isActive: v,
-                                              );
-                                          ref.invalidate(_providerServicesCatalogFamily(uid));
-                                        } catch (e) {
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                                          }
-                                        }
-                                      },
-                              ),
-                            ],
-                          ),
-                          Text(
-                            r['category']?.toString() ?? '',
-                            style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 12),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            r['description']?.toString() ?? '',
-                            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13, height: 1.35),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                'N\$${(r['price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(width: 16),
-                              Text(
-                                '~ $estMin min',
-                                style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                tooltip: rowId == null ? 'Missing service id — fix table in Supabase' : 'Edit',
-                                icon: Icon(Icons.edit_outlined, color: rowId == null ? Colors.white24 : Colors.white70),
-                                onPressed: rowId == null
-                                    ? null
-                                    : () => _openAddSheet(context, ref, uid, existing: r),
-                              ),
-                              IconButton(
-                                tooltip: rowId == null ? 'Missing service id' : 'Delete',
-                                icon: Icon(Icons.delete_outline, color: rowId == null ? Colors.white24 : Colors.white38),
-                                onPressed: rowId == null
-                                    ? null
-                                    : () async {
-                                  // Confirm deletion before removing service row.
-                                  final ok = await showDialog<bool>(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      backgroundColor: BoostDriveTheme.surfaceDark,
-                                      title: const Text('Remove service?', style: TextStyle(color: Colors.white)),
-                                      content: const Text(
-                                        'This deletes the catalog row.',
-                                        style: TextStyle(color: Colors.white70),
-                                      ),
-                                      actions: [
-                                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-                                        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE')),
-                                      ],
-                                    ),
-                                  );
-                                  if (ok == true && context.mounted) {
-                                    try {
-                                      await ref.read(providerOpsServiceProvider).deleteProviderService(rowId);
-                                      ref.invalidate(_providerServicesCatalogFamily(uid));
-                                    } catch (e) {
-                                      if (!context.mounted) return;
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                                    }
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                          if (rowId == null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                'This row has no id in the API response. Add a uuid primary key column `id` in Supabase, then refresh.',
-                                style: TextStyle(color: Colors.orange.shade200, fontSize: 11, height: 1.3),
-                              ),
-                            ),
-                        ],
+              final activeCount = rows.where((r) => r['is_active'] == true).length;
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  MobileProviderUi.marginMobile,
+                  12,
+                  MobileProviderUi.marginMobile,
+                  100,
+                ),
+                children: [
+                  MobileProviderUi.pageHeader(
+                    palette: palette,
+                    title: 'Services Catalog',
+                    subtitle: 'Manage your automotive service offerings and pricing.',
+                  ),
+                  const SizedBox(height: 20),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.4,
+                    children: [
+                      MobileProviderUi.bentoStatCard(
+                        palette: palette,
+                        label: 'Active',
+                        value: '$activeCount',
+                        icon: Icons.check_circle_outline,
                       ),
-                    ),
-                  );
-                },
+                      MobileProviderUi.bentoStatCard(
+                        palette: palette,
+                        label: 'Catalog',
+                        value: '${rows.length}',
+                        icon: Icons.handyman,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  ...rows.map((r) {
+                    final rowId = _serviceRowId(r);
+                    final active = r['is_active'] == true;
+                    final estMin = r['estimated_minutes'] ?? r['duration_minutes'] ?? 0;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: MobileProviderUi.serviceCatalogCard(
+                        palette: palette,
+                        name: r['name']?.toString() ?? '',
+                        category: r['category']?.toString() ?? '',
+                        priceLabel: 'N\$${(r['price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                        durationLabel: '~ $estMin min',
+                        description: r['description']?.toString() ?? '',
+                        active: active,
+                        onActiveChanged: rowId == null
+                            ? null
+                            : (v) async {
+                                try {
+                                  await ref.read(providerOpsServiceProvider).updateProviderServiceActive(
+                                        id: rowId,
+                                        isActive: v,
+                                      );
+                                  ref.invalidate(_providerServicesCatalogFamily(uid));
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                                  }
+                                }
+                              },
+                        onEdit: rowId == null ? null : () => _openAddSheet(context, ref, uid, existing: r),
+                        onDelete: rowId == null
+                            ? null
+                            : () async {
+                                final ok = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    backgroundColor: palette.surfaceContainerHigh,
+                                    title: Text('Remove service?', style: TextStyle(color: palette.title)),
+                                    content: Text(
+                                      'This deletes the catalog row.',
+                                      style: DashboardTypography.bodyMd(palette),
+                                    ),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+                                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE')),
+                                    ],
+                                  ),
+                                );
+                                if (ok == true && context.mounted) {
+                                  try {
+                                    await ref.read(providerOpsServiceProvider).deleteProviderService(rowId);
+                                    ref.invalidate(_providerServicesCatalogFamily(uid));
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                                  }
+                                }
+                              },
+                      ),
+                    );
+                  }),
+                ],
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -258,17 +241,17 @@ class ProviderServicesPage extends ConsumerWidget {
             ),
           ),
           Positioned(
-            right: 20,
+            right: MobileProviderUi.marginMobile,
             bottom: 24,
             child: FloatingActionButton.extended(
               onPressed: () => _openAddSheet(context, ref, uid, existing: null),
-              backgroundColor: BoostDriveTheme.primaryColor,
+              backgroundColor: palette.primaryContainer,
+              foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('ADD SERVICE'),
             ),
           ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -281,6 +264,7 @@ class ProviderServicesPage extends ConsumerWidget {
   }) async {
     // Keep messenger from parent context so feedback still works after modal closes.
     final messenger = ScaffoldMessenger.of(context);
+    final palette = DashboardPalette.of(context);
     var isSubmitting = false;
     final name = TextEditingController(text: existing?['name']?.toString() ?? '');
     final desc = TextEditingController(text: existing?['description']?.toString() ?? '');
@@ -298,7 +282,7 @@ class ProviderServicesPage extends ConsumerWidget {
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: BoostDriveTheme.surfaceDark,
+      backgroundColor: MobileProviderUi.cardSurface(palette),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -319,23 +303,27 @@ class ProviderServicesPage extends ConsumerWidget {
                   children: [
                     Text(
                       existingId == null ? 'New service' : 'Edit service',
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+                      style: GoogleFonts.manrope(
+                        color: palette.title,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: name,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _fieldDeco('Service title'),
+                      style: TextStyle(color: palette.title),
+                      decoration: _fieldDeco(palette, 'Service title'),
                     ),
                     const SizedBox(height: 12),
                     InputDecorator(
-                      decoration: _fieldDeco('Category'),
+                      decoration: _fieldDeco(palette, 'Category'),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           isExpanded: true,
                           value: category,
-                          dropdownColor: BoostDriveTheme.surfaceDark,
-                          style: const TextStyle(color: Colors.white),
+                          dropdownColor: MobileProviderUi.cardSurface(palette),
+                          style: TextStyle(color: palette.title),
                           items: _categories
                               .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                               .toList(),
@@ -347,8 +335,8 @@ class ProviderServicesPage extends ConsumerWidget {
                     TextField(
                       controller: desc,
                       maxLines: 3,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _fieldDeco('Description'),
+                      style: TextStyle(color: palette.title),
+                      decoration: _fieldDeco(palette, 'Description'),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -357,8 +345,8 @@ class ProviderServicesPage extends ConsumerWidget {
                           child: TextField(
                             controller: price,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _fieldDeco('Base price'),
+                            style: TextStyle(color: palette.title),
+                            decoration: _fieldDeco(palette, 'Base price'),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -366,8 +354,8 @@ class ProviderServicesPage extends ConsumerWidget {
                           child: TextField(
                             controller: minutes,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _fieldDeco('Est. minutes'),
+                            style: TextStyle(color: palette.title),
+                            decoration: _fieldDeco(palette, 'Est. minutes'),
                           ),
                         ),
                       ],
@@ -440,14 +428,11 @@ class ProviderServicesPage extends ConsumerWidget {
     }
   }
 
-  InputDecoration _fieldDeco(String hint) {
-    // Shared field style for bottom-sheet inputs.
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: BoostDriveTheme.textDim),
-      filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.06),
+  InputDecoration _fieldDeco(DashboardPalette palette, String hint) {
+    return MobileProviderUi.fieldDecoration(palette, hint: hint).copyWith(
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
     );
   }
 }
