@@ -16,6 +16,7 @@ import 'dashboard_typography.dart';
 import 'dashboard_ui_components.dart';
 import 'provider_profile_ui.dart';
 import 'dashboard_theme_toggle.dart';
+import 'customer_profile_settings_ui.dart';
 
 /// Editable name/phone row for SOS emergency contacts (backed by [EmergencyContact] on save).
 class _EmergencyContactFieldPair {
@@ -362,6 +363,13 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   Widget _buildAccountActions() {
     final palette = DashboardPalette.of(context);
+    if (CustomerProfileSettingsUi.useMobileLayout(context)) {
+      return CustomerProfileSettingsUi.accountActions(
+        palette: palette,
+        onLogout: _handleLogout,
+        onDeleteAccount: _handleDeleteAccount,
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final row = constraints.maxWidth > 600;
@@ -3483,82 +3491,112 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
         }
 
         final dashPalette = DashboardPalette.of(context);
+        final useKineticMobile = CustomerProfileSettingsUi.useMobileLayout(context);
+
         return Scaffold(
           backgroundColor: dashPalette.background,
-          appBar: AppBar(
-            backgroundColor: dashPalette.navBar,
-            elevation: 4,
-            shadowColor: Colors.black.withValues(alpha: 0.12),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              'Profile Settings',
-              style: TextStyle(
-                fontFamily: 'Montserrat',
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-              ),
-            ),
-            centerTitle: false,
-            actions: [
-              const DashboardThemeToggle(compact: true, onColoredHeader: true),
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                onPressed: () {},
-              ),
-              IconButton(
-                icon: const Icon(Icons.help_outline, color: Colors.white),
-                onPressed: () {},
-              ),
-              if (_isEditing)
-                IconButton(
-                  icon: const Icon(Icons.check, color: Colors.white),
-                  onPressed: _handleSaveProfile,
+          appBar: useKineticMobile
+              ? CustomerProfileSettingsUi.glassAppBar(
+                  context: context,
+                  palette: dashPalette,
+                  title: 'Profile Settings',
+                  trailing: [
+                    if (_isEditing)
+                      IconButton(
+                        icon: Icon(Icons.check, color: dashPalette.primaryContainer),
+                        onPressed: _handleSaveProfile,
+                        tooltip: 'Save',
+                      ),
+                  ],
+                )
+              : AppBar(
+                  backgroundColor: dashPalette.navBar,
+                  elevation: 4,
+                  shadowColor: Colors.black.withValues(alpha: 0.12),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  title: Text(
+                    'Profile Settings',
+                    style: TextStyle(
+                      fontFamily: 'Montserrat',
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                  centerTitle: false,
+                  actions: [
+                    const DashboardThemeToggle(compact: true, onColoredHeader: true),
+                    if (_isEditing)
+                      IconButton(
+                        icon: const Icon(Icons.check, color: Colors.white),
+                        onPressed: _handleSaveProfile,
+                      ),
+                  ],
                 ),
-            ],
-          ),
           body: SingleChildScrollView(
-            child: DashboardPageContainer(
-              maxWidth: 960,
-              child: Column(
-              children: [
-                if (profile.role.toLowerCase() == 'admin') ...[
-                  _buildAdminProfileView(profile, isWide),
-                ] else ...[
-                  const SizedBox(height: 16),
-                  _buildProfileHeader(profile),
-                  const SizedBox(height: 24),
-                  Column(
-                      children: [
+            padding: useKineticMobile
+                ? const EdgeInsets.symmetric(horizontal: CustomerProfileSettingsUi.marginMobile)
+                : null,
+            child: useKineticMobile
+                ? Column(
+                    children: [
+                      if (profile.role.toLowerCase() == 'admin') ...[
+                        _buildAdminProfileView(profile, isWide),
+                      ] else ...[
+                        const SizedBox(height: 16),
+                        _buildProfileHeader(profile),
+                        const SizedBox(height: 24),
                         _buildPersonalInformation(showInlineEdit: true),
-                        if (!kIsWeb) ...[
-                          const SizedBox(height: 32),
-                          _buildSafetySection(),
-                        ],
+                      ],
+                      if (profile.role.toLowerCase() != 'admin') ...[
                         const SizedBox(height: 24),
                         _buildControlCenterSection(profile),
+                      ],
+                      const SizedBox(height: 24),
+                      _buildAccountActions(),
+                      const SizedBox(height: 24),
+                      CustomerProfileSettingsUi.versionFooter(dashPalette),
+                      const SizedBox(height: 40),
+                    ],
+                  )
+                : DashboardPageContainer(
+                    maxWidth: 960,
+                    child: Column(
+                      children: [
+                        if (profile.role.toLowerCase() == 'admin') ...[
+                          _buildAdminProfileView(profile, isWide),
+                        ] else ...[
+                          const SizedBox(height: 16),
+                          _buildProfileHeader(profile),
+                          const SizedBox(height: 24),
+                          Column(
+                            children: [
+                              _buildPersonalInformation(showInlineEdit: true),
+                              const SizedBox(height: 24),
+                              _buildControlCenterSection(profile),
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 32),
+                        _buildAccountActions(),
                         const SizedBox(height: 24),
+                        Text(
+                          'BoostDrive Version 2.4.1 (1209)',
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
+                            color: const Color(0xFF000000),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
                       ],
                     ),
-                ],
-                const SizedBox(height: 32),
-                _buildAccountActions(),
-                const SizedBox(height: 24),
-                Text(
-                  'BoostDrive Version 2.4.1 (1209)',
-                  style: TextStyle(fontFamily: 'Manrope', 
-                    color: const Color(0xFF000000),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
                   ),
-                ),
-                const SizedBox(height: 40),
-              ],
-            ),
-            ),
           ),
         );
       },
@@ -3596,6 +3634,66 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   Widget _buildProfileHeader(UserProfile profile) {
     final isProvider = _isProviderRole(profile.role);
     final palette = DashboardPalette.of(context);
+
+    if (CustomerProfileSettingsUi.useMobileLayout(context) && !isProvider) {
+      return CustomerProfileSettingsUi.profileSummaryCard(
+        palette: palette,
+        displayName: profile.fullName.isEmpty ? 'Set Name' : profile.fullName,
+        memberSinceLabel: profile.isSeller
+            ? 'Seller since ${profile.createdAt.year}'
+            : 'Customer since ${profile.createdAt.year}',
+        avatar: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _isUploading ? null : _showProfilePhotoOptions,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: palette.primaryContainer, width: 4),
+                    boxShadow: palette.cardShadowLow,
+                  ),
+                  child: ClipOval(
+                    child: _buildProfileAvatarContent(
+                      profile: profile,
+                      palette: palette,
+                      radius: 48,
+                      initialsFontSize: 28,
+                      initialsName: profile.fullName,
+                    ),
+                  ),
+                ),
+                if (_isUploading)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: CustomerProfileSettingsUi.cameraFab(
+                    palette: palette,
+                    isUploading: _isUploading,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return DashboardCard(
       padding: const EdgeInsets.all(32),
@@ -4018,6 +4116,53 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
     // Otherwise, respect _isEditing for normal user settings.
     final isSectionEditable = isProviderProfile ? _isProviderEditMode : (showInlineEdit ? _isEditing : true);
     final palette = DashboardPalette.of(context);
+
+    if (CustomerProfileSettingsUi.useMobileLayout(context) && !isProviderProfile) {
+      return CustomerProfileSettingsUi.personalInformationCard(
+        palette: palette,
+        isEditing: _isEditing,
+        onToggleEdit: () => setState(() => _isEditing = !_isEditing),
+        fieldTiles: [
+          CustomerProfileSettingsUi.infoFieldTile(
+            palette: palette,
+            label: 'Full Name',
+            value: _nameController.text,
+            controller: _nameController,
+            isEditable: isSectionEditable,
+          ),
+          CustomerProfileSettingsUi.infoFieldTile(
+            palette: palette,
+            label: 'Email Address',
+            value: _emailController.text,
+            controller: _emailController,
+            isEditable: isSectionEditable,
+          ),
+          CustomerProfileSettingsUi.infoFieldTile(
+            palette: palette,
+            label: 'Contact Number',
+            value: _phoneController.text,
+            controller: _phoneController,
+            isEditable: isSectionEditable,
+            showVerified: _phoneController.text.trim().isNotEmpty,
+          ),
+        ],
+        editFooter: showInlineEdit && _isEditing
+            ? CustomerProfileSettingsUi.saveCancelRow(
+                palette: palette,
+                isSaving: _isSaving,
+                onCancel: () {
+                  setState(() => _isEditing = false);
+                  final user = ref.read(currentUserProvider);
+                  if (user != null) {
+                    ref.invalidate(userProfileProvider(user.id));
+                  }
+                },
+                onSave: _handleSaveProfile,
+              )
+            : null,
+      );
+    }
+
     return DashboardCard(
       padding: const EdgeInsets.all(24),
       elevated: true,
@@ -4250,8 +4395,28 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
   }
 
   Widget _buildSafetySection() {
-    final palette = _providerPalette;
-    final contacts = _emergencyContactsFromPairs();
+    final palette = DashboardPalette.of(context);
+    final contacts = _emergencyContactsFromPairs()
+        .where((c) => c.name.isNotEmpty || c.phone.isNotEmpty)
+        .toList();
+
+    if (CustomerProfileSettingsUi.useMobileLayout(context)) {
+      return CustomerProfileSettingsUi.safetyCard(
+        palette: palette,
+        activeContactCount: contacts.length,
+        contactChips: contacts
+            .take(8)
+            .map(
+              (c) => (
+                name: c.name.isEmpty ? 'Unnamed' : c.name,
+                initials: CustomerProfileSettingsUi.contactInitials(c.name),
+              ),
+            )
+            .toList(),
+        onManage: _showEmergencyContactsEditor,
+      );
+    }
+
     return ProviderProfileUi.safetyPanel(
       palette: palette,
       child: Column(
@@ -4501,7 +4666,52 @@ class _ProfileSettingsPageState extends ConsumerState<ProfileSettingsPage> {
 
   /// Control Center: emergency contacts (non-shops), shop-only staff/payouts.
   Widget _buildControlCenterSection(UserProfile profile) {
-    final palette = _providerPalette;
+    final palette = DashboardPalette.of(context);
+
+    if (CustomerProfileSettingsUi.useMobileLayout(context)) {
+      return CustomerProfileSettingsUi.hubOperationsCard(
+        context: context,
+        palette: palette,
+        children: [
+          if (!_isRegisteredServiceShop(profile))
+            CustomerProfileSettingsUi.hubListRow(
+              palette: palette,
+              icon: Icons.contact_phone_outlined,
+              title: 'Emergency contacts',
+              subtitle: _emergencyContactsControlSubtitle(),
+              onTap: _showEmergencyContactsEditor,
+            ),
+          if (_isRegisteredServiceShop(profile)) ...[
+            CustomerProfileSettingsUi.hubListRow(
+              palette: palette,
+              icon: Icons.groups_outlined,
+              title: 'Staff & roles',
+              subtitle: 'Delegate dispatch, finance, and SOS oversight (org rollout).',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Multi-user staff workspaces will link from here soon.')),
+                );
+              },
+            ),
+            CustomerProfileSettingsUi.hubListRow(
+              palette: palette,
+              icon: Icons.payments_outlined,
+              title: 'Payouts',
+              subtitle:
+                  'Bank and VAT details live under Financial & Payout in your provider profile.',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Payout configuration stays in your business profile for now.'),
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
+      );
+    }
+
     return ProviderProfileUi.controlCenterShell(
       palette: palette,
       child: Theme(
