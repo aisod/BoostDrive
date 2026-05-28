@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'theme.dart';
 
 class AppFooter extends StatelessWidget {
   final Function(String section, String title)? onLinkTap;
+  static final Uri _aisodUrl = Uri.parse('https://www.aisod.tech/');
 
   const AppFooter({super.key, this.onLinkTap});
+
+  Future<void> _openAisodWebsite(BuildContext context) async {
+    final opened = await launchUrl(_aisodUrl, mode: LaunchMode.platformDefault);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open AISOD website.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +130,19 @@ class AppFooter extends StatelessWidget {
                   '© 2026 BoostDrive Namibia. All rights reserved.',
                   style: TextStyle(color: bodyColor, fontSize: 13),
                 ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () => _openAisodWebsite(context),
+                  child: Text(
+                    'Developed by AISOD — https://www.aisod.tech/',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: BoostDriveTheme.primaryColor,
+                      fontSize: 13,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -140,6 +164,17 @@ class AppFooter extends StatelessWidget {
                 Text(
                   '© 2026 BoostDrive Namibia. All rights reserved.',
                   style: TextStyle(color: bodyColor, fontSize: 13),
+                ),
+                InkWell(
+                  onTap: () => _openAisodWebsite(context),
+                  child: Text(
+                    'Developed by AISOD — https://www.aisod.tech/',
+                    style: const TextStyle(
+                      color: BoostDriveTheme.primaryColor,
+                      fontSize: 13,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
                 ),
                 Row(
                   children: [

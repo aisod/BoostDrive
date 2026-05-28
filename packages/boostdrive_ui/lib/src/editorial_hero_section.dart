@@ -115,6 +115,9 @@ class EditorialHeroSection extends StatelessWidget {
   final List<String> backgroundImages;
   final VoidCallback onReadMore;
   final Widget? navBar;
+  final String? attributionText;
+  final String? attributionUrl;
+  final VoidCallback? onAttributionTap;
   final Duration slideshowInterval;
   final String? imagePackage;
   /// Height of chrome above the hero (e.g. mobile [AppBar]). Desktop uses 0.
@@ -128,6 +131,9 @@ class EditorialHeroSection extends StatelessWidget {
     required this.backgroundImages,
     required this.onReadMore,
     this.navBar,
+    this.attributionText,
+    this.attributionUrl,
+    this.onAttributionTap,
     this.slideshowInterval = const Duration(seconds: 5),
     this.imagePackage,
     this.topChromeHeight = 0,
@@ -211,6 +217,10 @@ class EditorialHeroSection extends StatelessWidget {
                         height: 1.5,
                       ),
                     ),
+                    if (_hasAttribution) ...[
+                      const SizedBox(height: 12),
+                      _buildAttributionLink(fontSize: 14),
+                    ],
                     const SizedBox(height: 36),
                     
                     // READ MORE (BoostDrive Orange button)
@@ -244,6 +254,10 @@ class EditorialHeroSection extends StatelessWidget {
                         color: Colors.black,
                       ),
                     ),
+                    if (_hasAttribution) ...[
+                      const SizedBox(height: 10),
+                      _buildAttributionLink(fontSize: 13),
+                    ],
                     const SizedBox(height: 16),
                     _buildReadMoreButton(),
                   ],
@@ -327,6 +341,43 @@ class EditorialHeroSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  bool get _hasAttribution =>
+      attributionText != null &&
+      attributionText!.trim().isNotEmpty &&
+      attributionUrl != null &&
+      attributionUrl!.trim().isNotEmpty &&
+      onAttributionTap != null;
+
+  Widget _buildAttributionLink({required double fontSize}) {
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 6,
+      children: [
+        Text(
+          attributionText!,
+          style: GoogleFonts.poppins(
+            fontSize: fontSize,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        InkWell(
+          onTap: onAttributionTap,
+          child: Text(
+            attributionUrl!,
+            style: GoogleFonts.poppins(
+              fontSize: fontSize,
+              color: BoostDriveTheme.primaryColor,
+              fontWeight: FontWeight.w700,
+              decoration: TextDecoration.underline,
+              decorationColor: BoostDriveTheme.primaryColor,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -641,8 +641,7 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
             ),
           EditorialHeroSection(
             title: 'Your Premium Automotive Connection',
-            subtitle:
-                'Buy, sell, and rent vehicles with confidence across Namibia. Drive your dreams forward with BoostDrive.\n\nDeveloped by AISOD: https://www.aisod.tech/',
+            subtitle: 'Buy, sell, and rent vehicles with confidence across Namibia. Drive your dreams forward with BoostDrive.',
             backgroundImages: const [
               'assets/images/landing-page-image.jpg',
               'assets/images/fordranger.jpg',
