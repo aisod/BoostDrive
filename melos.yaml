@@ -26,6 +26,27 @@ scripts:
     exec: flutter test integration_test
     select-package-dir-exists:
       - integration_test
+  test:mobile:
+    description: Run mobile app tests plus core UI and service package tests
+    run: |
+      melos exec --scope=boostdrive_core -- flutter test
+      melos exec --scope=boostdrive_services -- flutter test
+      melos exec --scope=boostdrive_auth -- flutter test
+      melos exec --scope=boostdrive_ui -- flutter test
+      melos exec --scope=mobile -- flutter test
+  test:sos:
+    description: Run SOS customer and provider automated tests
+    run: |
+      melos exec --scope=boostdrive_core -- flutter test test/unit/sos_rules_test.dart test/unit/sos_request_test.dart
+      melos exec --scope=mobile -- flutter test test/unit/sos_provider_orders_filter_test.dart test/widget/sos_provider_detail_test.dart test/widget/sos_customer_hub_test.dart
+  test:provider-orders:
+    description: Run service provider Orders tab automated tests
+    run: |
+      melos exec --scope=boostdrive_core -- flutter test test/unit/sos_rules_test.dart
+      melos exec --scope=mobile -- flutter test test/unit/sos_provider_orders_filter_test.dart test/widget/provider_orders_page_test.dart
+  test:mobile:functional:
+    description: Run full mobile functionality suite (packages, SOS, Orders, app tests)
+    run: powershell -ExecutionPolicy Bypass -File scripts/test_mobile_functional.ps1
   test:coverage:
     description: Collect coverage across packages
     exec: flutter test --coverage

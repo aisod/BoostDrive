@@ -7,21 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_core/boostdrive_core.dart';
 import 'dart:async';
 
-/// True when this SOS [type] or [emergencyCategory] matches any entry in [providerServiceTypes]
-/// (e.g. profile `provider_service_types`: `mechanic`, `towing`, `parts`). Case-insensitive.
-bool sosRequestMatchesProviderServiceTypes(SosRequest request, List<String> providerServiceTypes) {
-  if (providerServiceTypes.isEmpty) return false;
-  final caps = providerServiceTypes
-      .map((e) => e.toLowerCase().trim())
-      .where((e) => e.isNotEmpty)
-      .toSet();
-  final t = request.type.toLowerCase().trim();
-  if (t.isNotEmpty && caps.contains(t)) return true;
-  final cat = request.emergencyCategory?.toLowerCase().trim();
-  if (cat != null && cat.isNotEmpty && caps.contains(cat)) return true;
-  return false;
-}
-
 /// One provider heartbeat on a pending SOS (viewing / responding before accept).
 class SosRespondingHeartbeat {
   const SosRespondingHeartbeat({
@@ -177,10 +162,7 @@ class SosService {
         .eq('user_id', userId)
         .order('created_at', ascending: false)
         .map((data) => data
-            .where((item) {
-              final st = (item['status']?.toString() ?? '').toLowerCase().trim();
-              return const {'pending', 'accepted', 'assigned', 'active'}.contains(st);
-            })
+            .where((item) => sosStatusIsCustomerLive(item['status']?.toString() ?? ''))
             .map((json) => SosRequest.fromMap(json))
             .toList());
     return _withSosPollingFallback(
@@ -243,7 +225,7 @@ class SosService {
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .map((data) => data
-            .where((row) => (row['status']?.toString() ?? '').toLowerCase().trim() == 'pending')
+            .where((row) => sosStatusIsGlobalPending(row['status']?.toString() ?? ''))
             .map((json) => SosRequest.fromMap(json))
             .toList());
     return _withSosPollingFallback(
@@ -256,13 +238,12 @@ class SosService {
   /// Operationally active SOS requests for admin monitoring surfaces.
   /// Includes pending + in-progress assignment/execution statuses.
   Stream<List<SosRequest>> getGlobalOperationalActiveRequests() {
-    const activeStatuses = <String>{'pending', 'assigned', 'accepted', 'active'};
     final realtime = _supabase
         .from('sos_requests')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .map((data) => data
-            .where((row) => activeStatuses.contains((row['status']?.toString() ?? '').toLowerCase().trim()))
+            .where((row) => sosStatusIsOperationalActive(row['status']?.toString() ?? ''))
             .map((json) => SosRequest.fromMap(json))
             .toList());
     return _withSosPollingFallback(
@@ -354,10 +335,7 @@ class SosService {
         .eq('user_id', userId)
         .order('created_at', ascending: false);
     return (rows as List<dynamic>)
-        .where((item) {
-          final st = (item['status']?.toString() ?? '').toLowerCase().trim();
-          return const {'pending', 'accepted', 'assigned', 'active'}.contains(st);
-        })
+        .where((item) => sosStatusIsCustomerLive(item['status']?.toString() ?? ''))
         .map((json) => SosRequest.fromMap(Map<String, dynamic>.from(json as Map)))
         .toList();
   }
@@ -419,10 +397,7 @@ class SosService {
             .eq('assigned_provider_id', providerId)
             .order('created_at', ascending: false);
         return (rows as List<dynamic>)
-            .where((r) {
-              final st = (r['status']?.toString() ?? '').toLowerCase().trim();
-              return const {'accepted', 'assigned'}.contains(st);
-            })
+            .where((r) => sosStatusIsProviderAssigned(r['status']?.toString() ?? ''))
             .map((json) => SosRequest.fromMap(json as Map<String, dynamic>))
             .toList();
       } catch (e) {

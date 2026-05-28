@@ -22,6 +22,16 @@ void main() {
       expect(request.isCustomerSosLive, isTrue);
     });
 
+    test('fromMap accepts sos_request_id alias', () {
+      final request = SosRequest.fromMap({
+        'sos_request_id': 'legacy-id',
+        'user_id': 'u1',
+        'status': 'pending',
+        'location': {'lat': 1, 'lng': 2},
+      });
+      expect(request.id, 'legacy-id');
+    });
+
     test('isCustomerSosLive is false for resolved requests', () {
       final request = SosRequest.fromMap({
         'id': 'sos-2',
@@ -31,6 +41,24 @@ void main() {
       });
 
       expect(request.isCustomerSosLive, isFalse);
+    });
+
+    test('copyWith updates assignment fields', () {
+      final original = SosRequest.fromMap({
+        'id': 'sos-3',
+        'user_id': 'user-3',
+        'status': 'pending',
+        'location': {'lat': -22.0, 'lng': 17.0},
+      });
+      final updated = original.copyWith(
+        status: 'assigned',
+        assignedProviderId: 'provider-9',
+        etaMinutes: 12,
+      );
+      expect(updated.status, 'assigned');
+      expect(updated.assignedProviderId, 'provider-9');
+      expect(updated.etaMinutes, 12);
+      expect(original.status, 'pending');
     });
   });
 }

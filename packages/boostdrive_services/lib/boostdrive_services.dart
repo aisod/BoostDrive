@@ -1,6 +1,16 @@
 library boostdrive_services;
 
 export 'src/sos_service.dart';
+export 'package:boostdrive_core/boostdrive_core.dart'
+    show
+        sosRequestMatchesProviderServiceTypes,
+        sosStatusIsCustomerLive,
+        sosStatusIsGlobalPending,
+        sosStatusIsOperationalActive,
+        sosStatusIsProviderAssigned,
+        filterCustomerLiveRequests,
+        filterProviderPendingPool,
+        SosProviderUiRules;
 export 'src/emergency_directory_service.dart';
 export 'src/cart_service.dart';
 

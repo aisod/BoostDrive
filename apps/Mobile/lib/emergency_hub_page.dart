@@ -238,7 +238,7 @@ class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> with Ticker
     final activeRequestsRaw = user != null
         ? ref.watch(userActiveSosRequestsProvider(user.id)).valueOrNull ?? []
         : <SosRequest>[];
-    final activeRequests = activeRequestsRaw.where((r) => r.isCustomerSosLive).toList();
+    final activeRequests = filterCustomerLiveRequests(activeRequestsRaw);
     final hasActiveRequest = activeRequests.isNotEmpty;
     final activeRequest = hasActiveRequest ? activeRequests.first : null;
     final assignedProviderId = activeRequest?.assignedProviderId;

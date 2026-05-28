@@ -161,7 +161,10 @@ class _SosTab extends ConsumerWidget {
                 stream: ref.watch(sosServiceProvider).getGlobalActiveRequests(),
                 builder: (context, snap) {
                   final all = snap.data ?? [];
-                  final pending = all.where((r) => sosRequestMatchesProviderServiceTypes(r, providerTypes)).toList();
+                  final pending = filterProviderPendingPool(
+                    allPending: all,
+                    providerServiceTypes: providerTypes,
+                  );
                   if (pending.isEmpty) {
                     return Text('No matching pending SOS.', style: DashboardTypography.bodySm(palette));
                   }

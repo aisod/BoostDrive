@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "BoostDrive Monorepo",
   "scripts": {
-    "build": "bash scripts/build_netlify.sh"
+    "build": "bash scripts/build_netlify.sh",
+    "test:mobile": "powershell -ExecutionPolicy Bypass -File scripts/test_mobile.ps1",
+    "test:sos": "powershell -ExecutionPolicy Bypass -File scripts/test_sos.ps1",
+    "test:provider-orders": "powershell -ExecutionPolicy Bypass -File scripts/test_provider_orders.ps1",
+    "test:mobile:functional": "powershell -ExecutionPolicy Bypass -File scripts/test_mobile_functional.ps1"
   },
   "dependencies": {}
 }

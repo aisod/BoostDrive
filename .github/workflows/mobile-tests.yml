@@ -1,0 +1,63 @@
+name: Mobile Tests
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - "apps/Mobile/**"
+      - "packages/**"
+      - "melos.yaml"
+      - ".github/workflows/mobile-tests.yml"
+  pull_request:
+    paths:
+      - "apps/Mobile/**"
+      - "packages/**"
+      - "melos.yaml"
+      - ".github/workflows/mobile-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap workspace
+        run: melos bootstrap
+
+      - name: Analyze mobile app
+        run: melos exec --scope=mobile -- flutter analyze .
+
+      - name: Run dependency package tests
+        run: |
+          melos exec --scope=boostdrive_core -- flutter test
+          melos exec --scope=boostdrive_services -- flutter test
+          melos exec --scope=boostdrive_auth -- flutter test
+          melos exec --scope=boostdrive_ui -- flutter test
+
+      - name: Run SOS rules unit tests
+        run: |
+          melos exec --scope=boostdrive_core -- flutter test test/unit/sos_rules_test.dart test/unit/sos_request_test.dart
+
+      - name: Run SOS customer and provider widget tests
+        run: |
+          melos exec --scope=mobile -- flutter test test/unit/sos_provider_orders_filter_test.dart test/widget/sos_provider_detail_test.dart test/widget/sos_customer_hub_test.dart
+
+      - name: Run provider Orders widget tests
+        run: |
+          melos exec --scope=mobile -- flutter test test/widget/provider_orders_page_test.dart
+
+      - name: Run mobile unit and widget tests
+        run: melos exec --scope=mobile -- flutter test

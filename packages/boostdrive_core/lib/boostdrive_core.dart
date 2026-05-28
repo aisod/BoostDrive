@@ -8,6 +8,7 @@ export 'src/models/service_record.dart';
 export 'src/models/delivery_order.dart';
 export 'src/models/logistics_finance_summary.dart';
 export 'src/models/sos_request.dart';
+export 'src/sos/sos_rules.dart';
 export 'src/models/emergency_contact.dart';
 export 'src/models/emergency_directory_entry.dart';
 export 'src/models/namibia_location.dart';

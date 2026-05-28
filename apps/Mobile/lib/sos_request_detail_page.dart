@@ -25,16 +25,9 @@ class SosRequestDetailPage extends ConsumerStatefulWidget {
 class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
   Timer? _heartbeat;
   GoogleMapController? _mapController;
+  SosService? _sosService;
 
-  /// [SosRequest.fromMap] defaults missing coords to `0,0`; treat that as unknown.
-  bool get _hasValidRequesterLocation {
-    final lat = widget.request.lat;
-    final lng = widget.request.lng;
-    if (!lat.isFinite || !lng.isFinite) return false;
-    if (lat == 0 && lng == 0) return false;
-    if (lat.abs() > 90 || lng.abs() > 180) return false;
-    return true;
-  }
+  bool get _hasValidRequesterLocation => SosProviderUiRules.hasValidRequesterLocation(widget.request);
 
   bool _isCompleting = false;
 
@@ -51,18 +44,24 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startHeartbeat());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _sosService = ref.read(sosServiceProvider);
+      _startHeartbeat();
+    });
   }
 
   Future<void> _startHeartbeat() async {
-    final sos = ref.read(sosServiceProvider);
+    _sosService ??= ref.read(sosServiceProvider);
+    final sos = _sosService!;
     try {
       await sos.upsertProviderResponding(widget.request.id);
     } catch (_) {}
     _heartbeat?.cancel();
     _heartbeat = Timer.periodic(const Duration(seconds: 12), (_) async {
+      final active = _sosService;
+      if (active == null) return;
       try {
-        await sos.upsertProviderResponding(widget.request.id);
+        await active.upsertProviderResponding(widget.request.id);
       } catch (_) {}
     });
   }
@@ -72,8 +71,9 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
     _heartbeat?.cancel();
     _mapController?.dispose();
     final id = widget.request.id;
-    if (id.isNotEmpty) {
-      unawaited(ref.read(sosServiceProvider).deleteMyProviderResponding(id));
+    final sos = _sosService;
+    if (id.isNotEmpty && sos != null) {
+      unawaited(sos.deleteMyProviderResponding(id));
     }
     super.dispose();
   }
@@ -83,23 +83,12 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
     final userId = ref.watch(currentUserProvider)?.id;
     final cat = widget.request.emergencyCategory;
     final type = widget.request.type;
-    final normalizedStatus = widget.request.status.toLowerCase().trim();
-    final isAlreadyAssigned = widget.request.assignedProviderId != null &&
-        widget.request.assignedProviderId!.isNotEmpty;
-    final isPending = normalizedStatus == 'pending';
-    final canAccept = userId != null &&
-        widget.request.id.isNotEmpty &&
-        (isPending || !isAlreadyAssigned);
-    final isAssignedToMe = userId != null && widget.request.assignedProviderId == userId;
-    final canComplete = isAssignedToMe &&
-        const {'assigned', 'accepted', 'active'}.contains(normalizedStatus);
-    final canCancelAssignment = isAssignedToMe &&
-        const {'assigned', 'accepted', 'active'}.contains(normalizedStatus);
-    final actionLabel = canAccept
-        ? 'ACCEPT REQUEST'
-        : isAssignedToMe
-            ? 'ASSIGNED TO YOU'
-            : 'ALREADY ASSIGNED';
+    final canAccept = SosProviderUiRules.canAccept(request: widget.request, userId: userId);
+    final isAssignedToMe = SosProviderUiRules.isAssignedToMe(request: widget.request, userId: userId);
+    final canComplete = SosProviderUiRules.canComplete(request: widget.request, userId: userId);
+    final canCancelAssignment =
+        SosProviderUiRules.canCancelAssignment(request: widget.request, userId: userId);
+    final actionLabel = SosProviderUiRules.actionLabel(request: widget.request, userId: userId);
 
     final palette = DashboardPalette.of(context);
     final profile = userId != null ? ref.watch(userProfileProvider(userId)).valueOrNull : null;
@@ -182,7 +171,7 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
                       ? null
                       : () async {
                           try {
-                            await ref.read(sosServiceProvider).acceptRequest(widget.request.id, userId);
+                            await ref.read(sosServiceProvider).acceptRequest(widget.request.id, userId!);
                             _refreshSosState(userId);
                             if (!context.mounted) return;
                             Navigator.of(context).maybePop();

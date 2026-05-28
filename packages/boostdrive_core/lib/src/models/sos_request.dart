@@ -74,18 +74,11 @@ class SosRequest {
     return int.tryParse(v.toString());
   }
 
-  /// Statuses that show the customer live SOS UI and allow cancel (aligned with active SOS stream filter / RPC).
-  static const Set<String> _customerLiveStatuses = {
-    'pending',
-    'assigned',
-    'accepted',
-    'active',
-  };
-
   /// Whether this row is an open customer SOS (show live card, enable Cancel).
   bool get isCustomerSosLive {
-    final s = status.toLowerCase().trim();
-    return _customerLiveStatuses.contains(s);
+    // Import cycle avoided: inline same set as [sosCustomerLiveStatuses] in sos_rules.dart.
+    const live = {'pending', 'assigned', 'accepted', 'active'};
+    return live.contains(status.toLowerCase().trim());
   }
 
   Map<String, dynamic> toMap() {

@@ -36,6 +36,23 @@ If you know Jest already, use this mental mapping:
 - `melos run test:widget` -> run only `test/widget`.
 - `melos run test:integration` -> run only `integration_test`.
 - `melos run test:coverage` -> run tests with coverage.
+- `melos run test:mobile` -> run mobile app tests plus core, services, auth, and UI package tests.
+
+## Mobile App Quick Commands
+
+From repo root on Windows:
+
+- `npm run test:mobile`
+- `powershell -ExecutionPolicy Bypass -File scripts/test_mobile.ps1`
+
+From repo root on macOS or Linux:
+
+- `bash scripts/test_mobile.sh`
+
+From the mobile app folder:
+
+- `flutter test`
+- `flutter test integration_test` (device or emulator required for full integration run)
 
 ## What Was Added Today
 
