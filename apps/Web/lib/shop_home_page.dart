@@ -1440,15 +1440,16 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
           Consumer(
             builder: (context, ref, _) {
               final profile = ref.watch(userProfileProvider(user.id)).value;
-              final isProvider = profile != null && _isProviderRole(profile.role);
+              if (profile != null && _isProviderRole(profile.role)) {
+                return const SizedBox.shrink();
+              }
               return _EditorialNavLink(
-                text: isProvider ? 'SERVICES REQUESTED' : 'FIND A PROVIDER',
+                text: 'FIND A PROVIDER',
                 onTap: () {
-                  if (isProvider) {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderHubPage()));
-                  } else {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const FindProvidersPage()));
-                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FindProvidersPage()),
+                  );
                 },
                 isDark: true,
               );
@@ -1573,20 +1574,18 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
 
   Widget _buildFindProviderOrServicesRequestedNav(WidgetRef ref, BuildContext context, dynamic user) {
     final profile = ref.watch(userProfileProvider(user.id)).value;
-    final isProviderRole = profile != null && _isProviderRole(profile.role);
+    if (profile != null && _isProviderRole(profile.role)) {
+      return const SizedBox.shrink();
+    }
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: TextButton(
         onPressed: () {
-          if (isProviderRole) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ProviderHubPage()));
-          } else {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const FindProvidersPage()));
-          }
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const FindProvidersPage()));
         },
-        child: Text(
-          isProviderRole ? 'SERVICES REQUESTED' : 'FIND A PROVIDER',
-          style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white),
+        child: const Text(
+          'FIND A PROVIDER',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white),
         ),
       ),
     );

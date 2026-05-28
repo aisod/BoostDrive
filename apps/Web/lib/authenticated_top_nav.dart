@@ -89,7 +89,7 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
     WidgetRef ref, {
     required UserProfile? profile,
     required bool showSellerLinks,
-    required bool hideFindProvider,
+    required bool isServiceProvider,
   }) {
     showGeneralDialog<void>(
       context: context,
@@ -149,7 +149,7 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
                                 _openMarketplace(context);
                               },
                             ),
-                            if (!hideFindProvider)
+                            if (!isServiceProvider)
                               _MobileNavMenuTile(
                                 label: 'Find a Provider',
                                 isActive: activeItem == AuthenticatedNavHighlight.findProvider,
@@ -209,7 +209,8 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
     final isMobile = MediaQuery.sizeOf(context).width < 900;
     final profile = ref.watch(userProfileProvider(user.id)).value;
     final showSellerLinks = profile != null && isMarketplaceSeller(profile);
-    final hideFindProvider =
+    // Service providers use the portal sidebar; no Find a Provider / Services Requested link.
+    final isServiceProvider =
         profile != null && (profile.isProvider || isWebProviderRole(profile.role));
 
     return Material(
@@ -260,7 +261,7 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
                               isActive: activeItem == AuthenticatedNavHighlight.marketplace,
                               onTap: () => _openMarketplace(context),
                             ),
-                            if (!hideFindProvider)
+                            if (!isServiceProvider)
                               _AuthNavLink(
                                 label: 'FIND A PROVIDER',
                                 isActive: activeItem == AuthenticatedNavHighlight.findProvider,
@@ -304,7 +305,7 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
                       ref,
                       profile: profile,
                       showSellerLinks: showSellerLinks,
-                      hideFindProvider: hideFindProvider,
+                      isServiceProvider: isServiceProvider,
                     ),
                   ),
                 PublicNavNotificationBell(userId: user.id, compact: isMobile),
