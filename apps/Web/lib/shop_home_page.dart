@@ -1462,12 +1462,13 @@ class _ShopHomePageState extends ConsumerState<ShopHomePage> {
                 return const SizedBox.shrink();
                 }
 
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _EditorialNavLink(text: 'MY LISTINGS', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SellerDashboardPage())), isDark: true),
-                    _EditorialNavLink(text: 'RENTALS', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RentalMarketplacePage())), isDark: true),
-                  ],
+                return _EditorialNavLink(
+                  text: 'RENTALS',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RentalMarketplacePage()),
+                  ),
+                  isDark: true,
                 );
             },
           ),

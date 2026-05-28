@@ -7,8 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:boost_drive_web/dashboard_router.dart';
 import 'package:boost_drive_web/messages_page.dart';
 import 'package:boost_drive_web/public_nav_auth_widgets.dart';
-import 'package:boost_drive_web/seller_dashboard_page.dart';
-
 class PublicNavDrawer extends ConsumerWidget {
   final String activeRoute;
   final VoidCallback onAuthTap;
@@ -94,18 +92,12 @@ class PublicNavDrawer extends ConsumerWidget {
                       isActive: false,
                       onTap: () => _pushPage(context, const MessagesPage()),
                     ),
-                    if (sellerExtras) ...[
-                      _DrawerNavTile(
-                        label: 'My Listings',
-                        isActive: false,
-                        onTap: () => _pushPage(context, const SellerDashboardPage()),
-                      ),
+                    if (sellerExtras)
                       _DrawerNavTile(
                         label: 'Rentals',
                         isActive: activeRoute == '/rent-a-car',
                         onTap: () => _go(context, '/rent-a-car'),
                       ),
-                    ],
                     _DrawerNavTile(
                       label: 'Dashboard',
                       isActive: false,

@@ -139,7 +139,6 @@ class BoostDrivePublicTopNavBar extends ConsumerWidget implements PreferredSizeW
       return BoostDriveAuthenticatedTopNav(
         activeItem: authenticatedNavHighlightForRoute(activeRoute),
         scaffoldKey: scaffoldKey,
-        showMenuButton: isMobile,
       );
     }
 

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
+import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:boost_drive_web/dashboard_router.dart';
 import 'package:boost_drive_web/messages_page.dart';
 import 'package:boost_drive_web/public_nav_auth_widgets.dart';
-import 'package:boost_drive_web/seller_dashboard_page.dart';
 import 'nav_hover_underline.dart';
 
 /// Primary nav highlight for logged-in customer/seller chrome.
@@ -37,7 +37,7 @@ AuthenticatedNavHighlight? authenticatedNavHighlightForRoute(String route) {
   }
 }
 
-/// Orange logged-in top bar: MARKETPLACE · FIND A PROVIDER · MESSAGES · MY LISTINGS · RENTALS · DASHBOARD + bell · profile · theme · Log Out.
+/// Orange logged-in top bar: MARKETPLACE · FIND A PROVIDER · MESSAGES · RENTALS · DASHBOARD + bell · profile · theme · Log Out.
 class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredSizeWidget {
   final AuthenticatedNavHighlight? activeItem;
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -69,10 +69,6 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MessagesPage()));
   }
 
-  void _openMyListings(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SellerDashboardPage()));
-  }
-
   void _openRentals(BuildContext context) {
     if (ModalRoute.of(context)?.settings.name == '/rent-a-car') return;
     Navigator.of(context).pushNamed('/rent-a-car');
@@ -85,6 +81,123 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
     if (profile == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => dashboardWidgetForProfile(profile)),
+    );
+  }
+
+  void _openMobileNavMenu(
+    BuildContext context,
+    WidgetRef ref, {
+    required UserProfile? profile,
+    required bool showSellerLinks,
+    required bool hideFindProvider,
+  }) {
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Navigation menu',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
+            child: Material(
+              color: Colors.white,
+              elevation: 12,
+              child: SizedBox(
+                width: 300,
+                height: MediaQuery.sizeOf(dialogContext).height,
+                child: SafeArea(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+                        color: BoostDriveTheme.primaryColor,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Menu',
+                                style: GoogleFonts.montserrat(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white),
+                              tooltip: 'Close',
+                              onPressed: () => Navigator.pop(dialogContext),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          children: [
+                            _MobileNavMenuTile(
+                              label: 'Marketplace',
+                              isActive: activeItem == AuthenticatedNavHighlight.marketplace,
+                              onTap: () {
+                                Navigator.pop(dialogContext);
+                                _openMarketplace(context);
+                              },
+                            ),
+                            if (!hideFindProvider)
+                              _MobileNavMenuTile(
+                                label: 'Find a Provider',
+                                isActive: activeItem == AuthenticatedNavHighlight.findProvider,
+                                onTap: () {
+                                  Navigator.pop(dialogContext);
+                                  if (profile != null) {
+                                    openFindProviderOrHub(context, ref, profile);
+                                  } else if (ModalRoute.of(context)?.settings.name != '/find-provider') {
+                                    Navigator.of(context).pushNamed('/find-provider');
+                                  }
+                                },
+                              ),
+                            _MobileNavMenuTile(
+                              label: 'Messages',
+                              isActive: activeItem == AuthenticatedNavHighlight.messages,
+                              onTap: () {
+                                Navigator.pop(dialogContext);
+                                _openMessages(context);
+                              },
+                            ),
+                            if (showSellerLinks)
+                              _MobileNavMenuTile(
+                                label: 'Rentals',
+                                isActive: activeItem == AuthenticatedNavHighlight.rentals,
+                                onTap: () {
+                                  Navigator.pop(dialogContext);
+                                  _openRentals(context);
+                                },
+                              ),
+                            _MobileNavMenuTile(
+                              label: 'Dashboard',
+                              isActive: activeItem == AuthenticatedNavHighlight.dashboard,
+                              onTap: () {
+                                Navigator.pop(dialogContext);
+                                _openDashboard(context, ref);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -164,18 +277,12 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
                               isActive: activeItem == AuthenticatedNavHighlight.messages,
                               onTap: () => _openMessages(context),
                             ),
-                            if (showSellerLinks) ...[
-                              _AuthNavLink(
-                                label: 'MY LISTINGS',
-                                isActive: activeItem == AuthenticatedNavHighlight.myListings,
-                                onTap: () => _openMyListings(context),
-                              ),
+                            if (showSellerLinks)
                               _AuthNavLink(
                                 label: 'RENTALS',
                                 isActive: activeItem == AuthenticatedNavHighlight.rentals,
                                 onTap: () => _openRentals(context),
                               ),
-                            ],
                             _AuthNavLink(
                               label: 'DASHBOARD',
                               isActive: activeItem == AuthenticatedNavHighlight.dashboard,
@@ -186,7 +293,20 @@ class BoostDriveAuthenticatedTopNav extends ConsumerWidget implements PreferredS
                       ),
                     ),
                   ),
-                ],
+                ] else
+                  const Spacer(),
+                if (isMobile)
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white),
+                    tooltip: 'Navigation menu',
+                    onPressed: () => _openMobileNavMenu(
+                      context,
+                      ref,
+                      profile: profile,
+                      showSellerLinks: showSellerLinks,
+                      hideFindProvider: hideFindProvider,
+                    ),
+                  ),
                 PublicNavNotificationBell(userId: user.id, compact: isMobile),
                 PublicNavProfileAvatar(userId: user.id, compact: isMobile),
                 const SizedBox(width: 8),
@@ -252,6 +372,34 @@ class _AuthNavLink extends StatelessWidget {
           color: Colors.white.withValues(alpha: isActive ? 1 : 0.9),
         ),
       ),
+    );
+  }
+}
+
+class _MobileNavMenuTile extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _MobileNavMenuTile({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      selected: isActive,
+      selectedTileColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.08),
+      title: Text(
+        label,
+        style: GoogleFonts.montserrat(
+          fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+          color: isActive ? BoostDriveTheme.primaryColor : const Color(0xFF221C20),
+        ),
+      ),
+      onTap: onTap,
     );
   }
 }
