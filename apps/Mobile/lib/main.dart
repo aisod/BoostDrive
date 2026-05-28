@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show debugPrint, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
+import 'package:boostdrive_services/boostdrive_services.dart';
 import 'auth_gate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -60,6 +61,14 @@ void main() async {
     url: supabaseUrl,
     anonKey: anonKey,
   );
+
+  Future.microtask(() async {
+    try {
+      await seedDemoShowcaseData();
+    } catch (e) {
+      if (kDebugMode) debugPrint('main: demo seed skipped/failed: $e');
+    }
+  });
 
   runApp(
     const ProviderScope(

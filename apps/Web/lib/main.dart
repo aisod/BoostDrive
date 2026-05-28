@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, avoid_web_libraries_in_flutter
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boost_drive_web/add_listing_page.dart';
@@ -10,6 +12,7 @@ import 'package:boost_drive_web/rental_marketplace_page.dart';
 import 'package:boost_drive_web/shop_home_page.dart';
 import 'package:boost_drive_web/support_pages.dart';
 import 'package:boostdrive_ui/boostdrive_ui.dart';
+import 'package:boostdrive_services/boostdrive_services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -65,6 +68,14 @@ void main() async {
   } catch (e) {
     debugPrint("CRITICAL ERROR: Failed to initialize Supabase: $e");
   }
+
+  Future.microtask(() async {
+    try {
+      await seedDemoShowcaseData();
+    } catch (e) {
+      debugPrint('main: demo seed skipped/failed: $e');
+    }
+  });
 
   // Small microtask delay to ensure the engine is fully settled before rendering
   Future.microtask(() {

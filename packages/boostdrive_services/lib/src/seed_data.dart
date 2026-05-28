@@ -45,6 +45,22 @@ Future<void> _safeInsert({
   }
 }
 
+Future<String?> _findProfileId({
+  required SupabaseClient client,
+  required String fullName,
+}) async {
+  try {
+    final row = await client
+        .from('profiles')
+        .select('id,full_name')
+        .ilike('full_name', fullName)
+        .maybeSingle();
+    return row?['id']?.toString();
+  } catch (_) {
+    return null;
+  }
+}
+
 /// Inserts a single connected demo scenario:
 /// - Provider: Carlos Mechanical Services
 /// - Customer/Seller: Saya Mubiana
@@ -55,12 +71,31 @@ Future<void> _safeInsert({
 Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
   final supabase = client ?? Supabase.instance.client;
   final now = DateTime.now().toUtc();
+  final carlosId = await _findProfileId(
+        client: supabase,
+        fullName: 'Carlos Mechanical Services',
+      ) ??
+      DemoSeedIds.carlosProvider;
+  final sayaId = await _findProfileId(
+        client: supabase,
+        fullName: 'Saya Mubiana',
+      ) ??
+      DemoSeedIds.sayaCustomerSeller;
+  final batlorrihId = await _findProfileId(
+        client: supabase,
+        fullName: 'BaTLorriH Logistics',
+      ) ??
+      DemoSeedIds.batlorrihLogistics;
+
+  final isCarlosExisting = carlosId != DemoSeedIds.carlosProvider;
+  final isSayaExisting = sayaId != DemoSeedIds.sayaCustomerSeller;
+  final isBatlorrihExisting = batlorrihId != DemoSeedIds.batlorrihLogistics;
 
   final profiles = <Map<String, dynamic>>[
     {
-      'id': DemoSeedIds.carlosProvider,
+      'id': carlosId,
       'full_name': 'Carlos Mechanical Services',
-      'email': 'carlos.mechanical.demo@boostdrive.app',
+      if (!isCarlosExisting) 'email': 'carlos.mechanical.demo@boostdrive.app',
       'phone_number': '+264811100001',
       'role': 'mechanic',
       'is_buyer': false,
@@ -85,9 +120,9 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
       'last_active': now.toIso8601String(),
     },
     {
-      'id': DemoSeedIds.sayaCustomerSeller,
+      'id': sayaId,
       'full_name': 'Saya Mubiana',
-      'email': 'saya.mubiana.demo@boostdrive.app',
+      if (!isSayaExisting) 'email': 'saya.mubiana.demo@boostdrive.app',
       'phone_number': '+264811100002',
       'role': 'customer',
       'is_buyer': true,
@@ -101,9 +136,9 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
       'emergency_contact_phone': '+264811100001',
     },
     {
-      'id': DemoSeedIds.batlorrihLogistics,
+      'id': batlorrihId,
       'full_name': 'BaTLorriH Logistics',
-      'email': 'batlorrih.logistics.demo@boostdrive.app',
+      if (!isBatlorrihExisting) 'email': 'batlorrih.logistics.demo@boostdrive.app',
       'phone_number': '+264811100003',
       'role': 'logistics',
       'is_buyer': false,
@@ -137,8 +172,8 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
   final providerServices = <Map<String, dynamic>>[
     {
       'id': DemoSeedIds.providerServiceInspect,
-      'provider_id': DemoSeedIds.carlosProvider,
-      'user_id': DemoSeedIds.carlosProvider,
+      'provider_id': carlosId,
+      'user_id': carlosId,
       'name': 'Emergency Roadside Mechanical Inspection',
       'category': 'mechanic',
       'description': 'On-site diagnostics and urgent roadside stabilization.',
@@ -148,8 +183,8 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
     },
     {
       'id': DemoSeedIds.providerServiceTow,
-      'provider_id': DemoSeedIds.carlosProvider,
-      'user_id': DemoSeedIds.carlosProvider,
+      'provider_id': carlosId,
+      'user_id': carlosId,
       'name': 'Short-Haul Towing',
       'category': 'towing',
       'description': 'Safe towing within Windhoek metro and nearby zones.',
@@ -159,8 +194,8 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
     },
     {
       'id': DemoSeedIds.providerServiceDiagnostic,
-      'provider_id': DemoSeedIds.carlosProvider,
-      'user_id': DemoSeedIds.carlosProvider,
+      'provider_id': carlosId,
+      'user_id': carlosId,
       'name': 'Engine Diagnostic Scan',
       'category': 'mechanic',
       'description': 'OBD scan, root-cause summary, and repair plan.',
@@ -183,7 +218,7 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
     table: 'products',
     row: {
       'id': DemoSeedIds.demoProduct,
-      'seller_id': DemoSeedIds.sayaCustomerSeller,
+      'seller_id': sayaId,
       'category': 'part',
       'title': 'Toyota Hilux Front Brake Pads (OEM Spec)',
       'subtitle': 'Ready stock for emergency replacements',
@@ -212,8 +247,8 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
     table: 'sos_requests',
     row: {
       'id': DemoSeedIds.demoSosRequest,
-      'user_id': DemoSeedIds.sayaCustomerSeller,
-      'assigned_provider_id': DemoSeedIds.carlosProvider,
+      'user_id': sayaId,
+      'assigned_provider_id': carlosId,
       'type': 'mechanic',
       'status': 'assigned',
       'emergency_category': 'engine',
@@ -234,11 +269,11 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
     table: 'provider_job_cards',
     row: {
       'id': DemoSeedIds.demoJobCard,
-      'requester_id': DemoSeedIds.sayaCustomerSeller,
+      'requester_id': sayaId,
       'requester_role': 'seller',
-      'customer_id': DemoSeedIds.sayaCustomerSeller,
-      'provider_id': DemoSeedIds.carlosProvider,
-      'assigned_provider_id': DemoSeedIds.carlosProvider,
+      'customer_id': sayaId,
+      'provider_id': carlosId,
+      'assigned_provider_id': carlosId,
       'vehicle_label': '2022 Toyota Hilux',
       'concern_summary': 'Brake vibration and reduced stopping power.',
       'diagnosis_notes': 'Pads worn out, rotors require skim.',
@@ -262,9 +297,9 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
       'title': 'Hilux brake service appointment',
       'status': 'open',
       'request_kind': 'scheduled',
-      'assigned_provider_id': DemoSeedIds.carlosProvider,
-      'customer_id': DemoSeedIds.sayaCustomerSeller,
-      'provider_id': DemoSeedIds.carlosProvider,
+      'assigned_provider_id': carlosId,
+      'customer_id': sayaId,
+      'provider_id': carlosId,
       'scheduled_start': now.add(const Duration(hours: 1)).toIso8601String(),
       'created_at': now.toIso8601String(),
       'updated_at': now.toIso8601String(),
@@ -276,9 +311,9 @@ Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
     table: 'delivery_orders',
     row: {
       'id': DemoSeedIds.demoDeliveryOrder,
-      'customer_id': DemoSeedIds.sayaCustomerSeller,
-      'seller_id': DemoSeedIds.sayaCustomerSeller,
-      'driver_id': DemoSeedIds.batlorrihLogistics,
+      'customer_id': sayaId,
+      'seller_id': sayaId,
+      'driver_id': batlorrihId,
       'status': 'in_transit',
       'pickup_location': <String, dynamic>{
         'name': 'Carlos Mechanical Services Workshop',
