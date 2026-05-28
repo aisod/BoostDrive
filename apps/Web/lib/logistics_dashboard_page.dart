@@ -885,10 +885,10 @@ class _LogisticsDashboardPageState extends ConsumerState<LogisticsDashboardPage>
           const SizedBox(height: 12),
           Text(
             '${vehicle.year} ${vehicle.make} ${vehicle.model}',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(color: palette.onBackground, fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 4),
-          Text(vehicle.plateNumber, style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 13)),
+          Text(vehicle.plateNumber, style: TextStyle(color: palette.body, fontSize: 13)),
           const SizedBox(height: 8),
           Text('${vehicle.healthStatus} • ${vehicle.fuelLevel} fuel', style: TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 12)),
         ],

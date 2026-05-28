@@ -453,7 +453,7 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
-            childAspectRatio: width > 1140 ? 0.98 : 1.02,
+            childAspectRatio: width > 1140 ? 0.88 : 1.02,
           ),
           itemBuilder: (context, index) {
             final p = list[index];
@@ -790,6 +790,7 @@ class _ProviderCard extends ConsumerWidget {
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(20),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: palette.cardBackground,
             borderRadius: BorderRadius.circular(28),
@@ -805,8 +806,14 @@ class _ProviderCard extends ConsumerWidget {
             ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -834,6 +841,8 @@ class _ProviderCard extends ConsumerWidget {
                           children: [
                             Text(
                               profile.displayName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: palette.titleColor,
                                 fontSize: 18,
@@ -941,10 +950,13 @@ class _ProviderCard extends ConsumerWidget {
                       .toList(),
                 ),
               ],
-              const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 18),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (hasBusinessContact || hasPersonalContact)
                     Expanded(

@@ -870,23 +870,31 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     return 'User';
   }
 
-  static const Color _inputBarBg = Color(0xFF0D0D0D);
-  static const Color _inputIconColor = Colors.white;
-
   /// Message input bar: camera (mobile only), gallery, mic, text field (Aa + emoji), thumbs-up, send (far right).
-  /// Colors: black (bar bg), orange (send), white (icons).
-  Widget _buildMessageInputBar({bool isSuspended = false}) {
+  Widget _buildMessageInputBar(BuildContext context, {bool isSuspended = false}) {
+    final palette = DashboardPalette.of(context);
+    final isDark = palette.isDark;
+    final barBg = isDark ? const Color(0xFF0D0D0D) : Colors.white;
+    final iconColor = isDark ? Colors.white : palette.title;
+    final fieldFill = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF0F0F0);
+    final fieldBorder = isDark
+        ? Colors.white.withValues(alpha: 0.1)
+        : palette.outlineVariant.withValues(alpha: 0.25);
+    final textColor = isDark ? Colors.white : palette.title;
+    final hintColor = isDark ? Colors.white.withValues(alpha: 0.4) : palette.onSurfaceVariant;
+    final adornmentIconColor = isDark ? Colors.white.withValues(alpha: 0.7) : palette.onSurfaceVariant;
+
     if (isSuspended) {
       return Container(
-        color: _inputBarBg,
+        color: barBg,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: SafeArea(
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : palette.surfaceContainer,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(color: fieldBorder),
             ),
             child: Row(
               children: [
@@ -895,7 +903,11 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 Expanded(
                   child: Text(
                     'Messaging is disabled while your account is suspended.',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      color: isDark ? Colors.white.withValues(alpha: 0.7) : palette.body,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -905,7 +917,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       );
     }
     return Container(
-      color: _inputBarBg,
+      color: barBg,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SafeArea(
         child: Row(
@@ -915,13 +927,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             if (!kIsWeb)
               IconButton(
                 onPressed: () => _pickAndAddImages(ImageSource.camera),
-                icon: const Icon(Icons.camera_alt_rounded, color: _inputIconColor, size: 24),
+                icon: Icon(Icons.camera_alt_rounded, color: iconColor, size: 24),
                 tooltip: 'Camera',
               ),
             // Gallery – add to pending (max 5), send when user taps Send
             IconButton(
               onPressed: () => _pickAndAddImages(ImageSource.gallery),
-              icon: const Icon(Icons.photo_library_rounded, color: _inputIconColor, size: 24),
+              icon: Icon(Icons.photo_library_rounded, color: iconColor, size: 24),
               tooltip: 'Attach image',
             ),
             // Microphone – WhatsApp-style: long-press to record; release = send (Mode A); slide left = cancel (B); slide up = lock (C)
@@ -942,7 +954,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 onPressed: _toggleVoiceRecording,
                 icon: Icon(
                   _isRecordingVoice ? Icons.stop_circle_rounded : Icons.mic_rounded,
-                  color: _isRecordingVoice ? Colors.redAccent : _inputIconColor,
+                  color: _isRecordingVoice ? Colors.redAccent : iconColor,
                   size: 24,
                 ),
                 tooltip: _isRecordingVoice
@@ -955,9 +967,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: fieldFill,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.all(color: fieldBorder),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -968,23 +980,24 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     if ((_pendingAttachments ?? []).isNotEmpty) _buildPendingThumbnails(),
                     TextField(
                       controller: _messageController,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      style: TextStyle(color: textColor, fontSize: 15),
+                      cursorColor: textColor,
                       onSubmitted: (_) => _sendMessage(),
                       maxLines: 4,
                       minLines: 1,
                       decoration: InputDecoration(
                         hintText: 'Aa',
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                        hintStyle: TextStyle(color: hintColor),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         prefixIcon: Padding(
                           padding: const EdgeInsets.only(left: 12, right: 8),
-                          child: Icon(Icons.text_fields_rounded, color: Colors.white.withValues(alpha: 0.7), size: 22),
+                          child: Icon(Icons.text_fields_rounded, color: adornmentIconColor, size: 22),
                         ),
                         prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 24),
                         suffixIcon: IconButton(
                           onPressed: _showEmojiPicker,
-                          icon: Icon(Icons.emoji_emotions_outlined, color: Colors.white.withValues(alpha: 0.7), size: 22),
+                          icon: Icon(Icons.emoji_emotions_outlined, color: adornmentIconColor, size: 22),
                           tooltip: 'Emoji',
                         ),
                         suffixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 24),
@@ -998,7 +1011,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             // Thumbs-up (quick reaction)
             IconButton(
               onPressed: () => _sendText('👍'),
-              icon: const Icon(Icons.thumb_up_rounded, color: _inputIconColor, size: 24),
+              icon: Icon(Icons.thumb_up_rounded, color: iconColor, size: 24),
               tooltip: 'Like',
             ),
             const SizedBox(width: 4),
@@ -1552,7 +1565,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
           ),
         ),
         const Divider(height: 1, color: Color(0x22FF6600)),
-        _buildMessageInputBar(isSuspended: isSuspended),
+        _buildMessageInputBar(context, isSuspended: isSuspended),
       ],
     );
   }

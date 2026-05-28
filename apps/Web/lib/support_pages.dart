@@ -143,12 +143,6 @@ class TermsPage extends StatelessWidget {
                 title: 'Use License',
                 body: 'Permission is granted to temporarily download one copy of the materials (information or software) on BoostDrive for personal, non-commercial transitory viewing only.',
               ),
-              const SizedBox(height: 12),
-              PublicPrimaryButton(
-                label: 'Contact Legal Support',
-                icon: Icons.mail_outline,
-                onPressed: () {},
-              ),
             ],
           ),
         ),
