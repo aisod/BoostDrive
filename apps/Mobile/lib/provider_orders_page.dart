@@ -436,7 +436,7 @@ class _RequestsTab extends ConsumerWidget {
             if (jobCards.isNotEmpty) ...[
               MobileProviderUi.sectionTitle(palette, 'Job card execution'),
               const SizedBox(height: 8),
-              ...jobCards.map((r) => _jobExecutionTile(context, ref, palette, r)).toList(),
+              ...jobCards.map((r) => _jobExecutionTile(context, ref, palette, r)),
               const SizedBox(height: 14),
             ],
             if (rows.isNotEmpty) ...[
@@ -458,7 +458,7 @@ class _RequestsTab extends ConsumerWidget {
                       'Status: ${r['status']} · ${r['request_kind']}',
                       style: DashboardTypography.bodySm(palette),
                     ),
-                  )).toList(),
+                  )),
             ],
           ],
         );

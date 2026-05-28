@@ -84,7 +84,6 @@ class _SosRequestDetailPageState extends ConsumerState<SosRequestDetailPage> {
     final cat = widget.request.emergencyCategory;
     final type = widget.request.type;
     final canAccept = SosProviderUiRules.canAccept(request: widget.request, userId: userId);
-    final isAssignedToMe = SosProviderUiRules.isAssignedToMe(request: widget.request, userId: userId);
     final canComplete = SosProviderUiRules.canComplete(request: widget.request, userId: userId);
     final canCancelAssignment =
         SosProviderUiRules.canCancelAssignment(request: widget.request, userId: userId);

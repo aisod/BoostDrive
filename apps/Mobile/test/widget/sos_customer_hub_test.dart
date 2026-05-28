@@ -1,7 +1,5 @@
 import 'package:boostdrive_auth/boostdrive_auth.dart';
-import 'package:boostdrive_core/boostdrive_core.dart';
 import 'package:boostdrive_services/boostdrive_services.dart';
-import 'package:boostdrive_ui/boostdrive_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
