@@ -101,7 +101,6 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
           message: 'Use the Settings link in the sidebar to open profile settings.',
           icon: Icons.settings_outlined,
         );
-      case DashboardPortalSection.inventory:
       case DashboardPortalSection.dashboard:
         return ref.watch(sellerProductsProvider(userId)).when(
           data: (products) {
@@ -111,7 +110,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeaderStats(products, inventoryMode: _portalSection == DashboardPortalSection.inventory),
+                  _buildHeaderStats(products),
                   const SizedBox(height: 24),
                   _buildTabs(),
                   const SizedBox(height: 16),
@@ -172,7 +171,7 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
     );
   }
 
-  Widget _buildHeaderStats(List<Product> products, {bool inventoryMode = false}) {
+  Widget _buildHeaderStats(List<Product> products) {
     final palette = DashboardPalette.of(context);
     final activeCount = products.where((p) => p.status == 'active').length;
     final pendingCount = products.where((p) => p.status == 'pending').length;
@@ -182,24 +181,13 @@ class _SellerDashboardPageState extends ConsumerState<SellerDashboardPage> with 
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DashboardPageHeader(
-          title: inventoryMode ? 'Inventory Management' : 'My Listings',
-          subtitle: inventoryMode
-              ? 'Track performance and manage your active vehicle listings.'
-              : 'Manage your active vehicle inventory and leads.',
-          trailing: inventoryMode
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DashboardOutlinedAction(label: 'Filter', icon: Icons.filter_list),
-                    const SizedBox(width: 12),
-                    DashboardOutlinedAction(label: 'Export', icon: Icons.download),
-                  ],
-                )
-              : DashboardPillButton(
-                  label: 'Add New Listing',
-                  icon: Icons.add_circle_outline,
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage())),
-                ),
+          title: 'My Listings',
+          subtitle: 'Manage your active vehicle listings and leads.',
+          trailing: DashboardPillButton(
+            label: 'Add New Listing',
+            icon: Icons.add_circle_outline,
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingPage())),
+          ),
         ),
         const SizedBox(height: 24),
         LayoutBuilder(

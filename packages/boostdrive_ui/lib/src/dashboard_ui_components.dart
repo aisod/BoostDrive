@@ -6,7 +6,6 @@ import 'dashboard_typography.dart';
 /// Seller portal sidebar destinations (visual selection only).
 enum DashboardPortalSection {
   dashboard,
-  inventory,
   orders,
   serviceHistory,
   analytics,
@@ -380,12 +379,6 @@ class DashboardPortalSidebar extends StatelessWidget {
               label: 'Dashboard',
               selected: activeSection == DashboardPortalSection.dashboard,
               onTap: () => onSectionSelected?.call(DashboardPortalSection.dashboard),
-            ),
-            _PortalNavItem(
-              icon: Icons.inventory_2_outlined,
-              label: 'Inventory',
-              selected: activeSection == DashboardPortalSection.inventory,
-              onTap: () => onSectionSelected?.call(DashboardPortalSection.inventory),
             ),
             _PortalNavItem(
               icon: Icons.shopping_cart_outlined,
