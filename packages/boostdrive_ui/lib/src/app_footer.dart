@@ -131,17 +131,9 @@ class AppFooter extends StatelessWidget {
                   style: TextStyle(color: bodyColor, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
-                InkWell(
+                _AisodAttributionLink(
                   onTap: () => _openAisodWebsite(context),
-                  child: Text(
-                    'Developed by AISOD — https://www.aisod.tech/',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: BoostDriveTheme.primaryColor,
-                      fontSize: 13,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -165,16 +157,8 @@ class AppFooter extends StatelessWidget {
                   '© 2026 BoostDrive Namibia. All rights reserved.',
                   style: TextStyle(color: bodyColor, fontSize: 13),
                 ),
-                InkWell(
+                _AisodAttributionLink(
                   onTap: () => _openAisodWebsite(context),
-                  child: Text(
-                    'Developed by AISOD — https://www.aisod.tech/',
-                    style: const TextStyle(
-                      color: BoostDriveTheme.primaryColor,
-                      fontSize: 13,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
                 ),
                 Row(
                   children: [
@@ -215,6 +199,47 @@ class AppFooter extends StatelessWidget {
         ),
         // SOCIALS REMOVED
       ],
+    );
+  }
+}
+
+class _AisodAttributionLink extends StatefulWidget {
+  final VoidCallback onTap;
+  final TextAlign textAlign;
+
+  const _AisodAttributionLink({
+    required this.onTap,
+    this.textAlign = TextAlign.start,
+  });
+
+  @override
+  State<_AisodAttributionLink> createState() => _AisodAttributionLinkState();
+}
+
+class _AisodAttributionLinkState extends State<_AisodAttributionLink> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Text(
+          _isHovered
+              ? 'Developed by AISOD — https://www.aisod.tech/'
+              : 'Developed by AISOD',
+          textAlign: widget.textAlign,
+          style: const TextStyle(
+            color: BoostDriveTheme.primaryColor,
+            fontSize: 13,
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ),
     );
   }
 }
