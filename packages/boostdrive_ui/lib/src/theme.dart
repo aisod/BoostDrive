@@ -106,7 +106,7 @@ class BoostDriveTheme {
   }
 }
 
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
 
 String getInitials(String fullName) {
   if (fullName.isEmpty) return 'U';
