@@ -71,7 +71,7 @@ class ListingOwnerInquiriesPanel extends ConsumerWidget {
             Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor, strokeWidth: 2)),
           ],
         ),
-        error: (_, __) => Column(
+        error: (_, _) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Leads & Inquiries', style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: titleColor)),
@@ -205,7 +205,7 @@ class _InquiryRow extends ConsumerWidget {
             profile != null && profile.profileImg.isNotEmpty ? profile.profileImg : null,
           ),
           loading: () => row('Loading...', null),
-          error: (_, __) => row('Buyer', null),
+          error: (_, _) => row('Buyer', null),
         );
   }
 }

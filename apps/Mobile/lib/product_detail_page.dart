@@ -215,7 +215,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                       itemBuilder: (_, i) => Image.network(
                         _imageUrls[i],
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => ColoredBox(
+                        errorBuilder: (_, _, _) => ColoredBox(
                           color: isDark ? const Color(0xFF202B33) : const Color(0xFFE8E8E8),
                           child: Icon(Icons.broken_image_outlined, size: 64, color: _bodyColor(context)),
                         ),
@@ -330,7 +330,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _imageUrls.length > 4 ? 4 : _imageUrls.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
                     itemBuilder: (_, i) {
                       final isLastOverlay = i == 3 && _imageUrls.length > 4;
                       return GestureDetector(

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:boostdrive_auth/boostdrive_auth.dart';
@@ -264,10 +266,12 @@ class _BaTLorriHLogisticsDashboardState
         .when(
           data: (allOrders) {
             final orders = allOrders.where((o) {
-              if (_tabController.index == 0)
+              if (_tabController.index == 0) {
                 return o.status != 'delivered' && o.status != 'cancelled';
-              if (_tabController.index == 1)
+              }
+              if (_tabController.index == 1) {
                 return o.status == 'pending' || o.status == 'picking_up';
+              }
               if (_tabController.index == 2) return o.status == 'delivered';
               return true;
             }).toList();

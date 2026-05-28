@@ -29,7 +29,7 @@ class EmergencyHubPage extends ConsumerStatefulWidget {
 class _EmergencyHubPageState extends ConsumerState<EmergencyHubPage> with TickerProviderStateMixin {
   bool _isRequesting = false;
   Position? _currentPosition;
-  int _vehicleIndex = 0;
+  final int _vehicleIndex = 0;
   bool _reviewDialogOpen = false;
   final Set<String> _shownReviewPromptIds = <String>{};
 
