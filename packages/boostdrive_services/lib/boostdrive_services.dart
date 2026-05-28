@@ -30,3 +30,4 @@ export 'src/support_service.dart';
 export 'src/provider_ops_service.dart';
 export 'src/provider_staff_service.dart';
 export 'src/job_card_service.dart';
+export 'src/seed_data.dart';

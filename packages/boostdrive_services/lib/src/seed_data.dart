@@ -1,33 +1,314 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Run this function once to populate your Supabase with test data.
-/// You can call it from a temporary button in your app.
-Future<void> seedBoostDriveData() async {
-  final supabase = Supabase.instance.client;
+/// Stable demo identities for linked showcase flows across mobile + web.
+class DemoSeedIds {
+  DemoSeedIds._();
 
-  final products = [
-    // Featured Cars
-    {
-      'id': '00000000-0000-0000-0000-000000000001',
-      'category': 'car',
-      'title': '2022 Toyota Hilux v6',
-      'subtitle': 'Rugged 4x4 Legend',
-      'description': 'Excellent condition, low mileage Toyota Hilux. Perfect for Namibian terrain.',
-      'price': 650000.0,
-      'condition': 'used',
-      'location': 'Windhoek',
-      'image_url': 'https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&w=800&q=80',
-      'is_featured': true,
-      'status': 'available',
-      'created_at': DateTime.now().toIso8601String(),
-    },
-    // ... other products would go here, updating keys to snake_case
-  ];
+  static const String carlosProvider = '11111111-1111-4111-8111-111111111111';
+  static const String sayaCustomerSeller = '22222222-2222-4222-8222-222222222222';
+  static const String batlorrihLogistics = '33333333-3333-4333-8333-333333333333';
 
+  static const String providerServiceInspect = '44444444-4444-4444-8444-444444444441';
+  static const String providerServiceTow = '44444444-4444-4444-8444-444444444442';
+  static const String providerServiceDiagnostic = '44444444-4444-4444-8444-444444444443';
+
+  static const String demoSosRequest = '55555555-5555-4555-8555-555555555555';
+  static const String demoJobCard = '66666666-6666-4666-8666-666666666666';
+  static const String demoServiceRequest = '77777777-7777-4777-8777-777777777777';
+  static const String demoProduct = '88888888-8888-4888-8888-888888888888';
+  static const String demoDeliveryOrder = '99999999-9999-4999-8999-999999999999';
+}
+
+Future<void> _safeUpsert({
+  required SupabaseClient client,
+  required String table,
+  required Map<String, dynamic> row,
+  String? onConflict,
+}) async {
   try {
-    await supabase.from('products').insert(products);
-    print('Supabase seeded successfully!');
+    await client.from(table).upsert(row, onConflict: onConflict);
   } catch (e) {
-    print('Error seeding Supabase: $e');
+    // Demo seeding should be resilient across schema revisions.
+    print('seed warning [$table upsert]: $e');
   }
 }
+
+Future<void> _safeInsert({
+  required SupabaseClient client,
+  required String table,
+  required Map<String, dynamic> row,
+}) async {
+  try {
+    await client.from(table).insert(row);
+  } catch (e) {
+    print('seed warning [$table insert]: $e');
+  }
+}
+
+/// Inserts a single connected demo scenario:
+/// - Provider: Carlos Mechanical Services
+/// - Customer/Seller: Saya Mubiana
+/// - Logistics: BaTLorriH Logistics
+/// - Linked records for provider services, SOS, job card, marketplace listing, and delivery.
+///
+/// Intended for demonstrations in both mobile and web apps.
+Future<void> seedDemoShowcaseData({SupabaseClient? client}) async {
+  final supabase = client ?? Supabase.instance.client;
+  final now = DateTime.now().toUtc();
+
+  final profiles = <Map<String, dynamic>>[
+    {
+      'id': DemoSeedIds.carlosProvider,
+      'full_name': 'Carlos Mechanical Services',
+      'email': 'carlos.mechanical.demo@boostdrive.app',
+      'phone_number': '+264811100001',
+      'role': 'mechanic',
+      'is_buyer': false,
+      'is_seller': true,
+      'verification_status': 'approved',
+      'status': 'active',
+      'is_online': true,
+      'registered_business_name': 'Carlos Mechanical Services CC',
+      'trading_name': 'Carlos Mechanical Services',
+      'primary_service_category': 'mechanic',
+      'provider_service_types': 'mechanic,towing',
+      'service_area_description': 'Windhoek and nearby areas',
+      'working_hours': 'Mon-Sat 07:00-19:00',
+      'business_hours_24_7': true,
+      'service_radius_km': 120,
+      'workshop_address': 'Lafrenz Industrial, Windhoek',
+      'workshop_lat': -22.5149,
+      'workshop_lng': 17.0802,
+      'standard_labor_rate': 450.0,
+      'business_contact_number': '+264811100001',
+      'created_at': now.toIso8601String(),
+      'last_active': now.toIso8601String(),
+    },
+    {
+      'id': DemoSeedIds.sayaCustomerSeller,
+      'full_name': 'Saya Mubiana',
+      'email': 'saya.mubiana.demo@boostdrive.app',
+      'phone_number': '+264811100002',
+      'role': 'customer',
+      'is_buyer': true,
+      'is_seller': true,
+      'verification_status': 'approved',
+      'status': 'active',
+      'is_online': true,
+      'created_at': now.toIso8601String(),
+      'last_active': now.toIso8601String(),
+      'emergency_contact_name': 'Carlos Mechanical Services',
+      'emergency_contact_phone': '+264811100001',
+    },
+    {
+      'id': DemoSeedIds.batlorrihLogistics,
+      'full_name': 'BaTLorriH Logistics',
+      'email': 'batlorrih.logistics.demo@boostdrive.app',
+      'phone_number': '+264811100003',
+      'role': 'logistics',
+      'is_buyer': false,
+      'is_seller': false,
+      'verification_status': 'approved',
+      'status': 'active',
+      'is_online': true,
+      'primary_service_category': 'logistics',
+      'provider_service_types': 'logistics',
+      'service_area_description': 'Namibia local + regional',
+      'working_hours': '24/7',
+      'business_hours_24_7': true,
+      'service_radius_km': 500,
+      'workshop_address': 'Northern Industrial, Windhoek',
+      'workshop_lat': -22.5458,
+      'workshop_lng': 17.0832,
+      'created_at': now.toIso8601String(),
+      'last_active': now.toIso8601String(),
+    },
+  ];
+
+  for (final profile in profiles) {
+    await _safeUpsert(
+      client: supabase,
+      table: 'profiles',
+      row: profile,
+      onConflict: 'id',
+    );
+  }
+
+  final providerServices = <Map<String, dynamic>>[
+    {
+      'id': DemoSeedIds.providerServiceInspect,
+      'provider_id': DemoSeedIds.carlosProvider,
+      'user_id': DemoSeedIds.carlosProvider,
+      'name': 'Emergency Roadside Mechanical Inspection',
+      'category': 'mechanic',
+      'description': 'On-site diagnostics and urgent roadside stabilization.',
+      'price': 650.0,
+      'estimated_minutes': 45,
+      'is_active': true,
+    },
+    {
+      'id': DemoSeedIds.providerServiceTow,
+      'provider_id': DemoSeedIds.carlosProvider,
+      'user_id': DemoSeedIds.carlosProvider,
+      'name': 'Short-Haul Towing',
+      'category': 'towing',
+      'description': 'Safe towing within Windhoek metro and nearby zones.',
+      'price': 900.0,
+      'estimated_minutes': 60,
+      'is_active': true,
+    },
+    {
+      'id': DemoSeedIds.providerServiceDiagnostic,
+      'provider_id': DemoSeedIds.carlosProvider,
+      'user_id': DemoSeedIds.carlosProvider,
+      'name': 'Engine Diagnostic Scan',
+      'category': 'mechanic',
+      'description': 'OBD scan, root-cause summary, and repair plan.',
+      'price': 500.0,
+      'estimated_minutes': 35,
+      'is_active': true,
+    },
+  ];
+  for (final row in providerServices) {
+    await _safeUpsert(
+      client: supabase,
+      table: 'provider_services',
+      row: row,
+      onConflict: 'id',
+    );
+  }
+
+  await _safeUpsert(
+    client: supabase,
+    table: 'products',
+    row: {
+      'id': DemoSeedIds.demoProduct,
+      'seller_id': DemoSeedIds.sayaCustomerSeller,
+      'category': 'part',
+      'title': 'Toyota Hilux Front Brake Pads (OEM Spec)',
+      'subtitle': 'Ready stock for emergency replacements',
+      'description': 'Demonstration listing tied to Carlos service + BatlorriH delivery flow.',
+      'price': 1250.0,
+      'condition': 'new',
+      'status': 'available',
+      'location': 'Windhoek',
+      'is_featured': true,
+      'image_url': 'https://images.unsplash.com/photo-1517524206127-48bbd363f3d7?auto=format&fit=crop&w=900&q=80',
+      'image_urls': <String>[
+        'https://images.unsplash.com/photo-1517524206127-48bbd363f3d7?auto=format&fit=crop&w=900&q=80',
+      ],
+      'fitment': <String, dynamic>{
+        'make': 'Toyota',
+        'model': 'Hilux',
+        'year': 2022,
+      },
+      'created_at': now.toIso8601String(),
+    },
+    onConflict: 'id',
+  );
+
+  await _safeUpsert(
+    client: supabase,
+    table: 'sos_requests',
+    row: {
+      'id': DemoSeedIds.demoSosRequest,
+      'user_id': DemoSeedIds.sayaCustomerSeller,
+      'assigned_provider_id': DemoSeedIds.carlosProvider,
+      'type': 'mechanic',
+      'status': 'assigned',
+      'emergency_category': 'engine',
+      'location': <String, dynamic>{'lat': -22.5609, 'lng': 17.0658},
+      'user_note': 'Demo SOS: vehicle overheating near CBD.',
+      'responded_at': now.subtract(const Duration(minutes: 8)).toIso8601String(),
+      'provider_last_lat': -22.5538,
+      'provider_last_lng': 17.0742,
+      'provider_location_updated_at': now.subtract(const Duration(minutes: 1)).toIso8601String(),
+      'eta_minutes': 6,
+      'created_at': now.subtract(const Duration(minutes: 10)).toIso8601String(),
+    },
+    onConflict: 'id',
+  );
+
+  await _safeUpsert(
+    client: supabase,
+    table: 'provider_job_cards',
+    row: {
+      'id': DemoSeedIds.demoJobCard,
+      'requester_id': DemoSeedIds.sayaCustomerSeller,
+      'requester_role': 'seller',
+      'customer_id': DemoSeedIds.sayaCustomerSeller,
+      'provider_id': DemoSeedIds.carlosProvider,
+      'assigned_provider_id': DemoSeedIds.carlosProvider,
+      'vehicle_label': '2022 Toyota Hilux',
+      'concern_summary': 'Brake vibration and reduced stopping power.',
+      'diagnosis_notes': 'Pads worn out, rotors require skim.',
+      'labor_amount': 1450.0,
+      'status': 'accepted',
+      'sos_request_id': DemoSeedIds.demoSosRequest,
+      'quoted_at': now.subtract(const Duration(minutes: 4)).toIso8601String(),
+      'customer_decision_at': now.subtract(const Duration(minutes: 2)).toIso8601String(),
+      'created_at': now.subtract(const Duration(minutes: 12)).toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    },
+    onConflict: 'id',
+  );
+
+  // Service requests schema can vary between environments. Keep this optional.
+  await _safeInsert(
+    client: supabase,
+    table: 'service_requests',
+    row: {
+      'id': DemoSeedIds.demoServiceRequest,
+      'title': 'Hilux brake service appointment',
+      'status': 'open',
+      'request_kind': 'scheduled',
+      'assigned_provider_id': DemoSeedIds.carlosProvider,
+      'customer_id': DemoSeedIds.sayaCustomerSeller,
+      'provider_id': DemoSeedIds.carlosProvider,
+      'scheduled_start': now.add(const Duration(hours: 1)).toIso8601String(),
+      'created_at': now.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    },
+  );
+
+  await _safeUpsert(
+    client: supabase,
+    table: 'delivery_orders',
+    row: {
+      'id': DemoSeedIds.demoDeliveryOrder,
+      'customer_id': DemoSeedIds.sayaCustomerSeller,
+      'seller_id': DemoSeedIds.sayaCustomerSeller,
+      'driver_id': DemoSeedIds.batlorrihLogistics,
+      'status': 'in_transit',
+      'pickup_location': <String, dynamic>{
+        'name': 'Carlos Mechanical Services Workshop',
+        'lat': -22.5149,
+        'lng': 17.0802,
+      },
+      'dropoff_location': <String, dynamic>{
+        'name': 'Saya Mubiana - Eros, Windhoek',
+        'lat': -22.5497,
+        'lng': 17.0923,
+      },
+      'items': <String, dynamic>{
+        'product_id': DemoSeedIds.demoProduct,
+        'title': 'Toyota Hilux Front Brake Pads (OEM Spec)',
+        'quantity': 1,
+      },
+      'eta': '18 min',
+      'delivery_fee': 95.0,
+      'vehicle_id': 'BATLORRIH-TRUCK-01',
+      'driver_last_lat': -22.5311,
+      'driver_last_lng': 17.0867,
+      'driver_location_updated_at': now.toIso8601String(),
+      'created_at': now.subtract(const Duration(minutes: 14)).toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    },
+    onConflict: 'id',
+  );
+
+  print('Demo showcase seed complete: Carlos + Saya + BaTLorriH scenario ready.');
+}
+
+/// Backward-compatible alias retained for existing call-sites.
+Future<void> seedBoostDriveData() async => seedDemoShowcaseData();

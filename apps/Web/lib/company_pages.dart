@@ -30,10 +30,6 @@ class AboutPage extends StatelessWidget {
                   title: 'About BoostDrive',
                   subtitle:
                       'BoostDrive is Namibia\'s premium automotive marketplace — connecting buyers, sellers, renters, and service providers in one polished destination.',
-                  trailing: PublicPrimaryButton(
-                    label: 'Learn More',
-                    onPressed: () {},
-                  ),
                 ),
                 trailing: PublicNetworkImage(imageUrl: _heroImage),
               ),
