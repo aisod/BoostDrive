@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:boost_drive_web/messages_page.dart';
 import 'package:boost_drive_web/provider_hub_page.dart';
+import 'package:boost_drive_web/provider_detail_page_ui.dart';
 
 /// Find a Provider — "Digital Yellow Pages" for booking service, comparing mechanics, or finding towing.
 /// Header with search, category filters, provider list (verified badge, role, distance, rating, hours), list/map toggle.
@@ -943,37 +944,51 @@ class _ProviderCard extends ConsumerWidget {
               const Spacer(),
               const SizedBox(height: 18),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (hasBusinessContact || hasPersonalContact)
                     Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          if (hasBusinessContact) {
-                            _showContactNumbersDialog(context, businessNumbers: businessNumbers);
-                          } else {
-                            _launchTel(context, personalContactNumber);
-                          }
-                        },
-                        icon: const Icon(Icons.phone_outlined, size: 18),
-                        label: const Text('Contact'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: BoostDriveTheme.primaryColor,
-                          side: BorderSide(color: palette.borderColor),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            if (hasBusinessContact) {
+                              _showContactNumbersDialog(context, businessNumbers: businessNumbers);
+                            } else {
+                              _launchTel(context, personalContactNumber);
+                            }
+                          },
+                          icon: const Icon(Icons.phone_outlined, size: 18),
+                          label: const Text('Contact'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: BoostDriveTheme.primaryColor,
+                            side: BorderSide(color: palette.borderColor),
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.standard,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
                         ),
                       ),
                     ),
                   if (hasBusinessContact || hasPersonalContact) const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton(
-                      onPressed: onTap,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: BoostDriveTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        onPressed: onTap,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BoostDriveTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.standard,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('View Profile'),
                       ),
-                      child: const Text('View Profile'),
                     ),
                   ),
                 ],
@@ -1156,6 +1171,87 @@ class _ProviderDetailPage extends ConsumerStatefulWidget {
 class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
   bool _isStartingConversation = false;
 
+  void _openGalleryImage(String url) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black87,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                loadingBuilder: (ctx, child, progress) => progress == null
+                    ? child
+                    : const Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                onPressed: () => Navigator.pop(ctx),
+                icon: const Icon(Icons.close, color: Colors.white, size: 22),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleSendMessage() async {
+    final profile = widget.profile;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in to send a message.'),
+            backgroundColor: BoostDriveTheme.primaryColor,
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isStartingConversation = true);
+
+    String? conversationId;
+    try {
+      conversationId = await ref.read(messageServiceProvider).getOrCreateDirectConversation(
+            userId: user.id,
+            providerId: profile.uid,
+          );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not start conversation: $e')),
+        );
+        setState(() => _isStartingConversation = false);
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MessagesPage(initialConversationId: conversationId),
+      ),
+    );
+
+    if (mounted) {
+      setState(() => _isStartingConversation = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = widget.profile;
@@ -1163,421 +1259,36 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
     final roleLabel = _ProviderCard._roleDisplayName(profile.role ?? 'mechanic');
     final isVerified = (profile.verificationStatus ?? '').toLowerCase() == 'approved';
     final businessContactString = (profile.businessContactNumber ?? '').trim();
-    final List<String> businessNumbers = businessContactString
+    final businessNumbers = businessContactString
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
-    final personalContactNumber = (profile.phoneNumber ?? '').trim();
     final hasBusinessContact = businessNumbers.isNotEmpty;
-    final hasPersonalContact = personalContactNumber.isNotEmpty;
-    final primaryContactNumber = hasBusinessContact ? businessNumbers.first : personalContactNumber;
 
-    final pageBody = Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                      child: Text(
-                        getInitials(profile.displayName),
-                        style: const TextStyle(color: BoostDriveTheme.primaryColor, fontSize: 32, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            profile.displayName,
-                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(roleLabel, style: const TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600)),
-                              ),
-                              if (isVerified) ...[
-                                const SizedBox(width: 8),
-                                Icon(Icons.verified, color: BoostDriveTheme.primaryColor, size: 20),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                _SectionTitle(
-                  title: 'About',
-                  icon: Icons.info_outline,
-                ),
-                Text(
-                  (profile.businessBio ?? '').isNotEmpty ? profile.businessBio! : 'No bio added yet. This provider is part of the BoostDrive verified network.',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), height: 1.6, fontSize: 15),
-                ),
-                if (profile.galleryUrls.any((url) => url.isNotEmpty && url.contains('/provider-galleries/'))) ...[
-                  const SizedBox(height: 32),
-                  _SectionTitle(
-                    title: 'Gallery (${profile.galleryUrls.where((u) => u.isNotEmpty && u.contains('/provider-galleries/')).take(10).length}/10 photos)',
-                    subtitle: 'Workshop, tow truck, or completed repairs.',
-                    icon: Icons.collections_outlined,
-                  ),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1,
-                    ),
-                    itemCount: profile.galleryUrls.where((u) => u.isNotEmpty && u.contains('/provider-galleries/')).take(10).length,
-                    itemBuilder: (context, index) {
-                      final url = profile.galleryUrls.where((u) => u.isNotEmpty && u.contains('/provider-galleries/')).take(10).elementAt(index);
-                      return MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            showDialog<void>(
-                              context: context,
-                              builder: (ctx) => Dialog(
-                                backgroundColor: Colors.black87,
-                                insetPadding: const EdgeInsets.all(16),
-                                child: Stack(
-                                  children: [
-                                    InteractiveViewer(
-                                      minScale: 0.5,
-                                      maxScale: 4.0,
-                                      child: Image.network(
-                                        url,
-                                        fit: BoxFit.contain,
-                                        width: double.infinity,
-                                        loadingBuilder: (ctx, child, progress) => progress == null
-                                            ? child
-                                            : const Center(child: CircularProgressIndicator(color: BoostDriveTheme.primaryColor)),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: MouseRegion(
-                                        cursor: SystemMouseCursors.click,
-                                        child: GestureDetector(
-                                          onTap: () => Navigator.pop(ctx),
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.black54,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            padding: const EdgeInsets.all(8),
-                                            child: const Icon(Icons.close, color: Colors.white, size: 22),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Color(0x22FF6600)),
-                              image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-                const SizedBox(height: 32),
-                if ((profile.brandExpertise ?? []).isNotEmpty || (profile.serviceTags ?? []).isNotEmpty || ((profile.role ?? '').toLowerCase().contains('towing') && (profile.towingCapabilities ?? []).isNotEmpty)) ...[
-                  _SectionTitle(
-                    title: 'Service Specializations',
-                    subtitle: 'Used for search filters and matching.',
-                    icon: Icons.build_circle_outlined,
-                  ),
-                  if (profile.brandExpertise.isNotEmpty) ...[
-                    Text('Brand expertise', style: TextStyle(fontSize: 13, color: BoostDriveTheme.textDim, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: profile.brandExpertise.map((key) => _SpecializationChip(label: UserProfile.getSpecializationLabel(key))).toList(),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (profile.serviceTags.isNotEmpty) ...[
-                    Text('Service tags', style: TextStyle(fontSize: 13, color: BoostDriveTheme.textDim, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: profile.serviceTags.map((key) => _SpecializationChip(label: UserProfile.getSpecializationLabel(key))).toList(),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (profile.role.toLowerCase().contains('towing') && profile.towingCapabilities.isNotEmpty) ...[
-                    Text('Towing capabilities', style: TextStyle(fontSize: 13, color: BoostDriveTheme.textDim, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: profile.towingCapabilities.map((key) => _SpecializationChip(label: UserProfile.getSpecializationLabel(key))).toList(),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ],
-                _SectionTitle(
-                  title: 'Trust & Experience',
-                  subtitle: 'Business bio and portfolio build customer trust.',
-                  icon: Icons.verified_user_outlined,
-                ),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: [
-                    if (profile.yearsInOperation != null)
-                      _TrustItem(icon: Icons.history, label: 'Experience', value: '${profile.yearsInOperation} Years'),
-                    if (profile.teamSize != null)
-                      _TrustItem(icon: Icons.groups_outlined, label: 'Team size', value: '${profile.teamSize} People'),
-                    if (profile.standardLaborRate != null)
-                      _TrustItem(icon: Icons.payments_outlined, label: 'Labor Rate', value: 'N\$${profile.standardLaborRate}/hr'),
-                    _TrustItem(icon: Icons.verified_user_outlined, label: 'Verification', value: isVerified ? 'Approved' : 'Pending'),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                if (profile.registrationNumber != null || profile.taxVatNumber != null) ...[
-                  _SectionTitle(
-                    title: 'Business details',
-                    icon: Icons.business_outlined,
-                  ),
-                  if (profile.registrationNumber != null && profile.registrationNumber!.isNotEmpty)
-                    _BusinessDetailRow(label: 'Registration Number', value: profile.registrationNumber!),
-                  if (profile.taxVatNumber != null && profile.taxVatNumber!.isNotEmpty)
-                    _BusinessDetailRow(label: 'Tax / VAT Number', value: profile.taxVatNumber!),
-                  const SizedBox(height: 24),
-                ],
-                if ((profile.serviceAreaDescription ?? '').isNotEmpty || (profile.workingHours ?? '').isNotEmpty) ...[
-                  _SectionTitle(
-                    title: 'Location & hours',
-                    icon: Icons.location_on_outlined,
-                  ),
-                  if (profile.serviceAreaDescription.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.near_me, size: 20, color: BoostDriveTheme.textDim),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(profile.serviceAreaDescription, style: TextStyle(color: Colors.white.withValues(alpha: 0.9), height: 1.5, fontSize: 15))),
-                        ],
-                      ),
-                    ),
-                  if (profile.workingHours.isNotEmpty)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.schedule, size: 20, color: BoostDriveTheme.textDim),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(profile.workingHours, style: TextStyle(color: Colors.green.shade400, fontWeight: FontWeight.w700, height: 1.5, fontSize: 15))),
-                      ],
-                    ),
-                  const SizedBox(height: 32),
-                ],
-                if (hasBusinessContact || hasPersonalContact) ...[
-                  _SectionTitle(
-                    title: 'Contact Information',
-                    icon: Icons.contact_phone_outlined,
-                  ),
-                  if (hasBusinessContact)
-                    ...businessNumbers.map((number) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: GestureDetector(
-                        onTap: () => _ProviderCard._launchTel(context, number),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(Icons.business_outlined, color: BoostDriveTheme.primaryColor, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: SelectableText(
-                                'Business: $number',
-                                style: const TextStyle(
-                                  color: BoostDriveTheme.primaryColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )),
-                ],
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    if (hasBusinessContact)
-                      Expanded(
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () => _ProviderCard._showContactNumbersDialog(
-                              context,
-                              businessNumbers: businessNumbers,
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              decoration: BoxDecoration(
-                                color: BoostDriveTheme.primaryColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.phone, color: Colors.white, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Call Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (primaryContactNumber.isNotEmpty) const SizedBox(width: 12),
-                    Expanded(
-                      child: MouseRegion(
-                        cursor: _isStartingConversation ? SystemMouseCursors.basic : SystemMouseCursors.click,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _isStartingConversation ? null : () async {
-                            final user = Supabase.instance.client.auth.currentUser;
-                            if (user == null) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please log in to send a message.'),
-                                    backgroundColor: BoostDriveTheme.primaryColor,
-                                  ),
-                                );
-                              }
-                              return;
-                            }
-                            
-                            setState(() => _isStartingConversation = true);
-                            
-                            String? conversationId;
-                            try {
-                              conversationId = await ref.read(messageServiceProvider).getOrCreateDirectConversation(
-                                userId: user.id,
-                                providerId: profile.uid,
-                              );
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Could not start conversation: $e')));
-                                setState(() => _isStartingConversation = false);
-                              }
-                              return;
-                            }
-                            
-                            if (!mounted) return;
-                            
-                            // Navigate to message page
-                            Navigator.push(context, MaterialPageRoute(
-                              builder: (context) => MessagesPage(initialConversationId: conversationId),
-                            ));
-                            
-                            // Reset loading state after a delay or when we might return
-                            if (mounted) {
-                              setState(() => _isStartingConversation = false);
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: BoostDriveTheme.primaryColor),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (_isStartingConversation)
-                                  const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(BoostDriveTheme.primaryColor),
-                                    ),
-                                  )
-                                else ...[
-                                  const Icon(Icons.chat_bubble_outline, color: BoostDriveTheme.primaryColor, size: 20),
-                                  const SizedBox(width: 8),
-                                  const Text('Send Message', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600)),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Request quote — coming soon')),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: BoostDriveTheme.primaryColor),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.request_quote_outlined, color: BoostDriveTheme.primaryColor, size: 20),
-                                SizedBox(width: 8),
-                                Text('Request Quote', style: TextStyle(color: BoostDriveTheme.primaryColor, fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+    final pageBody = ProviderDetailLightView(
+      profile: profile,
+      roleLabel: roleLabel,
+      isVerified: isVerified,
+      businessNumbers: businessNumbers,
+      hasBusinessContact: hasBusinessContact,
+      hasPersonalContact: (profile.phoneNumber ?? '').trim().isNotEmpty,
+      isStartingConversation: _isStartingConversation,
+      onCallNow: hasBusinessContact
+          ? () => _ProviderCard._showContactNumbersDialog(
+                context,
+                businessNumbers: businessNumbers,
+              )
+          : null,
+      onSendMessage: _handleSendMessage,
+      onRequestQuote: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request quote — coming soon')),
+        );
+      },
+      onGalleryImageTap: _openGalleryImage,
+      onBusinessNumberTap: (number) => _ProviderCard._launchTel(context, number),
+    );
 
     if (currentUser == null) {
       return PublicPageFrame(
@@ -1586,12 +1297,20 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Back'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                child: TextButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back, color: ProviderDetailLightUi.titleColor),
+                  label: Text(
+                    'Back',
+                    style: TextStyle(
+                      color: ProviderDetailLightUi.titleColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
               pageBody,
             ],
           ),
@@ -1599,137 +1318,23 @@ class _ProviderDetailPageState extends ConsumerState<_ProviderDetailPage> {
       );
     }
 
-    return PremiumPageLayout(
-      title: profile.displayName,
-      leading: GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: const Icon(Icons.arrow_back, color: Colors.white),
-      ),
-      child: pageBody,
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final IconData? icon;
-
-  const _SectionTitle({required this.title, this.subtitle, this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: BoostDriveTheme.primaryColor, size: 20),
-              const SizedBox(width: 10),
-            ],
-            Text(
-              title,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-            ),
-          ],
+    return Theme(
+      data: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: ProviderDetailLightUi.pageBackground,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: ProviderDetailLightUi.titleColor,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
         ),
-        if (subtitle != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            subtitle!,
-            style: TextStyle(color: BoostDriveTheme.textDim, fontSize: 12),
-          ),
-        ],
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-}
-
-class _SpecializationChip extends StatelessWidget {
-  final String label;
-
-  const _SpecializationChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.primaryColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BoostDriveTheme.primaryColor.withValues(alpha: 0.8), width: 1.5),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.check_circle, color: BoostDriveTheme.primaryColor, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TrustItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _TrustItem({required this.icon, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 160,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: BoostDriveTheme.backgroundDark.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0x22FF6600)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: BoostDriveTheme.primaryColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 20, color: BoostDriveTheme.primaryColor),
-          ),
-          const SizedBox(height: 12),
-          Text(label, style: TextStyle(fontSize: 12, color: BoostDriveTheme.textDim, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
-        ],
-      ),
-    );
-  }
-}
-
-class _BusinessDetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _BusinessDetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Text('$label:', style: TextStyle(fontSize: 14, color: BoostDriveTheme.textDim, fontWeight: FontWeight.w500)),
-          const SizedBox(width: 10),
-          SelectableText(value, style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w700)),
-        ],
+      child: PremiumPageLayout(
+        title: profile.displayName,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back, color: ProviderDetailLightUi.titleColor),
+        ),
+        child: pageBody,
       ),
     );
   }
