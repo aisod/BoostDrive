@@ -453,7 +453,8 @@ class _FindProvidersPageState extends ConsumerState<FindProvidersPage> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
-            childAspectRatio: width > 1140 ? 0.88 : 1.02,
+            // Taller cells keep action buttons inside the card when bios/pills wrap.
+            childAspectRatio: width > 1140 ? 0.82 : (width > 760 ? 0.88 : 1.05),
           ),
           itemBuilder: (context, index) {
             final p = list[index];
@@ -788,224 +789,223 @@ class _ProviderCard extends ConsumerWidget {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: palette.cardBackground,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: palette.borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: palette.isDark
-                    ? Colors.black.withValues(alpha: 0.16)
-                    : const Color(0xFFD7C8BF).withValues(alpha: 0.3),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.14),
-                    child: Text(
-                      getInitials(profile.displayName),
-                      style: const TextStyle(
-                        color: BoostDriveTheme.primaryColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
+        child: SizedBox.expand(
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: palette.cardBackground,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: palette.borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: palette.isDark
+                      ? Colors.black.withValues(alpha: 0.16)
+                      : const Color(0xFFD7C8BF).withValues(alpha: 0.3),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: BoostDriveTheme.primaryColor.withValues(alpha: 0.14),
+                      child: Text(
+                        getInitials(profile.displayName),
+                        style: const TextStyle(
+                          color: BoostDriveTheme.primaryColor,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                profile.displayName,
+                                style: TextStyle(
+                                  color: palette.titleColor,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if (isVerified)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.verified, size: 14, color: BoostDriveTheme.primaryColor),
+                                      SizedBox(width: 5),
+                                      Text(
+                                        'Verified',
+                                        style: TextStyle(
+                                          color: BoostDriveTheme.primaryColor,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (hasPromo)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: const Text(
+                                    'Promo',
+                                    style: TextStyle(
+                                      color: Colors.orange,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            roleLabel,
+                            style: TextStyle(
+                              color: palette.bodyColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ClipRect(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text(
+                          bio.isNotEmpty
+                            ? bio
+                            : 'Verified provider profile on BoostDrive. View this profile to see services, experience, and contact information.',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: palette.bodyColor,
+                          fontSize: 14,
+                          height: 1.55,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          _InfoPill(icon: Icons.near_me, label: locationText),
+                          _InfoPill(
+                            icon: Icons.schedule,
+                            label: hoursText,
+                            foregroundColor: Colors.green.shade700,
+                          ),
+                          if (profile.yearsInOperation != null)
+                            _InfoPill(
+                              icon: Icons.history,
+                              label: '${profile.yearsInOperation} years experience',
+                            ),
+                          if (hasPersonalContact || hasBusinessContact)
+                            _InfoPill(
+                              icon: Icons.phone_outlined,
+                              label: hasBusinessContact ? businessNumbers.first : personalContactNumber,
+                            ),
+                        ],
+                      ),
+                      if (tags.isNotEmpty) ...[
+                        const SizedBox(height: 16),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              profile.displayName,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: palette.titleColor,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            if (isVerified)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: BoostDriveTheme.primaryColor.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.verified, size: 14, color: BoostDriveTheme.primaryColor),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      'Verified',
-                                      style: TextStyle(
-                                        color: BoostDriveTheme.primaryColor,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (hasPromo)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: const Text(
-                                  'Promo',
-                                  style: TextStyle(
-                                    color: Colors.orange,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          roleLabel,
-                          style: TextStyle(
-                            color: palette.bodyColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          children: tags
+                              .map((tag) => _SmallSpecializationChip(label: tag))
+                              .toList(),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                bio.isNotEmpty
-                    ? bio
-                    : 'Verified provider profile on BoostDrive. View this profile to see services, experience, and contact information.',
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: palette.bodyColor,
-                  fontSize: 14,
-                  height: 1.55,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _InfoPill(icon: Icons.near_me, label: locationText),
-                  _InfoPill(
-                    icon: Icons.schedule,
-                    label: hoursText,
-                    foregroundColor: Colors.green.shade700,
-                  ),
-                  if (profile.yearsInOperation != null)
-                    _InfoPill(
-                      icon: Icons.history,
-                      label: '${profile.yearsInOperation} years experience',
-                    ),
-                  if (hasPersonalContact || hasBusinessContact)
-                    _InfoPill(
-                      icon: Icons.phone_outlined,
-                      label: hasBusinessContact ? businessNumbers.first : personalContactNumber,
-                    ),
-                ],
-              ),
-              if (tags.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: tags
-                      .map((tag) => _SmallSpecializationChip(label: tag))
-                      .toList(),
-                ),
-              ],
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (hasBusinessContact || hasPersonalContact)
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (hasBusinessContact || hasPersonalContact)
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              if (hasBusinessContact) {
+                                _showContactNumbersDialog(context, businessNumbers: businessNumbers);
+                              } else {
+                                _launchTel(context, personalContactNumber);
+                              }
+                            },
+                            icon: const Icon(Icons.phone_outlined, size: 18),
+                            label: const Text('Contact'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: BoostDriveTheme.primaryColor,
+                              side: BorderSide(color: palette.borderColor),
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.standard,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (hasBusinessContact || hasPersonalContact) const SizedBox(width: 12),
                     Expanded(
                       child: SizedBox(
                         height: 48,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            if (hasBusinessContact) {
-                              _showContactNumbersDialog(context, businessNumbers: businessNumbers);
-                            } else {
-                              _launchTel(context, personalContactNumber);
-                            }
-                          },
-                          icon: const Icon(Icons.phone_outlined, size: 18),
-                          label: const Text('Contact'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: BoostDriveTheme.primaryColor,
-                            side: BorderSide(color: palette.borderColor),
+                        child: FilledButton(
+                          onPressed: onTap,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: BoostDriveTheme.primaryColor,
+                            foregroundColor: Colors.white,
                             minimumSize: Size.zero,
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             visualDensity: VisualDensity.standard,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
+                          child: const Text('View Profile'),
                         ),
                       ),
                     ),
-                  if (hasBusinessContact || hasPersonalContact) const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: FilledButton(
-                        onPressed: onTap,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: BoostDriveTheme.primaryColor,
-                          foregroundColor: Colors.white,
-                          minimumSize: Size.zero,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.standard,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: const Text('View Profile'),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

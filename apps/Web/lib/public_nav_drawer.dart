@@ -75,16 +75,18 @@ class PublicNavDrawer extends ConsumerWidget {
                     onTap: () => _go(context, '/marketplace'),
                   ),
                   if (!isGuest) ...[
-                    if (profile == null ||
-                        !(profile.isProvider || isWebProviderRole(profile.role)))
-                      _DrawerNavTile(
-                        label: 'Find a Provider',
-                        isActive: activeRoute == '/find-provider',
-                        onTap: () {
-                          Navigator.pop(context);
+                    _DrawerNavTile(
+                      label: 'Find a Provider',
+                      isActive: activeRoute == '/find-provider',
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (profile != null) {
+                          openFindProviderOrHub(context, ref, profile);
+                        } else {
                           Navigator.of(context).pushNamed('/find-provider');
-                        },
-                      ),
+                        }
+                      },
+                    ),
                     _DrawerNavTile(
                       label: 'Messages',
                       isActive: false,

@@ -64,33 +64,26 @@ class _AddFleetVehicleDialogState extends ConsumerState<AddFleetVehicleDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = DashboardPalette.of(context);
     return AlertDialog(
-      backgroundColor: palette.surfaceContainerLowest,
-      title: Text(
-        'Add fleet vehicle',
-        style: TextStyle(color: palette.onBackground, fontWeight: FontWeight.bold),
-      ),
+      backgroundColor: BoostDriveTheme.surfaceDark,
+      title: const Text('Add fleet vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       content: SizedBox(
         width: 400,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _field(palette, _make, 'Make', 'e.g. Toyota'),
+            _field(_make, 'Make', 'e.g. Toyota'),
             const SizedBox(height: 12),
-            _field(palette, _model, 'Model', 'e.g. Hilux'),
+            _field(_model, 'Model', 'e.g. Hilux'),
             const SizedBox(height: 12),
-            _field(palette, _plate, 'Plate number', 'N12345W'),
+            _field(_plate, 'Plate number', 'N12345W'),
             const SizedBox(height: 12),
-            _field(palette, _year, 'Year', '2024', keyboardType: TextInputType.number),
+            _field(_year, 'Year', '2024', keyboardType: TextInputType.number),
           ],
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: palette.primary)),
-        ),
+        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: _saving ? null : _save,
           style: ElevatedButton.styleFrom(backgroundColor: BoostDriveTheme.primaryColor),
@@ -102,33 +95,18 @@ class _AddFleetVehicleDialogState extends ConsumerState<AddFleetVehicleDialog> {
     );
   }
 
-  Widget _field(
-    DashboardPalette palette,
-    TextEditingController c,
-    String label,
-    String hint, {
-    TextInputType? keyboardType,
-  }) {
+  Widget _field(TextEditingController c, String label, String hint, {TextInputType? keyboardType}) {
     return TextField(
       controller: c,
       keyboardType: keyboardType,
-      style: TextStyle(color: palette.onBackground),
-      cursorColor: palette.onBackground,
+      style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: TextStyle(color: palette.muted),
-        hintStyle: TextStyle(color: palette.muted.withValues(alpha: 0.7)),
-        filled: true,
-        fillColor: palette.surfaceContainer,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: palette.outlineVariant.withValues(alpha: 0.5)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: palette.primary, width: 2),
-        ),
+        labelStyle: TextStyle(color: BoostDriveTheme.textDim),
+        hintStyle: TextStyle(color: BoostDriveTheme.textDim.withValues(alpha: 0.5)),
+        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: BoostDriveTheme.primaryColor)),
       ),
     );
   }

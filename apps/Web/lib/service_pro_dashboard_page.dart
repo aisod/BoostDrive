@@ -207,7 +207,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 2, child: _buildMainContent(userId)),
+                  Expanded(flex: 2, child: _buildMainContent()),
                   const SizedBox(width: 40),
                   Expanded(flex: 1, child: _buildSideContent()),
                 ],
@@ -215,7 +215,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
             else
               Column(
                 children: [
-                  _buildMainContent(userId),
+                  _buildMainContent(),
                   const SizedBox(height: 40),
                   _buildSideContent(),
                 ],
@@ -824,32 +824,7 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 
-  static const List<Map<String, dynamic>> _carlosDemoActiveServices = [
-    {
-      'name': 'Mobile Mechanic',
-      'category': 'mechanic',
-      'description': 'On-site diagnostics, repairs, and maintenance at your location.',
-      'price': 650.0,
-      'estimated_minutes': 45,
-      'is_active': true,
-    },
-    {
-      'name': 'Towing Services',
-      'category': 'towing',
-      'description': 'Safe towing within Windhoek and nearby service areas.',
-      'price': 900.0,
-      'estimated_minutes': 60,
-      'is_active': true,
-    },
-  ];
-
-  static bool _isCarlosMechanicalDemo(UserProfile profile) {
-    final display = profile.displayName.toLowerCase();
-    final business = (profile.registeredBusinessName ?? '').toLowerCase();
-    return display.contains('carlos mechanical') || business.contains('carlos mechanical');
-  }
-
-  Widget _buildMainContent(String userId) {
+  Widget _buildMainContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -859,151 +834,8 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
         const SizedBox(height: 40),
         _buildSectionHeader('Active Services', Icons.settings_outlined),
         const SizedBox(height: 24),
-        _buildActiveServicesSection(userId),
+        _buildActiveServicesEmpty(),
       ],
-    );
-  }
-
-  Widget _buildActiveServicesSection(String userId) {
-    final palette = DashboardPalette.of(context);
-    final profile = ref.watch(userProfileProvider(userId)).value;
-    final servicesAsync = ref.watch(_dashboardProviderServicesProvider(userId));
-
-    return servicesAsync.when(
-      data: (rows) {
-        var activeRows = rows.where((r) => r['is_active'] != false).toList();
-        if (activeRows.isEmpty && profile != null && _isCarlosMechanicalDemo(profile)) {
-          activeRows = List<Map<String, dynamic>>.from(_carlosDemoActiveServices);
-        }
-        if (activeRows.isEmpty) return _buildActiveServicesEmpty();
-        return _buildActiveServicesList(palette, activeRows);
-      },
-      loading: () => Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 48),
-          child: CircularProgressIndicator(color: palette.primary),
-        ),
-      ),
-      error: (_, __) {
-        if (profile != null && _isCarlosMechanicalDemo(profile)) {
-          return _buildActiveServicesList(palette, _carlosDemoActiveServices);
-        }
-        return _buildActiveServicesEmpty();
-      },
-    );
-  }
-
-  Widget _buildActiveServicesList(DashboardPalette palette, List<Map<String, dynamic>> services) {
-    return Column(
-      children: [
-        for (var i = 0; i < services.length; i++) ...[
-          if (i > 0) const SizedBox(height: 12),
-          _buildActiveServiceCard(palette, services[i]),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildActiveServiceCard(DashboardPalette palette, Map<String, dynamic> row) {
-    final name = row['name']?.toString().trim();
-    final label = (name == null || name.isEmpty) ? 'Unnamed service' : name;
-    final category = (row['category']?.toString() ?? 'mechanic').toLowerCase();
-    final description = row['description']?.toString().trim() ?? '';
-    final price = row['price'];
-    final priceLabel = price is num ? 'N\$${price.toStringAsFixed(0)}' : '';
-    final minutes = row['estimated_minutes'];
-    final minutesLabel = minutes is num ? '${minutes.round()} min est.' : '';
-    final isTowing = category.contains('tow');
-    final icon = isTowing ? Icons.local_shipping_outlined : Icons.build_circle_outlined;
-    final categoryLabel = isTowing ? 'Towing' : 'Mechanic';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: ProviderDashboardUi.surfaceCard(palette),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: palette.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: palette.primary, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(label, style: DashboardTypography.labelLg(palette)),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: palette.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        categoryLabel.toUpperCase(),
-                        style: DashboardTypography.labelMd(palette).copyWith(
-                          color: palette.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (description.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(description, style: DashboardTypography.bodySm(palette)),
-                ],
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (priceLabel.isNotEmpty)
-                      Text(
-                        priceLabel,
-                        style: DashboardTypography.labelMd(palette).copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: palette.primary,
-                        ),
-                      ),
-                    if (minutesLabel.isNotEmpty)
-                      Text(minutesLabel, style: DashboardTypography.labelMd(palette)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: palette.successSurface,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'ACTIVE',
-                        style: DashboardTypography.labelMd(palette).copyWith(
-                          color: palette.success,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1529,8 +1361,3 @@ class _ServiceProDashboardPageState extends ConsumerState<ServiceProDashboardPag
     );
   }
 }
-
-final _dashboardProviderServicesProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, uid) async {
-  return ref.read(providerOpsServiceProvider).listProviderServices(uid);
-});
